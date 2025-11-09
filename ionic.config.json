@@ -1,0 +1,7 @@
+{
+  "name": "CrediLink",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular"
+}
