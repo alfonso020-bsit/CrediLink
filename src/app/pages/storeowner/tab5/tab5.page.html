@@ -1,0 +1,471 @@
+<ion-header [translucent]="true">
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-menu-button></ion-menu-button>
+    </ion-buttons>
+    <ion-title>Manage Employees</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="refreshEmployees()">
+        <ion-icon slot="icon-only" name="refresh"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="ion-padding">
+  
+  <!-- Add/Edit Employee Section -->
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>
+        {{ formMode === 'create' ? 'Add New Employee' : 'Edit Employee' }}
+        <ion-badge *ngIf="formMode === 'edit'" color="primary">Editing</ion-badge>
+      </ion-card-title>
+      <ion-card-subtitle>
+        {{ formMode === 'create' ? 'Create account for your store employee' : 'Update employee information' }}
+      </ion-card-subtitle>
+      <ion-buttons slot="end" *ngIf="formMode === 'edit'">
+        <ion-button fill="clear" color="medium" (click)="resetForm()">
+          <ion-icon slot="icon-only" name="close"></ion-icon>
+          Cancel Edit
+        </ion-button>
+      </ion-buttons>
+    </ion-card-header>
+    <ion-card-content>
+      
+      <form #employeeForm="ngForm" (ngSubmit)="onSubmit(employeeForm)">
+        
+        <!-- Username Field -->
+        <div class="form-group">
+          <label class="form-label">Username *</label>
+          <div class="input-field">
+            <ion-icon name="person-circle" class="field-icon"></ion-icon>
+            <input 
+              type="text" 
+              name="username" 
+              ngModel 
+              required 
+              minlength="3"
+              placeholder="Enter username"
+              class="form-input"
+              [disabled]="formMode === 'edit'">
+            <ion-note *ngIf="formMode === 'edit'" color="medium">
+              Username cannot be changed
+            </ion-note>
+          </div>
+        </div>
+
+        <!-- Full Name Field -->
+        <div class="form-group">
+          <label class="form-label">Full Name *</label>
+          <div class="input-field">
+            <ion-icon name="person" class="field-icon"></ion-icon>
+            <input 
+              type="text" 
+              name="full_name" 
+              ngModel 
+              required 
+              minlength="3"
+              placeholder="Enter full name"
+              class="form-input">
+          </div>
+        </div>
+
+        <!-- Email Field -->
+        <div class="form-group">
+          <label class="form-label">Email <span class="optional">(Optional)</span></label>
+          <div class="input-field">
+            <ion-icon name="mail" class="field-icon"></ion-icon>
+            <input 
+              type="email" 
+              name="email" 
+              ngModel
+              placeholder="Enter email address"
+              class="form-input">
+          </div>
+        </div>
+
+        <!-- Phone Number Field -->
+        <div class="form-group">
+          <label class="form-label">Phone Number <span class="optional">(Optional)</span></label>
+          <div class="input-field">
+            <ion-icon name="call" class="field-icon"></ion-icon>
+            <input 
+              type="tel" 
+              name="phone_number" 
+              ngModel
+              placeholder="Enter phone number"
+              class="form-input">
+          </div>
+        </div>
+
+        <!-- Address Fields -->
+        <div class="form-group">
+          <label class="form-label">Region *</label>
+          <div class="input-field" [class.loading]="isLoadingLocations">
+            <ion-icon name="location" class="field-icon"></ion-icon>
+            <input 
+              type="text" 
+              [value]="getRegionName(selectedRegion)"
+              (click)="openRegionSelection()"
+              readonly
+              placeholder="Select Region"
+              class="form-input clickable-input">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Province *</label>
+          <div class="input-field">
+            <ion-icon name="location" class="field-icon"></ion-icon>
+            <input 
+              type="text" 
+              [value]="selectedProvince"
+              (click)="openProvinceSelection()"
+              [disabled]="!selectedRegion"
+              readonly
+              placeholder="{{ !selectedRegion ? 'Select region first' : 'Select Province' }}"
+              class="form-input clickable-input">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Municipality/City *</label>
+          <div class="input-field">
+            <ion-icon name="business" class="field-icon"></ion-icon>
+            <input 
+              type="text" 
+              [value]="selectedMunicipality"
+              (click)="openMunicipalitySelection()"
+              [disabled]="!selectedProvince"
+              readonly
+              placeholder="{{ !selectedProvince ? 'Select province first' : 'Select Municipality/City' }}"
+              class="form-input clickable-input">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Barangay *</label>
+          <div class="input-field">
+            <ion-icon name="home" class="field-icon"></ion-icon>
+            <input 
+              type="text" 
+              [value]="selectedBarangay"
+              (click)="openBarangaySelection()"
+              [disabled]="!selectedMunicipality"
+              readonly
+              placeholder="{{ !selectedMunicipality ? 'Select municipality first' : 'Select Barangay' }}"
+              class="form-input clickable-input">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Sitio/Purok <span class="optional">(Optional)</span></label>
+          <div class="input-field">
+            <ion-icon name="navigate" class="field-icon"></ion-icon>
+            <input 
+              type="text" 
+              name="sitio_purok" 
+              ngModel 
+              placeholder="Enter sitio/purok"
+              class="form-input">
+          </div>
+        </div>
+
+        <!-- Password Fields (Only for Create Mode) -->
+        <div *ngIf="formMode === 'create'">
+          <!-- Password Field -->
+          <div class="form-group">
+            <label class="form-label">Password *</label>
+            <div class="input-field">
+              <ion-icon name="lock-closed" class="field-icon"></ion-icon>
+              <input 
+                [type]="showPassword ? 'text' : 'password'" 
+                name="password" 
+                ngModel 
+                required 
+                minlength="6"
+                placeholder="Enter password"
+                class="form-input">
+              <button 
+                type="button"
+                class="toggle-btn"
+                (click)="togglePassword()">
+                <ion-icon [name]="showPassword ? 'eye-off' : 'eye'"></ion-icon>
+              </button>
+            </div>
+          </div>
+
+          <!-- Confirm Password Field -->
+          <div class="form-group">
+            <label class="form-label">Confirm Password *</label>
+            <div class="input-field">
+              <ion-icon name="lock-closed" class="field-icon"></ion-icon>
+              <input 
+                [type]="showPassword ? 'text' : 'password'" 
+                name="confirmPassword" 
+                ngModel 
+                required 
+                minlength="6"
+                placeholder="Re-enter password"
+                class="form-input">
+            </div>
+          </div>
+        </div>
+
+        <!-- Password Note for Edit Mode -->
+        <div *ngIf="formMode === 'edit'" class="info-note">
+          <ion-icon name="information-circle" color="primary"></ion-icon>
+          <span>Password cannot be changed here. Use password reset feature if needed.</span>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+          <ion-button 
+            expand="block" 
+            type="submit" 
+            [disabled]="!isFormValid() || isLoading"
+            class="submit-btn"
+            [color]="formMode === 'create' ? 'primary' : 'success'">
+            <ion-spinner *ngIf="isLoading" slot="start"></ion-spinner>
+            <ion-icon *ngIf="!isLoading" 
+              [name]="formMode === 'create' ? 'person-add' : 'checkmark'" 
+              slot="start"></ion-icon>
+            {{ isLoading ? 
+              (formMode === 'create' ? 'Creating Employee...' : 'Updating Employee...') : 
+              (formMode === 'create' ? 'Create Employee Account' : 'Update Employee Account') }}
+          </ion-button>
+
+          <ion-button 
+            *ngIf="formMode === 'edit'"
+            expand="block" 
+            fill="outline" 
+            color="medium"
+            (click)="resetForm()"
+            class="cancel-btn">
+            <ion-icon name="close" slot="start"></ion-icon>
+            Cancel
+          </ion-button>
+        </div>
+
+      </form>
+
+    </ion-card-content>
+  </ion-card>
+
+  <!-- Employees List -->
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>My Employees ({{ employees.length }})</ion-card-title>
+      <ion-card-subtitle>Slide left on employee to see actions</ion-card-subtitle>
+    </ion-card-header>
+    <ion-card-content>
+      
+      <!-- Loading State -->
+      <div *ngIf="isLoadingEmployees" class="loading-container">
+        <ion-spinner></ion-spinner>
+        <p>Loading employees...</p>
+      </div>
+
+      <!-- Empty State -->
+      <div *ngIf="!isLoadingEmployees && employees.length === 0" class="empty-state">
+        <ion-icon name="people-outline" size="large" color="medium"></ion-icon>
+        <h3>No Employees Yet</h3>
+        <p>Add your first employee to get started</p>
+      </div>
+
+      <!-- Employees List -->
+      <ion-list lines="full" *ngIf="!isLoadingEmployees && employees.length > 0">
+        <ion-item-sliding *ngFor="let employee of employees">
+          <ion-item [class.editing]="editingEmployeeId === employee.id">
+            <ion-avatar slot="start">
+              <ion-icon name="person-circle" size="large" 
+                [color]="employee.status === 'active' ? 'primary' : 'medium'"></ion-icon>
+            </ion-avatar>
+            <ion-label>
+              <h3>
+                {{ employee.full_name }}
+                <ion-badge *ngIf="editingEmployeeId === employee.id" color="primary" size="small">
+                  Editing
+                </ion-badge>
+              </h3>
+              <p><strong>Username:</strong> {{ employee.username }}</p>
+              <p><strong>Email:</strong> {{ employee.email || 'Not provided' }}</p>
+              <p><strong>Phone:</strong> {{ employee.phone_number || 'Not provided' }}</p>
+              <p><strong>Address:</strong> {{ employee.barangay }}, {{ employee.municipality }}, {{ employee.province }}</p>
+              <p><strong>Created:</strong> {{ employee.created_at?.toDate() | date:'MMM d, y' }}</p>
+              <ion-badge [color]="employee.status === 'active' ? 'success' : 'danger'">
+                {{ employee.status | uppercase }}
+              </ion-badge>
+            </ion-label>
+            <ion-note slot="end" class="employee-status">
+              <ion-icon 
+                [name]="employee.status === 'active' ? 'checkmark-circle' : 'close-circle'" 
+                [color]="employee.status === 'active' ? 'success' : 'danger'">
+              </ion-icon>
+            </ion-note>
+          </ion-item>
+
+          <ion-item-options side="end">
+            <ion-item-option color="primary" (click)="editEmployee(employee)">
+              <ion-icon slot="icon-only" name="create"></ion-icon>
+              Edit
+            </ion-item-option>
+            <ion-item-option 
+              [color]="employee.status === 'active' ? 'warning' : 'success'" 
+              (click)="toggleEmployeeStatus(employee)">
+              <ion-icon 
+                slot="icon-only" 
+                [name]="employee.status === 'active' ? 'lock-closed' : 'lock-open'">
+              </ion-icon>
+              {{ employee.status === 'active' ? 'Deactivate' : 'Activate' }}
+            </ion-item-option>
+            <ion-item-option color="danger" (click)="deleteEmployee(employee)">
+              <ion-icon slot="icon-only" name="trash"></ion-icon>
+              Delete
+            </ion-item-option>
+          </ion-item-options>
+        </ion-item-sliding>
+      </ion-list>
+
+    </ion-card-content>
+  </ion-card>
+
+</ion-content>
+
+<!-- Selection Modals -->
+<ion-modal [isOpen]="showRegionModal" (didDismiss)="closeRegionSelection()">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>Select Region</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="closeRegionSelection()">
+            <ion-icon name="close"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+      <ion-toolbar>
+        <ion-searchbar 
+          [(ngModel)]="searchRegion"
+          (ionInput)="onRegionSearch()"
+          placeholder="Search region..."
+          animated>
+        </ion-searchbar>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content>
+      <ion-list>
+        <ion-item 
+          *ngFor="let region of filteredRegions" 
+          (click)="selectRegion(region.code)"
+          [class.selected]="selectedRegion === region.code">
+          <ion-label>{{ region.name }}</ion-label>
+          <ion-icon *ngIf="selectedRegion === region.code" name="checkmark" slot="end" color="primary"></ion-icon>
+        </ion-item>
+      </ion-list>
+    </ion-content>
+  </ng-template>
+</ion-modal>
+
+<ion-modal [isOpen]="showProvinceModal" (didDismiss)="closeProvinceSelection()">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>Select Province</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="closeProvinceSelection()">
+            <ion-icon name="close"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+      <ion-toolbar>
+        <ion-searchbar 
+          [(ngModel)]="searchProvince"
+          (ionInput)="onProvinceSearch()"
+          placeholder="Search province..."
+          animated>
+        </ion-searchbar>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content>
+      <ion-list>
+        <ion-item 
+          *ngFor="let province of filteredProvinces" 
+          (click)="selectProvince(province)"
+          [class.selected]="selectedProvince === province">
+          <ion-label>{{ province }}</ion-label>
+          <ion-icon *ngIf="selectedProvince === province" name="checkmark" slot="end" color="primary"></ion-icon>
+        </ion-item>
+      </ion-list>
+    </ion-content>
+  </ng-template>
+</ion-modal>
+
+<ion-modal [isOpen]="showMunicipalityModal" (didDismiss)="closeMunicipalitySelection()">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>Select Municipality/City</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="closeMunicipalitySelection()">
+            <ion-icon name="close"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+      <ion-toolbar>
+        <ion-searchbar 
+          [(ngModel)]="searchMunicipality"
+          (ionInput)="onMunicipalitySearch()"
+          placeholder="Search municipality/city..."
+          animated>
+        </ion-searchbar>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content>
+      <ion-list>
+        <ion-item 
+          *ngFor="let municipality of filteredMunicipalities" 
+          (click)="selectMunicipality(municipality)"
+          [class.selected]="selectedMunicipality === municipality">
+          <ion-label>{{ municipality }}</ion-label>
+          <ion-icon *ngIf="selectedMunicipality === municipality" name="checkmark" slot="end" color="primary"></ion-icon>
+        </ion-item>
+      </ion-list>
+    </ion-content>
+  </ng-template>
+</ion-modal>
+
+<ion-modal [isOpen]="showBarangayModal" (didDismiss)="closeBarangaySelection()">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>Select Barangay</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="closeBarangaySelection()">
+            <ion-icon name="close"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+      <ion-toolbar>
+        <ion-searchbar 
+          [(ngModel)]="searchBarangay"
+          (ionInput)="onBarangaySearch()"
+          placeholder="Search barangay..."
+          animated>
+        </ion-searchbar>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content>
+      <ion-list>
+        <ion-item 
+          *ngFor="let barangay of filteredBarangays" 
+          (click)="selectBarangay(barangay)"
+          [class.selected]="selectedBarangay === barangay">
+          <ion-label>{{ barangay }}</ion-label>
+          <ion-icon *ngIf="selectedBarangay === barangay" name="checkmark" slot="end" color="primary"></ion-icon>
+        </ion-item>
+      </ion-list>
+    </ion-content>
+  </ng-template>
+</ion-modal>

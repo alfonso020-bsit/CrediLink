@@ -1,0 +1,387 @@
+ion-content {
+  --background: #f8f9fa;
+}
+
+.login-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  justify-content: center;
+  max-width: 440px;
+  margin: 0 auto;
+  padding: 20px 0;
+}
+
+// Logo Section
+.logo-section {
+  text-align: center;
+  margin-bottom: 40px;
+  
+  .logo-wrapper {
+    background: white;
+    width: 80px;
+    height: 80px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    border: 1px solid #e9ecef;
+    padding: 8px;
+    
+    .logo-image {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+  }
+  
+  .welcome-title {
+    color: #212529;
+    font-size: 28px;
+    font-weight: 700;
+    margin: 0 0 4px;
+    letter-spacing: -0.5px;
+  }
+  
+  .welcome-subtitle {
+    color: #6c757d;
+    font-size: 14px;
+    margin: 0;
+    font-weight: 400;
+  }
+}
+
+// Login Form
+.login-form {
+  background: white;
+  border-radius: 12px;
+  padding: 32px 28px;
+  border: 1px solid #e9ecef;
+}
+
+// Form Groups
+.form-group {
+  margin-bottom: 24px;
+  
+  .form-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #212529;
+    margin-bottom: 8px;
+  }
+}
+
+// Role Selection
+.role-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  
+  .role-btn {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 16px 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 12px;
+    font-weight: 500;
+    color: #6c757d;
+    
+    ion-icon {
+      font-size: 28px;
+      color: #6c757d;
+      transition: all 0.2s ease;
+    }
+    
+    span {
+      font-size: 12px;
+    }
+    
+    &:hover {
+      background: #e9ecef;
+      border-color: #dee2e6;
+    }
+    
+    &.active {
+      background: var(--ion-color-primary);
+      border-color: var(--ion-color-primary);
+      color: white;
+      
+      ion-icon {
+        color: white;
+      }
+    }
+  }
+}
+
+// Input Fields
+.input-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 0 14px;
+  transition: all 0.2s ease;
+  
+  &:focus-within {
+    background: white;
+    border-color: var(--ion-color-primary);
+  }
+  
+  .field-icon {
+    color: #6c757d;
+    font-size: 20px;
+    margin-right: 10px;
+    flex-shrink: 0;
+  }
+  
+  .form-input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    padding: 14px 0;
+    font-size: 14px;
+    color: #212529;
+    outline: none;
+    
+    &::placeholder {
+      color: #adb5bd;
+    }
+  }
+  
+  .toggle-btn {
+    background: transparent;
+    border: none;
+    padding: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 8px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    
+    ion-icon {
+      font-size: 20px;
+      color: #6c757d;
+    }
+    
+    &:hover {
+      background: #e9ecef;
+    }
+  }
+}
+
+// Forgot Password Link
+.forgot-link {
+  text-align: right;
+  margin-top: 8px;
+  
+  a {
+    color: var(--ion-color-primary);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: none;
+    
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+// Submit Button
+.submit-btn {
+  margin-top: 8px;
+  --border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  height: 48px;
+  text-transform: none;
+  
+  ion-icon {
+    font-size: 18px;
+    margin-right: 4px;
+  }
+}
+
+// Additional Section
+.additional-section {
+  margin-top: 24px;
+}
+
+// Register Section
+.register-section {
+  .divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    margin: 0 0 16px;
+    
+    &::before,
+    &::after {
+      content: '';
+      flex: 1;
+      border-bottom: 1px solid #e9ecef;
+    }
+    
+    span {
+      padding: 0 12px;
+      color: #6c757d;
+      font-size: 12px;
+      font-weight: 500;
+    }
+  }
+  
+  .outline-btn {
+    --border-radius: 8px;
+    --border-width: 1px;
+    font-weight: 600;
+    height: 48px;
+    text-transform: none;
+    font-size: 14px;
+    
+    ion-icon {
+      font-size: 18px;
+      margin-right: 4px;
+    }
+  }
+}
+
+// Info Section
+.info-section {
+  .info-box {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 14px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    
+    ion-icon {
+      font-size: 20px;
+      color: var(--ion-color-primary);
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    
+    p {
+      margin: 0;
+      font-size: 12px;
+      line-height: 1.5;
+      color: #6c757d;
+    }
+  }
+}
+
+// Responsive
+@media (max-width: 576px) {
+  .login-container {
+    padding: 15px 0;
+    max-width: 100%;
+  }
+  
+  .logo-section {
+    margin-bottom: 32px;
+    
+    .logo-wrapper {
+      width: 72px;
+      height: 72px;
+      
+      .logo-image {
+        width: 100%;
+        height: 100%;
+      }
+    }
+    
+    .welcome-title {
+      font-size: 24px;
+    }
+    
+    .welcome-subtitle {
+      font-size: 13px;
+    }
+  }
+  
+  .login-form {
+    padding: 24px 20px;
+  }
+  
+  // Update the role-buttons section in your existing SCSS
+.role-buttons {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); // Change from 3 to 2 columns
+  gap: 8px;
+  
+  .role-btn {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 16px 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 12px;
+    font-weight: 500;
+    color: #6c757d;
+    
+    ion-icon {
+      font-size: 28px;
+      color: #6c757d;
+      transition: all 0.2s ease;
+    }
+    
+    span {
+      font-size: 12px;
+      text-align: center;
+    }
+    
+    &:hover {
+      background: #e9ecef;
+      border-color: #dee2e6;
+    }
+    
+    &.active {
+      background: var(--ion-color-primary);
+      border-color: var(--ion-color-primary);
+      color: white;
+      
+      ion-icon {
+        color: white;
+      }
+    }
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 576px) {
+  .role-buttons {
+    gap: 6px;
+    
+    .role-btn {
+      padding: 14px 6px;
+      
+      ion-icon {
+        font-size: 24px;
+      }
+      
+      span {
+        font-size: 11px;
+      }
+    }
+  }
+}
+}

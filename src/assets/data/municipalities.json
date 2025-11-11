@@ -1,0 +1,19 @@
+[
+  { "code": "175101", "name": "Boac", "provinceCode": "1751" },
+  { "code": "175102", "name": "Buenavista", "provinceCode": "1751" },
+  { "code": "175103", "name": "Gasan", "provinceCode": "1751" },
+  { "code": "175104", "name": "Mogpog", "provinceCode": "1751" },
+  { "code": "175105", "name": "Santa Cruz", "provinceCode": "1751" },
+  { "code": "175106", "name": "Torrijos", "provinceCode": "1751" },
+  { "code": "175901", "name": "Abra de Ilog", "provinceCode": "1759" },
+  { "code": "175902", "name": "Calintaan", "provinceCode": "1759" },
+  { "code": "175903", "name": "Looc", "provinceCode": "1759" },
+  { "code": "175904", "name": "Lubang", "provinceCode": "1759" },
+  { "code": "175905", "name": "Magsaysay", "provinceCode": "1759" },
+  { "code": "175906", "name": "Mamburao", "provinceCode": "1759" },
+  { "code": "175907", "name": "Paluan", "provinceCode": "1759" },
+  { "code": "175908", "name": "Rizal", "provinceCode": "1759" },
+  { "code": "175909", "name": "Sablayan", "provinceCode": "1759" },
+  { "code": "175910", "name": "San Jose", "provinceCode": "1759" },
+  { "code": "175911", "name": "Santa Cruz", "provinceCode": "1759" }
+]

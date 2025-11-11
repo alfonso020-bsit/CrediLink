@@ -1,0 +1,390 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/home"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Registration</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <div class="register-container">
+    <!-- Logo Section -->
+    <div class="logo-section">
+      <div class="logo-wrapper">
+        <img src="assets/logo.jpg" alt="CrediLink Logo" class="logo-image">
+      </div>
+      <h1 class="register-title">Create Account</h1>
+      <p class="register-subtitle">Choose your account type and register</p>
+    </div>
+
+    <!-- Role Selection Toggle -->
+    <div class="role-toggle-container">
+      <div class="role-toggle">
+        <button 
+          type="button"
+          class="role-option"
+          [class.active]="selectedRole === 'Customer'"
+          (click)="selectRole('Customer')">
+          <ion-icon name="person"></ion-icon>
+          <span>Customer</span>
+        </button>
+        <button 
+          type="button"
+          class="role-option"
+          [class.active]="selectedRole === 'StoreOwner'"
+          (click)="selectRole('StoreOwner')">
+          <ion-icon name="storefront"></ion-icon>
+          <span>Store Owner</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Registration Form -->
+    <div class="register-form">
+      <form #registerForm="ngForm" (ngSubmit)="onRegister(registerForm)">
+        
+        <!-- Username Field -->
+        <div class="form-group">
+          <label class="form-label">Username *</label>
+          <div class="input-field">
+            <ion-icon name="person-circle" class="field-icon"></ion-icon>
+            <input 
+              type="text" 
+              name="username" 
+              ngModel 
+              required 
+              minlength="3"
+              placeholder="Enter username"
+              class="form-input">
+          </div>
+        </div>
+
+        <!-- Full Name Field -->
+        <div class="form-group">
+          <label class="form-label">Full Name *</label>
+          <div class="input-field">
+            <ion-icon name="person" class="field-icon"></ion-icon>
+            <input 
+              type="text" 
+              name="fullName" 
+              ngModel 
+              required 
+              minlength="3"
+              placeholder="Enter full name"
+              class="form-input">
+          </div>
+        </div>
+
+        <!-- Email Field -->
+        <div class="form-group">
+          <label class="form-label">Email <span class="optional">(Optional)</span></label>
+          <div class="input-field">
+            <ion-icon name="mail" class="field-icon"></ion-icon>
+            <input 
+              type="email" 
+              name="email" 
+              ngModel
+              placeholder="Enter email address"
+              class="form-input">
+          </div>
+        </div>
+
+        <!-- Phone Number Field -->
+        <div class="form-group">
+          <label class="form-label">Phone Number <span class="optional">(Optional)</span></label>
+          <div class="input-field">
+            <ion-icon name="call" class="field-icon"></ion-icon>
+            <input 
+              type="tel" 
+              name="phoneNumber" 
+              ngModel
+              placeholder="Enter phone number"
+              class="form-input">
+          </div>
+        </div>
+
+        <!-- Address Fields -->
+        <div class="form-group">
+          <label class="form-label">Region *</label>
+          <div class="input-field" [class.loading]="isLoadingLocations">
+            <ion-icon name="location" class="field-icon"></ion-icon>
+            <input 
+              type="text" 
+              [value]="getRegionName(selectedRegion)"
+              (click)="openRegionSelection()"
+              readonly
+              placeholder="Select Region"
+              class="form-input clickable-input">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Province *</label>
+          <div class="input-field">
+            <ion-icon name="location" class="field-icon"></ion-icon>
+            <input 
+              type="text" 
+              [value]="selectedProvince"
+              (click)="openProvinceSelection()"
+              [disabled]="!selectedRegion"
+              readonly
+              placeholder="{{ !selectedRegion ? 'Select region first' : 'Select Province' }}"
+              class="form-input clickable-input">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Municipality/City *</label>
+          <div class="input-field">
+            <ion-icon name="business" class="field-icon"></ion-icon>
+            <input 
+              type="text" 
+              [value]="selectedMunicipality"
+              (click)="openMunicipalitySelection()"
+              [disabled]="!selectedProvince"
+              readonly
+              placeholder="{{ !selectedProvince ? 'Select province first' : 'Select Municipality/City' }}"
+              class="form-input clickable-input">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Barangay *</label>
+          <div class="input-field">
+            <ion-icon name="home" class="field-icon"></ion-icon>
+            <input 
+              type="text" 
+              [value]="selectedBarangay"
+              (click)="openBarangaySelection()"
+              [disabled]="!selectedMunicipality"
+              readonly
+              placeholder="{{ !selectedMunicipality ? 'Select municipality first' : 'Select Barangay' }}"
+              class="form-input clickable-input">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Sitio/Purok <span class="optional">(Optional)</span></label>
+          <div class="input-field">
+            <ion-icon name="navigate" class="field-icon"></ion-icon>
+            <input 
+              type="text" 
+              name="sitioPurok" 
+              ngModel 
+              placeholder="Enter sitio/purok"
+              class="form-input">
+          </div>
+        </div>
+
+        <!-- Password Field -->
+        <div class="form-group">
+          <label class="form-label">Password *</label>
+          <div class="input-field">
+            <ion-icon name="lock-closed" class="field-icon"></ion-icon>
+            <input 
+              [type]="showPassword ? 'text' : 'password'" 
+              name="password" 
+              ngModel 
+              required 
+              minlength="6"
+              placeholder="Enter password"
+              class="form-input">
+            <button 
+              type="button"
+              class="toggle-btn"
+              (click)="togglePassword()">
+              <ion-icon [name]="showPassword ? 'eye-off' : 'eye'"></ion-icon>
+            </button>
+          </div>
+        </div>
+
+        <!-- Confirm Password Field -->
+        <div class="form-group">
+          <label class="form-label">Confirm Password *</label>
+          <div class="input-field">
+            <ion-icon name="lock-closed" class="field-icon"></ion-icon>
+            <input 
+              [type]="showPassword ? 'text' : 'password'" 
+              name="confirmPassword" 
+              ngModel 
+              required 
+              minlength="6"
+              placeholder="Re-enter password"
+              class="form-input">
+          </div>
+        </div>
+
+        <!-- Role Info -->
+        <div class="info-section">
+          <div class="info-box">
+            <ion-icon [name]="selectedRole === 'Customer' ? 'information-circle' : 'storefront'"></ion-icon>
+            <p>You are registering as a <strong>{{ selectedRole === 'Customer' ? 'Customer' : 'Store Owner' }}</strong></p>
+          </div>
+        </div>
+
+        <!-- Register Button -->
+        <ion-button 
+          expand="block" 
+          type="submit" 
+          [disabled]="!registerForm.valid"
+          class="submit-btn">
+          <ion-icon name="person-add" slot="start"></ion-icon>
+          Create Account
+        </ion-button>
+      </form>
+
+      <!-- Login Link -->
+      <div class="login-section">
+        <div class="divider">
+          <span>Already have an account?</span>
+        </div>
+        <ion-button 
+          expand="block" 
+          fill="outline" 
+          (click)="goToLogin()"
+          class="outline-btn">
+          <ion-icon name="log-in" slot="start"></ion-icon>
+          Login
+        </ion-button>
+      </div>
+    </div>
+  </div>
+</ion-content>
+
+<!-- Selection Modals -->
+<ion-modal [isOpen]="showRegionModal" (didDismiss)="closeRegionSelection()">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>Select Region</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="closeRegionSelection()">
+            <ion-icon name="close"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+      <ion-toolbar>
+        <ion-searchbar 
+          [(ngModel)]="searchRegion"
+          (ionInput)="onRegionSearch()"
+          placeholder="Search region..."
+          animated>
+        </ion-searchbar>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content>
+      <ion-list>
+        <ion-item 
+          *ngFor="let region of filteredRegions" 
+          (click)="selectRegion(region.code)"
+          [class.selected]="selectedRegion === region.code">
+          <ion-label>{{ region.name }}</ion-label>
+          <ion-icon *ngIf="selectedRegion === region.code" name="checkmark" slot="end" color="primary"></ion-icon>
+        </ion-item>
+      </ion-list>
+    </ion-content>
+  </ng-template>
+</ion-modal>
+
+<ion-modal [isOpen]="showProvinceModal" (didDismiss)="closeProvinceSelection()">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>Select Province</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="closeProvinceSelection()">
+            <ion-icon name="close"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+      <ion-toolbar>
+        <ion-searchbar 
+          [(ngModel)]="searchProvince"
+          (ionInput)="onProvinceSearch()"
+          placeholder="Search province..."
+          animated>
+        </ion-searchbar>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content>
+      <ion-list>
+        <ion-item 
+          *ngFor="let province of filteredProvinces" 
+          (click)="selectProvince(province)"
+          [class.selected]="selectedProvince === province">
+          <ion-label>{{ province }}</ion-label>
+          <ion-icon *ngIf="selectedProvince === province" name="checkmark" slot="end" color="primary"></ion-icon>
+        </ion-item>
+      </ion-list>
+    </ion-content>
+  </ng-template>
+</ion-modal>
+
+<ion-modal [isOpen]="showMunicipalityModal" (didDismiss)="closeMunicipalitySelection()">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>Select Municipality/City</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="closeMunicipalitySelection()">
+            <ion-icon name="close"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+      <ion-toolbar>
+        <ion-searchbar 
+          [(ngModel)]="searchMunicipality"
+          (ionInput)="onMunicipalitySearch()"
+          placeholder="Search municipality/city..."
+          animated>
+        </ion-searchbar>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content>
+      <ion-list>
+        <ion-item 
+          *ngFor="let municipality of filteredMunicipalities" 
+          (click)="selectMunicipality(municipality)"
+          [class.selected]="selectedMunicipality === municipality">
+          <ion-label>{{ municipality }}</ion-label>
+          <ion-icon *ngIf="selectedMunicipality === municipality" name="checkmark" slot="end" color="primary"></ion-icon>
+        </ion-item>
+      </ion-list>
+    </ion-content>
+  </ng-template>
+</ion-modal>
+
+<ion-modal [isOpen]="showBarangayModal" (didDismiss)="closeBarangaySelection()">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>Select Barangay</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="closeBarangaySelection()">
+            <ion-icon name="close"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+      <ion-toolbar>
+        <ion-searchbar 
+          [(ngModel)]="searchBarangay"
+          (ionInput)="onBarangaySearch()"
+          placeholder="Search barangay..."
+          animated>
+        </ion-searchbar>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content>
+      <ion-list>
+        <ion-item 
+          *ngFor="let barangay of filteredBarangays" 
+          (click)="selectBarangay(barangay)"
+          [class.selected]="selectedBarangay === barangay">
+          <ion-label>{{ barangay }}</ion-label>
+          <ion-icon *ngIf="selectedBarangay === barangay" name="checkmark" slot="end" color="primary"></ion-icon>
+        </ion-item>
+      </ion-list>
+    </ion-content>
+  </ng-template>
+</ion-modal>

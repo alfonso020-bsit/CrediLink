@@ -1,20 +1,87 @@
 <ion-header [translucent]="true">
-  <ion-toolbar>
-    <ion-title>
-      Blank
-    </ion-title>
+  <ion-toolbar color="primary">
+    <ion-title>CrediLink</ion-title>
   </ion-toolbar>
 </ion-header>
 
 <ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">Blank</ion-title>
-    </ion-toolbar>
-  </ion-header>
+  <div class="home-container">
+    
+    <!-- Hero Section -->
+    <div class="hero-section">
+      <div class="hero-content">
+        <div class="logo-wrapper">
+          <img src="assets/logo.jpg" alt="CrediLink Logo" class="logo-image">
+        </div>
+        <h1 class="hero-title">CrediLink</h1>
+        <p class="hero-subtitle">Sari-Sari Store Management System</p>
+        <p class="hero-description">
+          Simplify your store operations with efficient debt tracking and inventory management
+        </p>
+      </div>
+    </div>
 
-  <div id="container">
-    <strong>Ready to create an app?</strong>
-    <p>Start with Ionic <a target="_blank" rel="noopener noreferrer" href="https://ionicframework.com/docs/components">UI Components</a></p>
+    <!-- Features Section -->
+    <div class="features-section">
+      <div class="features-grid">
+        <div class="feature-card">
+          <ion-icon name="receipt" class="feature-icon"></ion-icon>
+          <h3>POS System</h3>
+          <p>Fast and efficient point-of-sale transactions</p>
+        </div>
+
+        <div class="feature-card">
+          <ion-icon name="people" class="feature-icon"></ion-icon>
+          <h3>Debt Tracking</h3>
+          <p>Monitor customer debts and payment history</p>
+        </div>
+
+        <div class="feature-card">
+          <ion-icon name="cube" class="feature-icon"></ion-icon>
+          <h3>Inventory</h3>
+          <p>Track products and stock levels in real-time</p>
+        </div>
+
+        <div class="feature-card">
+          <ion-icon name="bar-chart" class="feature-icon"></ion-icon>
+          <h3>Reports</h3>
+          <p>View sales and earnings with analytics</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- CTA Section -->
+    <div class="cta-section">
+      <div class="cta-content">
+        <h2 class="cta-title">Get Started Today</h2>
+        <p class="cta-text">Join store owners managing their business efficiently</p>
+        
+        <div class="action-buttons">
+          <ion-button 
+            expand="block" 
+            color="primary"
+            (click)="goToLogin()"
+            class="action-btn">
+            <ion-icon name="log-in" slot="start"></ion-icon>
+            Login
+          </ion-button>
+
+          <ion-button 
+            expand="block" 
+            fill="outline"
+            color="primary"
+            (click)="goToRegister()"
+            class="action-btn">
+            <ion-icon name="person-add" slot="start"></ion-icon>
+            Register
+          </ion-button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <p>&copy; 2024 CrediLink. All rights reserved.</p>
+    </div>
   </div>
 </ion-content>

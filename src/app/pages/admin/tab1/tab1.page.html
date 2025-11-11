@@ -1,0 +1,103 @@
+<ion-header [translucent]="true">
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-menu-button></ion-menu-button>
+    </ion-buttons>
+    <ion-title>Platform Dashboard</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="refreshData()">
+        <ion-icon slot="icon-only" name="refresh"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="ion-padding">
+  
+  <!-- Platform Overview Cards -->
+  <div class="stats-grid">
+    
+    <!-- Total Stores -->
+    <ion-card class="stat-card">
+      <ion-card-content>
+        <div class="stat-item">
+          <ion-icon name="business" color="primary" class="stat-icon"></ion-icon>
+          <div class="stat-info">
+            <h3>{{ platformStats.totalStores }}</h3>
+            <p>Total Stores</p>
+          </div>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Active Stores -->
+    <ion-card class="stat-card">
+      <ion-card-content>
+        <div class="stat-item">
+          <ion-icon name="checkmark-circle" color="success" class="stat-icon"></ion-icon>
+          <div class="stat-info">
+            <h3>{{ platformStats.activeStores }}</h3>
+            <p>Active Stores</p>
+          </div>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Total Employees -->
+    <ion-card class="stat-card">
+      <ion-card-content>
+        <div class="stat-item">
+          <ion-icon name="people" color="warning" class="stat-icon"></ion-icon>
+          <div class="stat-info">
+            <h3>{{ platformStats.totalEmployees }}</h3>
+            <p>Employees</p>
+          </div>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Total Customers -->
+    <ion-card class="stat-card">
+      <ion-card-content>
+        <div class="stat-item">
+          <ion-icon name="person" color="tertiary" class="stat-icon"></ion-icon>
+          <div class="stat-info">
+            <h3>{{ platformStats.totalCustomers }}</h3>
+            <p>Customers</p>
+          </div>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+  </div>
+
+  <!-- Quick Actions -->
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>Quick Actions</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <div class="actions-grid">
+        <ion-button expand="block" color="primary" routerLink="/admin/tabs/stores">
+          <ion-icon name="business" slot="start"></ion-icon>
+          Manage Stores
+        </ion-button>
+        <ion-button expand="block" color="secondary" routerLink="/admin/tabs/users">
+          <ion-icon name="people" slot="start"></ion-icon>
+          View All Users
+        </ion-button>
+        <ion-button expand="block" color="tertiary" routerLink="/admin/tabs/analytics">
+          <ion-icon name="analytics" slot="start"></ion-icon>
+          View Analytics
+        </ion-button>
+      </div>
+    </ion-card-content>
+  </ion-card>
+
+  <!-- Loading Spinner -->
+  <div *ngIf="isLoading" class="loading-container">
+    <ion-spinner></ion-spinner>
+    <p>Loading platform data...</p>
+  </div>
+
+</ion-content>

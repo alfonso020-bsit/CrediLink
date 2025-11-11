@@ -1,0 +1,232 @@
+.add-section {
+  margin-bottom: 20px;
+}
+
+.loading-container {
+  text-align: center;
+  padding: 40px;
+  
+  ion-spinner {
+    margin-bottom: 16px;
+  }
+  
+  p {
+    color: var(--ion-color-medium);
+    margin: 0;
+  }
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px;
+  
+  ion-icon {
+    margin-bottom: 16px;
+  }
+  
+  h3 {
+    color: var(--ion-color-medium);
+    margin: 0 0 8px 0;
+  }
+  
+  p {
+    color: var(--ion-color-medium);
+    margin: 0;
+  }
+}
+
+ion-avatar {
+  --border-radius: 50%;
+  
+  ion-icon {
+    font-size: 32px;
+    color: var(--ion-color-primary);
+  }
+}
+
+ion-badge {
+  margin-top: 4px;
+}
+
+// Add these styles to your existing tab5.scss file
+
+// Form Styles (same as registration)
+.form-group {
+  margin-bottom: 20px;
+  
+  .form-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #212529;
+    margin-bottom: 8px;
+    
+    .optional {
+      color: #6c757d;
+      font-weight: 400;
+      font-size: 12px;
+    }
+  }
+}
+
+.input-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 0 14px;
+  transition: all 0.2s ease;
+  
+  &:focus-within {
+    background: white;
+    border-color: var(--ion-color-primary);
+  }
+  
+  .field-icon {
+    color: #6c757d;
+    font-size: 20px;
+    margin-right: 10px;
+    flex-shrink: 0;
+  }
+  
+  .form-input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    padding: 14px 0;
+    font-size: 14px;
+    color: #212529;
+    outline: none;
+    
+    &::placeholder {
+      color: #adb5bd;
+    }
+  }
+  
+  .toggle-btn {
+    background: transparent;
+    border: none;
+    padding: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 8px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    
+    ion-icon {
+      font-size: 20px;
+      color: #6c757d;
+    }
+    
+    &:hover {
+      background: #e9ecef;
+    }
+  }
+}
+
+.clickable-input {
+  cursor: pointer;
+  
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+}
+
+.submit-btn {
+  --border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  height: 48px;
+  text-transform: none;
+  
+  ion-icon {
+    font-size: 18px;
+    margin-right: 4px;
+  }
+}
+
+// Loading and empty states
+.loading-container {
+  text-align: center;
+  padding: 40px;
+  
+  ion-spinner {
+    margin-bottom: 16px;
+  }
+  
+  p {
+    color: var(--ion-color-medium);
+    margin: 0;
+  }
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px;
+  
+  ion-icon {
+    margin-bottom: 16px;
+  }
+  
+  h3 {
+    color: var(--ion-color-medium);
+    margin: 0 0 8px 0;
+  }
+  
+  p {
+    color: var(--ion-color-medium);
+    margin: 0;
+  }
+}
+
+// Modal styles
+ion-modal {
+  --height: 80%;
+  --border-radius: 16px;
+  
+  ion-toolbar {
+    --background: var(--ion-color-primary);
+    --color: white;
+  }
+  
+  ion-searchbar {
+    padding: 8px 16px;
+  }
+  
+  ion-list {
+    padding: 0;
+  }
+  
+  ion-item {
+    --padding-start: 16px;
+    --padding-end: 16px;
+    --min-height: 56px;
+    
+    &.selected {
+      --background: rgba(var(--ion-color-primary-rgb), 0.1);
+      --border-color: var(--ion-color-primary);
+    }
+    
+    ion-label {
+      font-size: 14px;
+      font-weight: 500;
+    }
+    
+    ion-icon[name="checkmark"] {
+      font-size: 20px;
+    }
+  }
+}
+
+// Responsive
+@media (max-width: 576px) {
+  ion-modal {
+    --height: 90%;
+    --border-radius: 12px;
+  }
+}
