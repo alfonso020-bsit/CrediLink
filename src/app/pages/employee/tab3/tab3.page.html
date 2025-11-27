@@ -1,13 +1,1229 @@
 <ion-header [translucent]="true">
-  <ion-toolbar>
-    <ion-title>tab3</ion-title>
+  <ion-toolbar color="primary">
+    <ion-title>Retail Sales</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="toggleContinuousScan()" [color]="isContinuousScan ? 'success' : 'primary'">
+        <ion-icon slot="icon-only" [name]="isContinuousScan ? 'scan-circle' : 'scan'"></ion-icon>
+      </ion-button>
+      <ion-button (click)="openCameraOptions()">
+        <ion-icon slot="icon-only" name="camera"></ion-icon>
+      </ion-button>
+      <ion-button (click)="openBarcodeInput()">
+        <ion-icon slot="icon-only" name="barcode"></ion-icon>
+      </ion-button>
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">tab3</ion-title>
-    </ion-toolbar>
-  </ion-header>
+<ion-content [fullscreen]="true" class="ion-padding">
+  
+  <!-- Continuous Scan Indicator -->
+  <ion-card *ngIf="isContinuousScan" color="success" class="scan-indicator">
+    <ion-card-content class="ion-text-center">
+      <ion-icon name="scan-circle" size="large"></ion-icon>
+      <h3>Continuous Scan Mode</h3>
+      <p>Scan products continuously. Scan will stop automatically after 3 seconds of inactivity.</p>
+      <ion-button fill="outline" color="light" (click)="stopContinuousScan()">
+        Stop Scanning
+      </ion-button>
+    </ion-card-content>
+  </ion-card>
+
+  <!-- Payment Method Selection -->
+  <ion-card class="payment-card">
+    <ion-card-header>
+      <ion-card-title>Payment Method</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <ion-segment [(ngModel)]="paymentMethod" class="payment-segment">
+        <ion-segment-button value="cash">
+          <ion-label class="segment-label">💵 Cash</ion-label>
+        </ion-segment-button>
+        <ion-segment-button value="debt">
+          <ion-label class="segment-label">📝 Debt</ion-label>
+        </ion-segment-button>
+      </ion-segment>
+    </ion-card-content>
+  </ion-card>
+
+  <!-- Barcode Input -->
+  <ion-card *ngIf="showBarcodeInput" class="barcode-card">
+    <ion-card-header>
+      <ion-card-title>Scan Barcode</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <ion-item>
+        <ion-label position="stacked">Barcode Input</ion-label>
+        <ion-input 
+          #barcodeInput
+          type="text" 
+          [(ngModel)]="manualBarcode"
+          (ionInput)="onBarcodeInput()"
+          placeholder="Click here and scan barcode"
+          autofocus>
+        </ion-input>
+        <ion-button slot="end" fill="clear" (click)="showBarcodeInput = false">
+          <ion-icon name="close"></ion-icon>
+        </ion-button>
+      </ion-item>
+      <ion-note color="medium">
+        💡 Tip: Use your physical barcode scanner. The input will automatically detect and add products.
+      </ion-note>
+    </ion-card-content>
+  </ion-card>
+
+  <!-- Product Search Section -->
+  <ion-card *ngIf="showProductSearch" class="search-card">
+    <ion-card-header>
+      <ion-card-title>Search Products</ion-card-title>
+      <ion-card-subtitle>Search by name, category, or custom ID</ion-card-subtitle>
+    </ion-card-header>
+    <ion-card-content>
+      <ion-item>
+        <ion-label position="stacked">Search Products</ion-label>
+        <ion-input 
+          #productSearchInput
+          type="text" 
+          [(ngModel)]="productSearchTerm"
+          (ionInput)="onProductSearch()"
+          placeholder="Enter product name, category, or custom ID"
+          autofocus>
+        </ion-input>
+        <ion-button slot="end" fill="clear" (click)="showProductSearch = false">
+          <ion-icon name="close"></ion-icon>
+        </ion-button>
+      </ion-item>
+
+      <!-- Search Results -->
+      <div *ngIf="searchResults.length > 0" class="search-results">
+        <ion-list lines="full">
+          <ion-item 
+            *ngFor="let product of searchResults" 
+            (click)="openProductOptions(product)"
+            class="search-result-item">
+            <ion-avatar slot="start" class="product-avatar">
+              <img *ngIf="product.image_url" [src]="product.image_url" [alt]="product.name">
+              <div *ngIf="!product.image_url" class="product-avatar-fallback">
+                <ion-icon [name]="getProductIcon(product)"></ion-icon>
+              </div>
+            </ion-avatar>
+            
+            <ion-label class="product-info">
+              <h3 class="product-name">{{ product.name }}</h3>
+              <p class="product-price">{{ formatPrice(product.selling_price) }} per {{ product.unit_of_measure }}</p>
+              <p class="product-stock">Stock: {{ product.stock_quantity }} | {{ product.category }}</p>
+              <div class="product-badges">
+                <ion-badge *ngIf="product.stock_quantity === 0" color="danger" class="stock-badge">
+                  Out of Stock
+                </ion-badge>
+                <ion-badge *ngIf="product.stock_quantity > 0 && product.stock_quantity <= product.min_stock_level" color="warning" class="stock-badge">
+                  Low Stock
+                </ion-badge>
+                <ion-badge *ngIf="hasBulkOptions(product)" color="primary" class="bulk-badge">
+                  Bulk Options
+                </ion-badge>
+              </div>
+            </ion-label>
+
+            <ion-note slot="end" class="product-type">
+              {{ product.has_barcode ? '📊' : '📝' }}
+            </ion-note>
+          </ion-item>
+        </ion-list>
+      </div>
+
+      <!-- No Results -->
+      <div *ngIf="productSearchTerm && searchResults.length === 0" class="no-search-results">
+        <ion-icon name="search-outline" color="medium"></ion-icon>
+        <p>No products found matching "{{ productSearchTerm }}"</p>
+      </div>
+    </ion-card-content>
+  </ion-card>
+
+  <!-- Shopping Cart -->
+  <ion-card class="cart-card">
+    <ion-card-header>
+      <ion-card-title class="cart-title">
+        <span>Shopping Cart ({{ cart.length }} items)</span>
+        <ion-button *ngIf="cart.length > 0" fill="clear" size="small" color="danger" (click)="clearCart()" class="clear-cart-btn">
+          Clear All
+        </ion-button>
+      </ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      
+      <!-- Cart Search -->
+      <div *ngIf="cart.length > 0" class="cart-search">
+        <ion-searchbar 
+          [(ngModel)]="cartSearchTerm"
+          (ionInput)="filterCartItems()"
+          placeholder="Search products in cart..."
+          animated
+          class="cart-searchbar">
+        </ion-searchbar>
+      </div>
+
+      <!-- Empty Cart State -->
+      <div *ngIf="cart.length === 0" class="empty-cart">
+        <ion-icon name="cart-outline" size="large" color="medium"></ion-icon>
+        <h3>Cart is Empty</h3>
+        <p>Scan or search products to add them to the cart</p>
+        <div class="empty-cart-actions">
+          <ion-button (click)="toggleContinuousScan()" color="success" class="action-btn">
+            <ion-icon name="scan" slot="start"></ion-icon>
+            Start Scanning
+          </ion-button>
+          <ion-button (click)="openProductSearch()" color="primary" class="action-btn">
+            <ion-icon name="search" slot="start"></ion-icon>
+            Search Products
+          </ion-button>
+        </div>
+      </div>
+
+      <!-- Cart Items -->
+      <ion-list *ngIf="filteredCart.length > 0" lines="full" class="cart-list">
+        <ion-item-sliding *ngFor="let item of filteredCart" class="cart-item-sliding">
+          <ion-item class="cart-item">
+            <ion-avatar slot="start" class="cart-avatar">
+              <img *ngIf="item.product.image_url" [src]="item.product.image_url" [alt]="item.product.name">
+              <div *ngIf="!item.product.image_url" class="product-avatar-fallback">
+                <ion-icon name="cube"></ion-icon>
+              </div>
+            </ion-avatar>
+            
+            <ion-label class="cart-item-info">
+              <h3 class="item-name">{{ item.product.name }}</h3>
+              <p class="item-details">
+                <span class="price">{{ formatPrice(item.price) }}</span>
+                <span class="unit">per {{ item.unit }}</span>
+              </p>
+              <p class="item-stock">Stock: {{ item.product.stock_quantity }}</p>
+              <div class="item-badges">
+                <ion-badge *ngIf="item.quantity > item.product.stock_quantity" color="warning" class="stock-alert">
+                  Low Stock
+                </ion-badge>
+                <ion-badge *ngIf="item.unit !== item.product.unit_of_measure" color="primary" class="bulk-indicator">
+                  {{ item.unit }}
+                </ion-badge>
+              </div>
+            </ion-label>
+
+            <div slot="end" class="quantity-section">
+              <div class="quantity-controls">
+                <ion-button fill="clear" size="small" (click)="decreaseQuantity(item)" class="qty-btn">
+                  <ion-icon name="remove"></ion-icon>
+                </ion-button>
+                <ion-text class="quantity-display">{{ item.quantity }}</ion-text>
+                <ion-button fill="clear" size="small" (click)="increaseQuantity(item)" 
+                           [disabled]="item.quantity >= getMaxQuantity(item)" class="qty-btn">
+                  <ion-icon name="add"></ion-icon>
+                </ion-button>
+              </div>
+              <ion-note class="item-total">
+                {{ formatPrice(item.subtotal) }}
+              </ion-note>
+              <ion-button fill="clear" size="small" color="medium" (click)="editCartItem(item)" class="edit-btn">
+                <ion-icon name="create" slot="icon-only"></ion-icon>
+              </ion-button>
+            </div>
+          </ion-item>
+
+          <ion-item-options side="end" class="cart-item-options">
+            <ion-item-option color="danger" (click)="removeFromCart(item)" class="remove-option">
+              <ion-icon slot="icon-only" name="trash"></ion-icon>
+            </ion-item-option>
+          </ion-item-options>
+        </ion-item-sliding>
+      </ion-list>
+
+      <!-- No Search Results -->
+      <div *ngIf="cart.length > 0 && filteredCart.length === 0" class="no-search-results">
+        <ion-icon name="search-outline" color="medium"></ion-icon>
+        <p>No products found matching "{{ cartSearchTerm }}"</p>
+        <ion-button fill="clear" (click)="cartSearchTerm = ''; filterCartItems()" class="clear-search-btn">
+          Clear Search
+        </ion-button>
+      </div>
+
+      <!-- Cart Summary -->
+      <div *ngIf="cart.length > 0" class="cart-summary">
+        <ion-grid class="summary-grid">
+          <ion-row class="summary-row">
+            <ion-col size="8" class="summary-label">
+              <strong>Subtotal:</strong>
+            </ion-col>
+            <ion-col size="4" class="summary-value ion-text-end">
+              {{ formatPrice(subtotal) }}
+            </ion-col>
+          </ion-row>
+          <ion-row class="summary-row total-row">
+            <ion-col size="8" class="summary-label">
+              <strong>Total:</strong>
+            </ion-col>
+            <ion-col size="4" class="summary-value ion-text-end">
+              <h3 class="total-amount">{{ formatPrice(total) }}</h3>
+            </ion-col>
+          </ion-row>
+        </ion-grid>
+
+        <!-- Checkout Button -->
+        <ion-button expand="block" color="success" (click)="openPaymentModal()" class="checkout-btn">
+          <ion-icon name="card" slot="start"></ion-icon>
+          Process {{ paymentMethod === 'cash' ? 'Cash Payment' : 'Debt Sale' }}
+        </ion-button>
+      </div>
+    </ion-card-content>
+  </ion-card>
+
+  <!-- Quick Actions -->
+  <ion-card class="quick-actions-card">
+    <ion-card-header>
+      <ion-card-title>Quick Actions</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <ion-grid class="actions-grid">
+        <ion-row class="actions-row">
+          <ion-col size="6" size-md="3" class="action-col">
+            <ion-button expand="block" color="primary" (click)="toggleContinuousScan()" 
+                       [color]="isContinuousScan ? 'success' : 'primary'" class="action-button">
+              <ion-icon [name]="isContinuousScan ? 'scan-circle' : 'scan'" slot="start"></ion-icon>
+              <span class="button-text">{{ isContinuousScan ? 'Scanning...' : 'Scan' }}</span>
+            </ion-button>
+          </ion-col>
+          <ion-col size="6" size-md="3" class="action-col">
+            <ion-button expand="block" color="secondary" (click)="openBarcodeInput()" class="action-button">
+              <ion-icon name="barcode" slot="start"></ion-icon>
+              <span class="button-text">Barcode</span>
+            </ion-button>
+          </ion-col>
+          <ion-col size="6" size-md="3" class="action-col">
+            <ion-button expand="block" color="tertiary" (click)="openProductSearch()" class="action-button">
+              <ion-icon name="search" slot="start"></ion-icon>
+              <span class="button-text">Search</span>
+            </ion-button>
+          </ion-col>
+          <ion-col size="6" size-md="3" class="action-col">
+            <ion-button expand="block" color="dark" (click)="openCameraOptions()" class="action-button">
+              <ion-icon name="camera" slot="start"></ion-icon>
+              <span class="button-text">Camera</span>
+            </ion-button>
+          </ion-col>
+        </ion-row>
+      </ion-grid>
+    </ion-card-content>
+  </ion-card>
+
 </ion-content>
+
+<!-- Product Options Modal (for bulk options) -->
+<ion-modal [isOpen]="showProductOptionsModal" (didDismiss)="closeProductOptionsModal()" class="product-options-modal">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>Add to Cart</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="closeProductOptionsModal()">
+            <ion-icon name="close"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content class="ion-padding">
+      <div *ngIf="selectedProduct" class="product-options-container">
+        
+        <!-- Product Info -->
+        <ion-card class="product-info-card">
+          <ion-card-content>
+            <div class="product-header">
+              <ion-avatar class="product-avatar-large">
+                <img *ngIf="selectedProduct.image_url" [src]="selectedProduct.image_url" [alt]="selectedProduct.name">
+                <div *ngIf="!selectedProduct.image_url" class="product-avatar-fallback-large">
+                  <ion-icon [name]="getProductIcon(selectedProduct)"></ion-icon>
+                </div>
+              </ion-avatar>
+              <div class="product-details">
+                <h2>{{ selectedProduct.name }}</h2>
+                <p class="product-category">{{ selectedProduct.category }}</p>
+                <p class="stock-info">Available Stock: {{ selectedProduct.stock_quantity }}</p>
+              </div>
+            </div>
+          </ion-card-content>
+        </ion-card>
+
+        <!-- Pricing Options -->
+        <ion-card class="pricing-options-card">
+          <ion-card-header>
+            <ion-card-title>Select Pricing Option</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <!-- Radio Group for Pricing Options -->
+            <ion-radio-group [(ngModel)]="selectedPricingOption" (ionChange)="validateQuantity()">
+              
+              <!-- Piece/Unit Pricing -->
+              <ion-item class="pricing-option" [class.selected]="selectedPricingOption === 'piece'">
+                <ion-radio slot="start" value="piece" labelPlacement="end"></ion-radio>
+                <ion-label class="pricing-label">
+                  <h3>Per Piece</h3>
+                  <p>{{ formatPrice(selectedProduct.selling_price) }} per {{ selectedProduct.unit_of_measure }}</p>
+                </ion-label>
+                <ion-note slot="end" class="pricing-note">
+                  Standard
+                </ion-note>
+              </ion-item>
+
+              <!-- Bulk Options -->
+              <div *ngIf="hasBulkOptions(selectedProduct)" class="bulk-options-section">
+                <ion-item *ngFor="let bulkOption of getBulkOptions(selectedProduct)" 
+                         class="pricing-option bulk-option" 
+                         [class.selected]="selectedPricingOption === bulkOption.unit">
+                  <ion-radio slot="start" [value]="bulkOption.unit" labelPlacement="end"></ion-radio>
+                  <ion-label class="pricing-label">
+                    <h3>Per {{ bulkOption.unit }}</h3>
+                    <p>{{ formatPrice(bulkOption.selling_price) }} for {{ bulkOption.pieces }} pieces</p>
+                    <p class="bulk-detail">{{ formatPrice(bulkOption.selling_price / bulkOption.pieces) }} per piece</p>
+                  </ion-label>
+                  <ion-note slot="end" class="pricing-note bulk-note">
+                    Save {{ calculateBulkSavings(selectedProduct.selling_price, bulkOption) }}%
+                  </ion-note>
+                </ion-item>
+              </div>
+
+              <!-- Simple Bulk Pricing (if no advanced bulk options) -->
+              <div *ngIf="selectedProduct.bulk_unit && selectedProduct.pieces_per_bulk && selectedProduct.bulk_selling_price && !hasBulkOptions(selectedProduct)">
+                <ion-item class="pricing-option" 
+                         [class.selected]="selectedPricingOption === selectedProduct.bulk_unit">
+                  <ion-radio slot="start" [value]="selectedProduct.bulk_unit" labelPlacement="end"></ion-radio>
+                  <ion-label class="pricing-label">
+                    <h3>Per {{ selectedProduct.bulk_unit }}</h3>
+                    <p>{{ formatPrice(selectedProduct.bulk_selling_price) }} for {{ selectedProduct.pieces_per_bulk }} pieces</p>
+                    <p class="bulk-detail">{{ formatPrice(selectedProduct.bulk_selling_price / selectedProduct.pieces_per_bulk) }} per piece</p>
+                  </ion-label>
+                  <ion-note slot="end" class="pricing-note bulk-note">
+                    Save {{ calculateSimpleBulkSavings(selectedProduct) }}%
+                  </ion-note>
+                </ion-item>
+              </div>
+
+            </ion-radio-group>
+
+          </ion-card-content>
+        </ion-card>
+
+        <!-- Quantity Selection -->
+        <ion-card class="quantity-card">
+          <ion-card-header>
+            <ion-card-title>Quantity</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <div class="quantity-selection">
+              <ion-item class="quantity-item">
+                <ion-label position="stacked">Quantity</ion-label>
+                <ion-input 
+                  type="number" 
+                  [(ngModel)]="selectedQuantity"
+                  [min]="1"
+                  [max]="getMaxQuantityForOption()"
+                  (ionInput)="validateQuantity()"
+                  class="quantity-input">
+                </ion-input>
+              </ion-item>
+              
+              <div class="quantity-buttons">
+                <ion-button fill="outline" (click)="adjustQuantity(-1)" [disabled]="selectedQuantity <= 1" class="qty-adjust-btn">
+                  <ion-icon name="remove"></ion-icon>
+                </ion-button>
+                <ion-text class="quantity-display-large">{{ selectedQuantity }}</ion-text>
+                <ion-button fill="outline" (click)="adjustQuantity(1)" [disabled]="selectedQuantity >= getMaxQuantityForOption()" class="qty-adjust-btn">
+                  <ion-icon name="add"></ion-icon>
+                </ion-button>
+              </div>
+
+              <div class="quantity-summary">
+                <p *ngIf="selectedPricingOption === 'piece'" class="quantity-detail">
+                  {{ selectedQuantity }} {{ selectedProduct.unit_of_measure }}(s)
+                </p>
+                <p *ngIf="selectedPricingOption !== 'piece'" class="quantity-detail">
+                  {{ selectedQuantity }} {{ selectedPricingOption }}(s) = 
+                  {{ getTotalPieces() }} pieces
+                </p>
+                <p class="total-price">
+                  Total: <strong>{{ formatPrice(calculateTotalPrice()) }}</strong>
+                </p>
+              </div>
+            </div>
+          </ion-card-content>
+        </ion-card>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+          <ion-button expand="block" color="success" (click)="addToCartWithOptions()" 
+                     [disabled]="!selectedPricingOption || selectedQuantity < 1" class="add-to-cart-btn">
+            <ion-icon name="cart" slot="start"></ion-icon>
+            Add to Cart - {{ formatPrice(calculateTotalPrice()) }}
+          </ion-button>
+          
+          <ion-button expand="block" fill="outline" color="medium" (click)="closeProductOptionsModal()" class="cancel-btn">
+            Cancel
+          </ion-button>
+        </div>
+
+      </div>
+    </ion-content>
+  </ng-template>
+</ion-modal>
+
+<!-- Customer Information Modal (for debt sales) -->
+<ion-modal [isOpen]="showCustomerModal" (didDismiss)="onCustomerModalDismiss()" class="customer-modal">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>Select Customer for Debt Sale</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="showCustomerModal = false">
+            <ion-icon name="close"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content class="ion-padding">
+      
+      <!-- Customer Search -->
+      <ion-card class="search-card">
+        <ion-card-content>
+          <ion-item>
+            <ion-label position="stacked">Search Customers</ion-label>
+            <ion-input 
+              #customerSearchInput
+              type="text" 
+              [(ngModel)]="customerSearchTerm"
+              (ionInput)="onCustomerSearch()"
+              placeholder="Search by name, phone, or email"
+              autofocus>
+            </ion-input>
+            <ion-button slot="end" fill="clear" (click)="showNewCustomerForm = true" color="primary">
+              <ion-icon name="person-add" slot="start"></ion-icon>
+              New
+            </ion-button>
+          </ion-item>
+        </ion-card-content>
+      </ion-card>
+
+      <!-- Search Results -->
+      <div *ngIf="filteredCustomers.length > 0" class="customers-list">
+        <ion-list lines="full">
+          <ion-item 
+            *ngFor="let customer of filteredCustomers" 
+            (click)="selectCustomer(customer)"
+            button
+            class="customer-item">
+            <ion-avatar slot="start" class="customer-avatar">
+              <div class="avatar-fallback">
+                <ion-icon name="person"></ion-icon>
+              </div>
+            </ion-avatar>
+            
+            <ion-label class="customer-info">
+              <h3 class="customer-name">{{ customer.full_name }}</h3>
+              <p class="customer-contact">
+                <span *ngIf="customer.phone_number" class="phone">📱 {{ customer.phone_number }}</span>
+                <span *ngIf="customer.email" class="email">✉️ {{ customer.email }}</span>
+              </p>
+              <p class="customer-address">
+                {{ customer.barangay }}, {{ customer.municipality }}, {{ customer.province }}
+              </p>
+            </ion-label>
+
+            <ion-note slot="end" class="select-note">
+              Select
+            </ion-note>
+          </ion-item>
+        </ion-list>
+      </div>
+
+      <!-- No Results -->
+      <div *ngIf="customerSearchTerm && filteredCustomers.length === 0" class="no-customers">
+        <ion-icon name="people-outline" color="medium" size="large"></ion-icon>
+        <h3>No customers found</h3>
+        <p>No customers match "{{ customerSearchTerm }}"</p>
+        <ion-button expand="block" color="primary" (click)="showNewCustomerForm = true" class="add-customer-btn">
+          <ion-icon name="person-add" slot="start"></ion-icon>
+          Add New Customer
+        </ion-button>
+      </div>
+
+      <!-- Empty State (no search) -->
+      <div *ngIf="!customerSearchTerm && filteredCustomers.length === 0" class="empty-customers">
+        <ion-icon name="people-outline" color="medium" size="large"></ion-icon>
+        <h3>No Customers Yet</h3>
+        <p>Register customers to process debt sales</p>
+        <ion-button expand="block" color="primary" (click)="showNewCustomerForm = true" class="add-customer-btn">
+          <ion-icon name="person-add" slot="start"></ion-icon>
+          Register First Customer
+        </ion-button>
+      </div>
+
+    </ion-content>
+  </ng-template>
+</ion-modal>
+
+<!-- Update the New Customer Registration Modal section -->
+<ion-modal [isOpen]="showNewCustomerForm" (didDismiss)="showNewCustomerForm = false">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>Register New Customer</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="showNewCustomerForm = false">
+            <ion-icon name="close"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content class="ion-padding">
+      <ion-card>
+        <ion-card-header>
+          <ion-card-title>Customer Information</ion-card-title>
+          <ion-card-subtitle>
+            <div *ngIf="storeOwnerLocationInfo" class="location-subtitle">
+              <ion-icon name="location" color="primary"></ion-icon>
+              📍 Store Location: {{ storeOwnerLocationInfo.province }}, {{ storeOwnerLocationInfo.region }}
+            </div>
+            <div *ngIf="!storeOwnerLocationInfo" class="text-warning">
+              <ion-icon name="warning" color="warning"></ion-icon>
+              ⚠️ Store location information not available
+            </div>
+          </ion-card-subtitle>
+        </ion-card-header>
+        <ion-card-content>
+          <form #customerForm="ngForm">
+            <!-- Personal Information -->
+            <ion-list-header>
+              <ion-label>Personal Information</ion-label>
+            </ion-list-header>
+            
+            <ion-item>
+              <ion-label position="stacked">Full Name *</ion-label>
+              <ion-input 
+                [(ngModel)]="newCustomer.full_name" 
+                name="full_name" 
+                required
+                placeholder="Enter customer's full name"
+                autocomplete="name">
+              </ion-input>
+            </ion-item>
+
+            <ion-item>
+              <ion-label position="stacked">Phone Number *</ion-label>
+              <ion-input 
+                [(ngModel)]="newCustomer.phone_number" 
+                name="phone_number" 
+                type="tel"
+                required
+                placeholder="Enter phone number"
+                autocomplete="tel">
+              </ion-input>
+            </ion-item>
+
+            <ion-item>
+              <ion-label position="stacked">Email Address</ion-label>
+              <ion-input 
+                [(ngModel)]="newCustomer.email" 
+                name="email" 
+                type="email"
+                placeholder="Enter email address (optional)"
+                autocomplete="email">
+              </ion-input>
+            </ion-item>
+
+            <!-- Account Credentials -->
+            <ion-list-header>
+              <ion-label>Account Credentials</ion-label>
+            </ion-list-header>
+
+            <!-- Username Field -->
+            <ion-item>
+              <ion-label position="stacked">Preferred Username *</ion-label>
+              <ion-input 
+                [(ngModel)]="newCustomer.username" 
+                name="username"
+                required
+                placeholder="Enter customer's preferred username"
+                autocomplete="username"
+                (ionInput)="onUsernameInput()">
+              </ion-input>
+              <ion-note slot="end" color="primary">Required</ion-note>
+            </ion-item>
+
+            <!-- Password Field -->
+            <ion-item>
+              <ion-label position="stacked">Password *</ion-label>
+              <ion-input 
+                [(ngModel)]="newCustomer.password" 
+                name="password"
+                type="password"
+                required
+                placeholder="Enter secure password"
+                autocomplete="new-password"
+                (ionInput)="validatePassword()">
+              </ion-input>
+              <ion-note slot="end" color="primary">Required</ion-note>
+            </ion-item>
+
+            <!-- Confirm Password Field -->
+            <ion-item>
+              <ion-label position="stacked">Confirm Password *</ion-label>
+              <ion-input 
+                [(ngModel)]="newCustomer.confirmPassword" 
+                name="confirmPassword"
+                type="password"
+                required
+                placeholder="Re-enter password"
+                autocomplete="new-password"
+                (ionInput)="validatePassword()">
+              </ion-input>
+              <ion-note slot="end" [color]="passwordsMatch ? 'success' : 'danger'">
+                {{ passwordsMatch ? '✓ Match' : '✗ Mismatch' }}
+              </ion-note>
+            </ion-item>
+
+            <!-- Password Requirements -->
+            <div *ngIf="newCustomer.password" class="password-requirements">
+              <ion-note [color]="isPasswordValid ? 'success' : 'warning'">
+                <ion-icon [name]="isPasswordValid ? 'checkmark-circle' : 'warning'"></ion-icon>
+                Password must be at least 4 characters long
+                {{ isPasswordValid ? '✓' : '✗' }}
+              </ion-note>
+            </div>
+
+            <!-- Location Information -->
+            <ion-list-header>
+              <ion-label>Location Information</ion-label>
+            </ion-list-header>
+
+            <!-- Auto-filled Store Location -->
+            <ion-item>
+              <ion-label position="stacked">Store Province & Region</ion-label>
+              <ion-input 
+                [value]="storeOwnerLocationInfo ? storeOwnerLocationInfo.province + ', ' + storeOwnerLocationInfo.region : 'Loading...'"
+                readonly
+                class="readonly-input">
+              </ion-input>
+              <ion-note slot="end" color="primary">Auto-filled</ion-note>
+            </ion-item>
+
+            <!-- Municipality Selection -->
+            <ion-item>
+              <ion-label position="stacked">Municipality/City *</ion-label>
+              <ion-input 
+                [value]="selectedMunicipality"
+                (click)="openMunicipalitySelection()"
+                [disabled]="!storeOwnerLocationInfo"
+                readonly
+                placeholder="{{ !storeOwnerLocationInfo ? 'Loading store location...' : 'Select Municipality/City' }}"
+                class="clickable-input">
+              </ion-input>
+              <ion-button 
+                slot="end" 
+                fill="clear" 
+                (click)="openMunicipalitySelection()"
+                [disabled]="!storeOwnerLocationInfo">
+                <ion-icon name="chevron-down"></ion-icon>
+              </ion-button>
+            </ion-item>
+
+            <!-- Barangay Selection -->
+            <ion-item>
+              <ion-label position="stacked">Barangay *</ion-label>
+              <ion-input 
+                [value]="selectedBarangay"
+                (click)="openBarangaySelection()"
+                [disabled]="!selectedMunicipality"
+                readonly
+                placeholder="{{ !selectedMunicipality ? 'Select municipality first' : 'Select Barangay' }}"
+                class="clickable-input">
+              </ion-input>
+              <ion-button 
+                slot="end" 
+                fill="clear" 
+                (click)="openBarangaySelection()"
+                [disabled]="!selectedMunicipality">
+                <ion-icon name="chevron-down"></ion-icon>
+              </ion-button>
+            </ion-item>
+
+            <ion-item>
+              <ion-label position="stacked">Sitio/Purok</ion-label>
+              <ion-input 
+                [(ngModel)]="newCustomer.sitio_purok" 
+                name="sitio_purok"
+                placeholder="Enter sitio/purok (optional)">
+              </ion-input>
+            </ion-item>
+
+            <!-- Summary of what will be saved -->
+            <ion-card *ngIf="storeOwnerLocationInfo && selectedMunicipality && selectedBarangay" color="light">
+              <ion-card-header>
+                <ion-card-title>Customer Location Summary</ion-card-title>
+              </ion-card-header>
+              <ion-card-content>
+                <p><strong>Region:</strong> {{ storeOwnerLocationInfo.region }}</p>
+                <p><strong>Province:</strong> {{ storeOwnerLocationInfo.province }}</p>
+                <p><strong>Municipality:</strong> {{ selectedMunicipality }}</p>
+                <p><strong>Barangay:</strong> {{ selectedBarangay }}</p>
+                <p *ngIf="newCustomer.sitio_purok"><strong>Sitio/Purok:</strong> {{ newCustomer.sitio_purok }}</p>
+              </ion-card-content>
+            </ion-card>
+
+            <!-- Account Summary -->
+            <ion-card *ngIf="newCustomer.username" color="success">
+              <ion-card-header>
+                <ion-card-title>Account Summary</ion-card-title>
+              </ion-card-header>
+              <ion-card-content>
+                <p><strong>Username:</strong> {{ newCustomer.username }}</p>
+                <p><strong>Login Credentials:</strong> The customer will use these credentials to access their account.</p>
+                <ion-note color="light">
+                  ✅ Make sure to provide these credentials to the customer.
+                </ion-note>
+              </ion-card-content>
+            </ion-card>
+
+            <div class="form-actions ion-margin-top">
+              <ion-button 
+                expand="block" 
+                color="success" 
+                [disabled]="!isFormValid()"
+                (click)="registerNewCustomer()">
+                <ion-icon name="save" slot="start"></ion-icon>
+                Register Customer
+              </ion-button>
+              
+              <ion-button 
+                expand="block" 
+                fill="outline" 
+                color="medium" 
+                (click)="showNewCustomerForm = false">
+                Cancel
+              </ion-button>
+            </div>
+          </form>
+        </ion-card-content>
+      </ion-card>
+    </ion-content>
+  </ng-template>
+</ion-modal>
+
+<!-- Add this Municipality Selection Modal to your tab3.page.html -->
+<ion-modal [isOpen]="showMunicipalityModal" (didDismiss)="closeMunicipalitySelection()">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>Select Municipality/City</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="closeMunicipalitySelection()">
+            <ion-icon name="close"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+      <ion-toolbar>
+        <ion-searchbar 
+          [(ngModel)]="searchMunicipality"
+          (ionInput)="onMunicipalitySearch()"
+          placeholder="Search municipality/city..."
+          animated>
+        </ion-searchbar>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content>
+      <ion-list>
+        <ion-item 
+          *ngFor="let municipality of filteredMunicipalities" 
+          (click)="selectMunicipality(municipality)"
+          [class.selected]="selectedMunicipality === municipality"
+          button>
+          <ion-label>{{ municipality }}</ion-label>
+          <ion-icon *ngIf="selectedMunicipality === municipality" name="checkmark" slot="end" color="primary"></ion-icon>
+        </ion-item>
+        <ion-item *ngIf="filteredMunicipalities.length === 0">
+          <ion-label class="ion-text-center" color="medium">
+            No municipalities found
+          </ion-label>
+        </ion-item>
+      </ion-list>
+    </ion-content>
+  </ng-template>
+</ion-modal>
+
+<!-- Barangay Selection Modal -->
+<ion-modal [isOpen]="showBarangayModal" (didDismiss)="closeBarangaySelection()">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>Select Barangay</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="closeBarangaySelection()">
+            <ion-icon name="close"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+      <ion-toolbar>
+        <ion-searchbar 
+          [(ngModel)]="searchBarangay"
+          (ionInput)="onBarangaySearch()"
+          placeholder="Search barangay..."
+          animated>
+        </ion-searchbar>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content>
+      <ion-list>
+        <ion-item 
+          *ngFor="let barangay of filteredBarangays" 
+          (click)="selectBarangay(barangay)"
+          [class.selected]="selectedBarangay === barangay">
+          <ion-label>{{ barangay }}</ion-label>
+          <ion-icon *ngIf="selectedBarangay === barangay" name="checkmark" slot="end" color="primary"></ion-icon>
+        </ion-item>
+        <ion-item *ngIf="filteredBarangays.length === 0">
+          <ion-label class="ion-text-center" color="medium">
+            No barangays found for selected municipality
+          </ion-label>
+        </ion-item>
+      </ion-list>
+    </ion-content>
+  </ng-template>
+</ion-modal>
+
+<!-- Payment Modal -->
+<ion-modal [isOpen]="showPaymentModal" (didDismiss)="showPaymentModal = false">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>Payment</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="showPaymentModal = false">
+            <ion-icon name="close"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content class="ion-padding">
+      <ion-card>
+        <ion-card-content>
+          <!-- Order Summary -->
+          <div class="order-summary">
+            <h3>Order Summary</h3>
+            <ion-list>
+              <ion-item *ngFor="let item of cart">
+                <ion-label>
+                  {{ item.product.name }}
+                  <p>{{ item.quantity }} × {{ formatPrice(item.price) }}</p>
+                </ion-label>
+                <ion-note slot="end">{{ formatPrice(item.subtotal) }}</ion-note>
+              </ion-item>
+            </ion-list>
+            
+            <ion-item>
+              <ion-label><strong>Total:</strong></ion-label>
+              <ion-note slot="end"><strong>{{ formatPrice(total) }}</strong></ion-note>
+            </ion-item>
+          </div>
+
+          <!-- Cash Payment -->
+          <div *ngIf="paymentMethod === 'cash'" class="cash-payment">
+            <ion-item>
+              <ion-label position="stacked">Amount Paid *</ion-label>
+              <ion-input [(ngModel)]="amountPaid" type="number" 
+                        [min]="total" [value]="total"></ion-input>
+            </ion-item>
+            
+            <ion-item *ngIf="amountPaid >= total">
+              <ion-label>Change:</ion-label>
+              <ion-note slot="end" color="success">{{ formatPrice(change) }}</ion-note>
+            </ion-item>
+          </div>
+
+          <!-- Update the Debt Payment section in the Payment Modal -->
+<div *ngIf="paymentMethod === 'debt'" class="debt-payment">
+  <ion-item>
+    <ion-label><strong>Customer:</strong></ion-label>
+    <ion-note slot="end">{{ customerName }}</ion-note>
+  </ion-item>
+  <ion-item *ngIf="customerPhone">
+    <ion-label><strong>Phone:</strong></ion-label>
+    <ion-note slot="end">{{ customerPhone }}</ion-note>
+  </ion-item>
+  
+        <!-- Initial Payment Section - ADD THIS -->
+        <ion-card class="initial-payment-card">
+          <ion-card-header>
+            <ion-card-title>Initial Payment</ion-card-title>
+            <ion-card-subtitle>
+              Optional: Customer can pay part of the amount now
+            </ion-card-subtitle>
+          </ion-card-header>
+          <ion-card-content>
+            <ion-item>
+              <ion-label position="stacked">Initial Payment Amount</ion-label>
+              <ion-input 
+                type="number" 
+                [(ngModel)]="initialPayment"
+                [min]="0"
+                [max]="total"
+                (ionInput)="calculateRemainingBalance()"
+                placeholder="0.00">
+              </ion-input>
+              <ion-note slot="end">{{ currentStoreInfo?.currency_symbol || '₱' }}</ion-note>
+            </ion-item>
+            
+            <!-- Balance Summary -->
+            <div *ngIf="initialPayment > 0" class="balance-summary">
+              <ion-item>
+                <ion-label><strong>Original Total:</strong></ion-label>
+                <ion-note slot="end">{{ formatPrice(total) }}</ion-note>
+              </ion-item>
+              <ion-item>
+                <ion-label><strong>Initial Payment:</strong></ion-label>
+                <ion-note slot="end" color="success">- {{ formatPrice(initialPayment) }}</ion-note>
+              </ion-item>
+              <ion-item>
+                <ion-label><strong>Remaining Balance:</strong></ion-label>
+                <ion-note slot="end" color="warning"><strong>{{ formatPrice(remainingBalance) }}</strong></ion-note>
+              </ion-item>
+            </div>
+          </ion-card-content>
+        </ion-card>
+            
+            <!-- Due Date Selection -->
+            <ion-card class="due-date-card">
+              <ion-card-header>
+                <ion-card-title>Due Date Selection</ion-card-title>
+                <ion-card-subtitle>
+                  Store Policy: Maximum 30 days payment term
+                </ion-card-subtitle>
+              </ion-card-header>
+              <ion-card-content>
+                <!-- Due Date Options -->
+                <ion-segment [(ngModel)]="selectedDueDateOption" (ionChange)="calculateDueDate()" class="due-date-segment">
+                  <ion-segment-button value="15">
+                    <ion-label>15 Days</ion-label>
+                  </ion-segment-button>
+                  <ion-segment-button value="30">
+                    <ion-label>30 Days</ion-label>
+                  </ion-segment-button>
+                  <ion-segment-button value="custom">
+                    <ion-label>Custom</ion-label>
+                  </ion-segment-button>
+                </ion-segment>
+
+                <!-- Custom Date Picker -->
+                <div *ngIf="selectedDueDateOption === 'custom'" class="custom-date-section">
+                  <ion-item>
+                    <ion-label position="stacked">Select Due Date *</ion-label>
+                    <ion-input 
+                      [(ngModel)]="customDueDate" 
+                      type="date"
+                      [min]="getTodayDate()"
+                      [max]="getMaxDueDate()"
+                      (ionChange)="calculateDueDate()"
+                      placeholder="Select due date">
+                    </ion-input>
+                  </ion-item>
+                  <ion-note color="medium">
+                    Must be within 30 days from today
+                  </ion-note>
+                </div>
+
+                <!-- Calculated Due Date Display -->
+                <div *ngIf="calculatedDueDate" class="calculated-due-date">
+                  <ion-item>
+                    <ion-label><strong>Payment Due:</strong></ion-label>
+                    <ion-note slot="end" color="warning">
+                      <strong>{{ calculatedDueDate }}</strong>
+                    </ion-note>
+                  </ion-item>
+                  <ion-note color="primary">
+                    ⏰ Customer must pay by this date
+                  </ion-note>
+                </div>
+              </ion-card-content>
+            </ion-card>
+            
+            <ion-note color="medium" class="debt-note">
+              📝 This sale will be recorded as debt for the selected customer.
+            </ion-note>
+          </div>
+
+          <div class="ion-margin-top">
+            <ion-button expand="block" color="success" 
+                       [disabled]="isPaymentDisabled()"
+                       (click)="processPayment()">
+              <ion-icon name="checkmark" slot="start"></ion-icon>
+              Complete {{ paymentMethod === 'cash' ? 'Payment' : 'Debt Sale' }}
+            </ion-button>
+            
+            <ion-button expand="block" fill="outline" color="medium" 
+                       (click)="showPaymentModal = false">
+              Cancel
+            </ion-button>
+          </div>
+        </ion-card-content>
+      </ion-card>
+    </ion-content>
+  </ng-template>
+</ion-modal>
+
+<!-- Receipt Modal -->
+<ion-modal [isOpen]="showReceiptModal" (didDismiss)="onReceiptModalDismiss()">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>Receipt - {{currentStoreInfo?.name || 'Store'}}</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="completeSale()">
+            <ion-icon name="close"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content class="ion-padding">
+      
+      <!-- Dynamic Receipt Content -->
+      <div id="receipt-content" class="receipt-container">
+        <div class="receipt">
+          <!-- Receipt Header -->
+          <div class="receipt-header">
+            <div *ngIf="currentStoreInfo?.logo_url" class="store-logo">
+              <img [src]="currentStoreInfo.logo_url" [alt]="currentStoreInfo.name">
+            </div>
+            <h2>{{ currentStoreInfo?.name || 'Retail Store' }}</h2>
+            
+            <!-- Store description - smaller font -->
+            <p class="store-description">{{ currentStoreInfo?.receipt_header || 'Retail Receipt' }}</p>
+            
+            <!-- Address and contact info - smaller -->
+            <p *ngIf="currentStoreInfo?.address" class="store-info">{{ currentStoreInfo.address }}</p>
+            <p *ngIf="currentStoreInfo?.phone" class="store-info">Tel: {{ currentStoreInfo.phone }}</p>
+            
+            <!-- Date and receipt number - medium size -->
+            <p class="receipt-meta">{{ getCurrentDateTime() }}</p>
+            <p class="receipt-meta">Receipt #: {{ currentSale?.id || 'N/A' }}</p>
+          </div>
+
+          <!-- Receipt Items -->
+          <div class="receipt-items">
+            <div *ngFor="let item of currentSale?.items" class="receipt-item">
+              <div class="item-name">{{ item.product.name }}</div>
+              <div class="item-details">{{ item.quantity }} × {{ formatPrice(item.price, currentStoreInfo?.currency_symbol) }}</div>
+              <div class="item-total">{{ formatPrice(item.subtotal, currentStoreInfo?.currency_symbol) }}</div>
+            </div>
+          </div>
+
+          <!-- Receipt Summary -->
+          <div class="receipt-summary">
+            <!-- Show original total for debt sales with initial payment -->
+            <div *ngIf="currentSale?.paymentMethod === 'debt' && (currentSale?.initialPayment ?? 0) > 0" 
+                class="summary-row">
+              <span>Original Total:</span>
+              <span>{{ formatPrice(currentSale?.originalTotal || currentSale?.total, currentStoreInfo?.currency_symbol) }}</span>
+            </div>
+
+            <!-- Show initial payment deduction -->
+            <div *ngIf="currentSale?.paymentMethod === 'debt' && (currentSale?.initialPayment ?? 0) > 0" 
+                class="summary-row initial-payment-deduction">
+              <span>Initial Payment:</span>
+              <span>- {{ formatPrice(currentSale?.initialPayment, currentStoreInfo?.currency_symbol) }}</span>
+            </div>
+
+            <div class="summary-row total-row">
+              <span><strong>Total:</strong></span>
+              <span><strong>{{ formatPrice(currentSale?.total || 0, currentStoreInfo?.currency_symbol) }}</strong></span>
+            </div>
+          </div>
+
+          <!-- Payment Details -->
+          <div class="payment-details">
+            <div class="summary-row">
+              <span>Payment Method:</span>
+              <span>{{ currentSale?.paymentMethod === 'cash' ? 'CASH' : 'DEBT' }}</span>
+            </div>
+            
+            <div *ngIf="currentSale?.paymentMethod === 'cash'" class="cash-details">
+              <!-- Amount Paid - larger and bold -->
+              <div class="summary-row important-detail">
+                <span>Amount Paid:</span>
+                <span>{{ formatPrice(currentSale?.amountPaid || 0, currentStoreInfo?.currency_symbol) }}</span>
+              </div>
+              <!-- Change - larger and bold -->
+              <div class="summary-row important-detail">
+                <span>Change:</span>
+                <span>{{ formatPrice(currentSale?.change || 0, currentStoreInfo?.currency_symbol) }}</span>
+              </div>
+            </div>
+
+            <div *ngIf="currentSale?.paymentMethod === 'debt' && currentSale?.customerName" class="debt-details">
+              <div class="summary-row">
+                <span>Customer:</span>
+                <span>{{ currentSale?.customerName }}</span>
+              </div>
+              <div *ngIf="currentSale?.customerPhone" class="summary-row">
+                <span>Phone:</span>
+                <span>{{ currentSale?.customerPhone }}</span>
+              </div>
+              
+              <!-- Show initial payment details -->
+              <div *ngIf="(currentSale?.initialPayment ?? 0) > 0" class="summary-row">
+                <span>Paid Now:</span>
+                <span>{{ formatPrice(currentSale?.initialPayment, currentStoreInfo?.currency_symbol) }}</span>
+              </div>
+              
+              <!-- Show remaining balance -->
+              <div *ngIf="(currentSale?.remainingBalance ?? 0) > 0" class="summary-row remaining-balance">
+                <span><strong>Remaining Balance:</strong></span>
+                <span><strong>{{ formatPrice(currentSale?.remainingBalance, currentStoreInfo?.currency_symbol) }}</strong></span>
+              </div>
+              
+              <!-- Show due date -->
+              <div *ngIf="currentSale?.dueDate" class="summary-row">
+                <span>Due Date:</span>
+                <span>{{ (currentSale?.dueDate | date:'mediumDate') || 'Not set' }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Receipt Footer -->
+          <div class="receipt-footer">
+            <p>{{ currentStoreInfo?.receipt_footer || 'Thank you for your purchase!' }}</p>
+            <p *ngIf="currentSale?.paymentMethod === 'debt' && (currentSale?.remainingBalance ?? 0) > 0">
+              Please pay the remaining balance by the due date.
+            </p>
+            <p>Please come again!</p>
+          </div>
+        </div> <!-- Close .receipt div -->
+      </div> <!-- Close .receipt-container div -->
+
+      <!-- Download Buttons -->
+      <div class="download-actions ion-margin-top">
+        <ion-button expand="block" fill="outline" (click)="downloadReceiptSimple()" class="download-btn">
+          <ion-icon name="image" slot="start"></ion-icon>
+          Download as Image
+        </ion-button>
+
+        <ion-button expand="block" fill="outline" (click)="downloadReceiptAsPDF()" class="download-btn">
+          <ion-icon name="document" slot="start"></ion-icon>
+          Download as PDF
+        </ion-button>
+
+        <ion-button expand="block" fill="outline" (click)="downloadReceiptAsImageHighRes()" class="download-btn">
+          <ion-icon name="download" slot="start"></ion-icon>
+          High-Res Image
+        </ion-button>
+
+        <ion-button expand="block" color="success" (click)="completeSale()" class="done-btn">
+          <ion-icon name="checkmark" slot="start"></ion-icon>
+          Done
+        </ion-button>
+      </div>
+    </ion-content>
+  </ng-template>
+</ion-modal>

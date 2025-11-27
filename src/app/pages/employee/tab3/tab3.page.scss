@@ -1,0 +1,1738 @@
+.empty-cart {
+  text-align: center;
+  padding: 2rem;
+  color: var(--ion-color-medium);
+}
+
+.quantity-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  
+  ion-text {
+    min-width: 30px;
+    text-align: center;
+    font-weight: bold;
+  }
+}
+
+.item-total {
+  font-weight: bold;
+  color: var(--ion-color-primary);
+}
+
+.cart-summary {
+  border-top: 1px solid var(--ion-color-light);
+  padding-top: 1rem;
+  margin-top: 1rem;
+}
+
+// Receipt Styles
+.receipt {
+  background: white;
+  padding: 1rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  max-width: 300px;
+  margin: 0 auto;
+  font-family: 'Courier New', monospace;
+}
+
+.receipt-header {
+  text-align: center;
+  border-bottom: 1px dashed #ccc;
+  padding-bottom: 1rem;
+  margin-bottom: 1rem;
+  
+  h2 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: bold;
+  }
+  
+  p {
+    margin: 0.25rem 0;
+    font-size: 0.9rem;
+  }
+}
+
+.receipt-items {
+  margin-bottom: 1rem;
+}
+
+.receipt-item {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  
+  .item-name {
+    flex: 2;
+    font-weight: bold;
+  }
+  
+  .item-details {
+    flex: 1;
+    text-align: center;
+    color: #666;
+  }
+  
+  .item-total {
+    flex: 1;
+    text-align: right;
+    font-weight: bold;
+  }
+}
+
+.receipt-summary {
+  border-top: 1px dashed #ccc;
+  padding-top: 1rem;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  
+  &:last-child {
+    border-top: 1px solid #ccc;
+    padding-top: 0.5rem;
+    margin-top: 0.5rem;
+  }
+}
+
+.payment-details {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px dashed #ccc;
+}
+
+.receipt-footer {
+  text-align: center;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px dashed #ccc;
+  font-style: italic;
+  color: #666;
+}
+
+// Print styles for receipt
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #receipt, #receipt * {
+    visibility: visible;
+  }
+  #receipt {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    box-shadow: none;
+  }
+}
+
+.product-avatar-fallback {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--ion-color-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  ion-icon {
+    font-size: 1.5rem;
+    color: var(--ion-color-medium);
+  }
+
+  // Continuous scan indicator
+.continuous-scan-active {
+  border: 2px solid var(--ion-color-success);
+}
+
+// Cart search
+.cart-search {
+  margin-bottom: 16px;
+}
+
+// Quantity controls
+.quantity-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  
+  ion-text {
+    min-width: 30px;
+    text-align: center;
+    font-weight: bold;
+  }
+}
+
+// Item total
+.item-total {
+  font-weight: bold;
+  color: var(--ion-color-primary);
+}
+
+// Empty states
+.empty-cart, .no-search-results {
+  text-align: center;
+  padding: 40px 20px;
+  
+  ion-icon {
+    font-size: 64px;
+    margin-bottom: 16px;
+  }
+  
+  h3 {
+    color: var(--ion-color-medium);
+    margin-bottom: 8px;
+  }
+  
+  p {
+    color: var(--ion-color-medium-shade);
+    margin-bottom: 16px;
+  }
+}
+
+// Cart summary
+.cart-summary {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--ion-color-light-shade);
+}
+
+// Updated Receipt Styles with optimized font sizes
+.receipt-container {
+  width: 100%;
+  max-width: 80mm;
+  margin: 0 auto;
+  background: white;
+  color: black;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.2;
+  padding: 15px;
+  border: 1px solid #ccc;
+}
+
+.receipt {
+  width: 100%;
+}
+
+.receipt-header {
+  text-align: center;
+  border-bottom: 1px dashed #000;
+  padding-bottom: 10px;
+  margin-bottom: 12px;
+  
+  .store-logo {
+    margin-bottom: 8px;
+    
+    img {
+      max-width: 150px;
+      max-height: 80px;
+      display: block;
+      margin: 0 auto;
+    }
+  }
+  
+  h2 {
+    font-size: 18px; // Larger for store name
+    margin: 0 0 8px 0;
+    font-weight: bold;
+    line-height: 1.2;
+  }
+  
+  // Store description - smaller font
+  .store-description {
+    font-size: 10px !important;
+    color: #666;
+    margin: 2px 0;
+    line-height: 1.1;
+  }
+  
+  // Address and contact info - smaller
+  .store-info {
+    font-size: 9px !important;
+    color: #555;
+    margin: 1px 0;
+    line-height: 1.1;
+  }
+  
+  // Date and receipt number - medium size
+  .receipt-meta {
+    font-size: 10px !important;
+    margin: 3px 0;
+    font-weight: normal;
+  }
+}
+
+.receipt-items {
+  margin-bottom: 15px;
+}
+
+.receipt-item {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  padding: 2px 0;
+  border-bottom: 1px dotted #eee;
+  
+  .item-name {
+    flex: 3;
+    font-weight: bold;
+    word-break: break-word;
+    padding-right: 5px;
+    font-size: 11px; // Regular size for items
+  }
+  
+  .item-details {
+    flex: 2;
+    text-align: center;
+    font-size: 10px; // Smaller for details
+  }
+  
+  .item-total {
+    flex: 2;
+    text-align: right;
+    font-weight: bold;
+    padding-left: 5px;
+    font-size: 11px; // Regular size for item totals
+  }
+}
+
+.receipt-summary {
+  border-top: 1px dashed #000;
+  padding-top: 10px;
+  margin-top: 10px;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+  padding: 2px 0;
+  
+  span {
+    font-size: 12px; // Regular size for subtotal
+  }
+}
+
+.total-row {
+  border-top: 1px solid #000;
+  padding-top: 4px;
+  margin-top: 4px;
+  
+  span {
+    font-size: 16px !important; // LARGER for total
+    font-weight: bold;
+    color: #000;
+  }
+}
+
+.payment-details {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dotted #666;
+  
+  .summary-row {
+    font-size: 11px; // Regular size for payment method
+    
+    // Make amount paid and change larger
+    &.important-detail {
+      font-size: 13px !important;
+      font-weight: bold;
+      color: #000;
+    }
+  }
+}
+
+.cash-details, .debt-details {
+  margin-top: 5px;
+}
+
+.receipt-footer {
+  text-align: center;
+  margin-top: 15px;
+  padding-top: 10px;
+  border-top: 1px dashed #000;
+  
+  p {
+    margin: 4px 0;
+    font-size: 10px; // Smaller for footer
+    font-weight: bold;
+  }
+}
+// Product avatar fallback
+.product-avatar-fallback {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--ion-color-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  ion-icon {
+    font-size: 20px;
+    color: var(--ion-color-medium);
+  }
+}
+
+// Product Search Styles
+.search-results {
+  max-height: 300px;
+  overflow-y: auto;
+  margin-top: 16px;
+  border: 1px solid var(--ion-color-light);
+  border-radius: 8px;
+}
+
+.search-result-item {
+  --padding-start: 8px;
+  --padding-end: 8px;
+  --inner-padding-end: 8px;
+  
+  ion-label {
+    h3 {
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+    
+    p {
+      font-size: 12px;
+      color: var(--ion-color-medium);
+      margin: 2px 0;
+    }
+  }
+}
+
+.search-result-item:hover {
+  background: var(--ion-color-light);
+  cursor: pointer;
+}
+
+.no-search-results {
+  text-align: center;
+  padding: 20px;
+  color: var(--ion-color-medium);
+  
+  ion-icon {
+    font-size: 48px;
+    margin-bottom: 8px;
+  }
+}
+
+// Product avatar fallback
+.product-avatar-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ion-color-light);
+  border-radius: 50%;
+  
+  ion-icon {
+    font-size: 20px;
+    color: var(--ion-color-medium);
+  }
+}
+
+// Cart item styles
+.quantity-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  
+  ion-text {
+    min-width: 30px;
+    text-align: center;
+    font-weight: 500;
+  }
+}
+
+.item-total {
+  font-weight: 600;
+  color: var(--ion-color-primary);
+}
+
+// Stock badges
+ion-badge {
+  margin-top: 4px;
+}
+
+
+// ADDED
+// Responsive Variables
+$breakpoint-mobile: 576px;
+$breakpoint-tablet: 768px;
+$breakpoint-desktop: 1024px;
+
+// Base Responsive Mixins
+@mixin mobile {
+  @media (max-width: #{$breakpoint-mobile - 1px}) {
+    @content;
+  }
+}
+
+@mixin tablet {
+  @media (min-width: #{$breakpoint-tablet}) and (max-width: #{$breakpoint-desktop - 1px}) {
+    @content;
+  }
+}
+
+@mixin desktop {
+  @media (min-width: #{$breakpoint-desktop}) {
+    @content;
+  }
+}
+
+// Global Responsive Styles
+ion-content {
+  --padding-start: 16px;
+  --padding-end: 16px;
+  --padding-top: 16px;
+  --padding-bottom: 16px;
+
+  @include tablet {
+    --padding-start: 24px;
+    --padding-end: 24px;
+  }
+
+  @include desktop {
+    --padding-start: 32px;
+    --padding-end: 32px;
+  }
+}
+
+// Card Responsive Styles
+ion-card {
+  margin: 12px 0;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+  @include tablet {
+    margin: 16px 0;
+    border-radius: 16px;
+  }
+
+  @include desktop {
+    margin: 20px 0;
+  }
+}
+
+// Payment Card
+.payment-card {
+  .payment-segment {
+    .segment-label {
+      font-size: 14px;
+      
+      @include tablet {
+        font-size: 16px;
+      }
+    }
+  }
+}
+
+// Quick Actions
+.quick-actions-card {
+  .actions-grid {
+    .actions-row {
+      .action-col {
+        padding: 4px;
+
+        @include tablet {
+          padding: 8px;
+        }
+      }
+    }
+  }
+
+  .action-button {
+    height: 48px;
+    
+    .button-text {
+      font-size: 12px;
+      
+      @include tablet {
+        font-size: 14px;
+      }
+    }
+
+    ion-icon {
+      font-size: 18px;
+      
+      @include tablet {
+        font-size: 20px;
+      }
+    }
+  }
+}
+
+// Cart Card - Enhanced Responsiveness
+.cart-card {
+  .cart-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+
+    @include mobile {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  }
+
+  .clear-cart-btn {
+    @include mobile {
+      align-self: flex-end;
+      margin-top: -40px;
+    }
+  }
+
+  .cart-search {
+    margin-bottom: 16px;
+
+    .cart-searchbar {
+      --border-radius: 8px;
+    }
+  }
+}
+
+// Cart Items Responsive Design
+.cart-list {
+  .cart-item-sliding {
+    .cart-item {
+      --padding-start: 8px;
+      --padding-end: 8px;
+      --inner-padding-end: 8px;
+
+      @include tablet {
+        --padding-start: 12px;
+        --padding-end: 12px;
+        --inner-padding-end: 12px;
+      }
+
+      .cart-avatar {
+        width: 40px;
+        height: 40px;
+
+        @include tablet {
+          width: 50px;
+          height: 50px;
+        }
+
+        @include desktop {
+          width: 60px;
+          height: 60px;
+        }
+      }
+
+      .cart-item-info {
+        margin: 8px 0;
+
+        .item-name {
+          font-size: 14px;
+          font-weight: 600;
+          margin-bottom: 4px;
+          line-height: 1.2;
+
+          @include tablet {
+            font-size: 16px;
+          }
+        }
+
+        .item-details {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 2px;
+
+          .price {
+            font-weight: 600;
+            color: var(--ion-color-primary);
+            font-size: 12px;
+
+            @include tablet {
+              font-size: 14px;
+            }
+          }
+
+          .unit {
+            color: var(--ion-color-medium);
+            font-size: 11px;
+
+            @include tablet {
+              font-size: 12px;
+            }
+          }
+        }
+
+        .item-stock {
+          color: var(--ion-color-medium);
+          font-size: 11px;
+          margin-bottom: 4px;
+
+          @include tablet {
+            font-size: 12px;
+          }
+        }
+
+        .item-badges {
+          display: flex;
+          gap: 4px;
+          flex-wrap: wrap;
+
+          ion-badge {
+            font-size: 10px;
+            padding: 2px 6px;
+
+            @include tablet {
+              font-size: 11px;
+              padding: 3px 8px;
+            }
+          }
+        }
+      }
+
+      .quantity-section {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 4px;
+
+        @include mobile {
+          min-width: 100px;
+        }
+
+        .quantity-controls {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          background: var(--ion-color-light);
+          border-radius: 20px;
+          padding: 2px;
+
+          .qty-btn {
+            --padding-start: 4px;
+            --padding-end: 4px;
+            width: 24px;
+            height: 24px;
+
+            ion-icon {
+              font-size: 14px;
+            }
+          }
+
+          .quantity-display {
+            min-width: 20px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 12px;
+          }
+        }
+
+        .item-total {
+          font-weight: 700;
+          color: var(--ion-color-primary);
+          font-size: 14px;
+
+          @include tablet {
+            font-size: 16px;
+          }
+        }
+
+        .edit-btn {
+          --padding-start: 4px;
+          --padding-end: 4px;
+          width: 24px;
+          height: 24px;
+
+          ion-icon {
+            font-size: 14px;
+          }
+        }
+      }
+    }
+  }
+}
+
+// Cart Summary Responsive
+.cart-summary {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 2px solid var(--ion-color-light);
+
+  .summary-grid {
+    .summary-row {
+      padding: 8px 0;
+
+      &.total-row {
+        border-top: 1px solid var(--ion-color-light);
+        margin-top: 8px;
+      }
+
+      .summary-label {
+        font-size: 14px;
+
+        @include tablet {
+          font-size: 16px;
+        }
+      }
+
+      .summary-value {
+        font-size: 14px;
+
+        @include tablet {
+          font-size: 16px;
+        }
+
+        .total-amount {
+          margin: 0;
+          color: var(--ion-color-success);
+          font-size: 18px;
+
+          @include tablet {
+            font-size: 20px;
+          }
+        }
+      }
+    }
+  }
+
+  .checkout-btn {
+    margin-top: 16px;
+    height: 50px;
+    font-weight: 600;
+    font-size: 16px;
+
+    @include tablet {
+      height: 56px;
+      font-size: 18px;
+    }
+  }
+}
+
+// Empty Cart State
+.empty-cart {
+  text-align: center;
+  padding: 40px 20px;
+
+  ion-icon {
+    font-size: 64px;
+    margin-bottom: 16px;
+  }
+
+  h3 {
+    font-size: 18px;
+    margin-bottom: 8px;
+    color: var(--ion-color-medium);
+  }
+
+  p {
+    color: var(--ion-color-medium);
+    margin-bottom: 24px;
+  }
+
+  .empty-cart-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+
+    @include mobile {
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .action-btn {
+      min-width: 160px;
+
+      @include mobile {
+        width: 100%;
+        max-width: 200px;
+      }
+    }
+  }
+}
+
+// Search Results Responsive
+.search-card {
+  .search-results {
+    max-height: 50vh;
+    overflow-y: auto;
+
+    .search-result-item {
+      --padding-start: 8px;
+      --padding-end: 8px;
+      --inner-padding-end: 8px;
+      cursor: pointer;
+
+      @include tablet {
+        --padding-start: 12px;
+        --padding-end: 12px;
+      }
+
+      .product-avatar {
+        width: 40px;
+        height: 40px;
+
+        @include tablet {
+          width: 50px;
+          height: 50px;
+        }
+      }
+
+      .product-info {
+        .product-name {
+          font-size: 14px;
+          font-weight: 600;
+          margin-bottom: 4px;
+
+          @include tablet {
+            font-size: 16px;
+          }
+        }
+
+        .product-price {
+          font-size: 12px;
+          color: var(--ion-color-primary);
+          margin-bottom: 2px;
+
+          @include tablet {
+            font-size: 14px;
+          }
+        }
+
+        .product-stock {
+          font-size: 11px;
+          color: var(--ion-color-medium);
+          margin-bottom: 4px;
+
+          @include tablet {
+            font-size: 12px;
+          }
+        }
+
+        .product-badges {
+          display: flex;
+          gap: 4px;
+          flex-wrap: wrap;
+
+          ion-badge {
+            font-size: 10px;
+            padding: 2px 6px;
+
+            @include tablet {
+              font-size: 11px;
+              padding: 3px 8px;
+            }
+          }
+        }
+      }
+
+      .product-type {
+        font-size: 16px;
+
+        @include tablet {
+          font-size: 18px;
+        }
+      }
+    }
+  }
+}
+
+// Product Options Modal Responsive
+.product-options-modal {
+  --width: 100%;
+  --height: 100%;
+  --border-radius: 0;
+
+  @include tablet {
+    --width: 600px;
+    --height: 80%;
+    --border-radius: 16px;
+  }
+
+  @include desktop {
+    --width: 700px;
+    --height: 85%;
+  }
+}
+
+.product-options-container {
+  .product-info-card {
+    .product-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+
+      @include mobile {
+        flex-direction: column;
+        text-align: center;
+        gap: 12px;
+      }
+
+      .product-avatar-large {
+        width: 80px;
+        height: 80px;
+
+        @include tablet {
+          width: 100px;
+          height: 100px;
+        }
+      }
+
+      .product-details {
+        flex: 1;
+
+        h2 {
+          font-size: 18px;
+          margin-bottom: 4px;
+
+          @include tablet {
+            font-size: 22px;
+          }
+        }
+
+        .product-category {
+          color: var(--ion-color-medium);
+          margin-bottom: 4px;
+          font-size: 14px;
+        }
+
+        .stock-info {
+          color: var(--ion-color-success);
+          font-weight: 500;
+          font-size: 14px;
+        }
+      }
+    }
+  }
+
+  .pricing-options-card {
+    .pricing-option {
+      --padding-start: 12px;
+      --inner-padding-end: 12px;
+      margin: 8px 0;
+      border: 2px solid transparent;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+
+      &.selected {
+        border-color: var(--ion-color-primary);
+        background: rgba(var(--ion-color-primary-rgb), 0.05);
+      }
+
+      &.bulk-option {
+        .pricing-label {
+          h3 {
+            color: var(--ion-color-primary);
+          }
+        }
+      }
+
+      .pricing-label {
+        h3 {
+          font-size: 16px;
+          margin-bottom: 4px;
+        }
+
+        p {
+          font-size: 14px;
+          color: var(--ion-color-medium);
+          margin: 2px 0;
+        }
+
+        .bulk-detail {
+          font-size: 12px;
+          color: var(--ion-color-success);
+          font-weight: 500;
+        }
+      }
+
+      .pricing-note {
+        font-size: 12px;
+
+        &.bulk-note {
+          color: var(--ion-color-success);
+          font-weight: 600;
+        }
+      }
+    }
+  }
+
+  .quantity-card {
+    .quantity-selection {
+      .quantity-item {
+        margin-bottom: 16px;
+      }
+
+      .quantity-buttons {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        margin: 20px 0;
+
+        .qty-adjust-btn {
+          width: 44px;
+          height: 44px;
+          
+          ion-icon {
+            font-size: 20px;
+          }
+        }
+
+        .quantity-display-large {
+          font-size: 24px;
+          font-weight: 700;
+          min-width: 60px;
+          text-align: center;
+          color: var(--ion-color-primary);
+        }
+      }
+
+      .quantity-summary {
+        text-align: center;
+        padding: 16px;
+        background: var(--ion-color-light);
+        border-radius: 8px;
+
+        .quantity-detail {
+          font-size: 14px;
+          color: var(--ion-color-medium);
+          margin-bottom: 4px;
+        }
+
+        .total-price {
+          font-size: 18px;
+          font-weight: 600;
+          color: var(--ion-color-success);
+          margin: 0;
+        }
+      }
+    }
+  }
+
+  .action-buttons {
+    margin-top: 24px;
+
+    .add-to-cart-btn {
+      height: 50px;
+      font-size: 16px;
+      font-weight: 600;
+
+      @include tablet {
+        height: 56px;
+        font-size: 18px;
+      }
+    }
+
+    .cancel-btn {
+      height: 44px;
+      margin-top: 12px;
+    }
+  }
+}
+
+// Product Avatar Fallbacks
+.product-avatar-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ion-color-light);
+  border-radius: 50%;
+  
+  ion-icon {
+    font-size: 16px;
+    color: var(--ion-color-medium);
+  }
+}
+
+.product-avatar-fallback-large {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ion-color-light);
+  border-radius: 50%;
+  
+  ion-icon {
+    font-size: 32px;
+    color: var(--ion-color-medium);
+  }
+}
+
+// Utility Classes
+.no-search-results {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--ion-color-medium);
+
+  ion-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+  }
+
+  p {
+    margin-bottom: 16px;
+  }
+}
+
+// Loading States
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  text-align: center;
+
+  ion-spinner {
+    margin-bottom: 16px;
+  }
+}
+
+// Error States
+.error-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--ion-color-danger);
+
+  ion-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+  }
+}
+
+// Animation for smooth transitions
+.cart-item {
+  transition: transform 0.2s ease;
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+// Print Styles for Receipts
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  .receipt-container {
+    margin: 0;
+    padding: 0;
+  }
+}
+
+// Bulk Options Styling
+.bulk-options-section {
+  width: 100%;
+  
+  .pricing-option {
+    --inner-padding-end: 8px;
+    --padding-start: 12px;
+    
+    ion-radio {
+      margin-right: 8px;
+    }
+    
+    .pricing-label {
+      flex: 1;
+      min-width: 0; // Prevent overflow
+      
+      h3 {
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 2px;
+        color: var(--ion-color-primary);
+      }
+      
+      p {
+        font-size: 12px;
+        margin: 1px 0;
+        color: var(--ion-color-medium);
+      }
+      
+      .bulk-detail {
+        font-size: 11px;
+        color: var(--ion-color-success);
+        font-weight: 500;
+      }
+    }
+    
+    .pricing-note {
+      font-size: 11px;
+      font-weight: 600;
+      
+      &.bulk-note {
+        color: var(--ion-color-success);
+      }
+    }
+  }
+}
+
+// Ensure radio group works properly
+ion-radio-group {
+  width: 100%;
+  
+  .pricing-option {
+    border: 2px solid transparent;
+    border-radius: 8px;
+    margin: 8px 0;
+    transition: all 0.2s ease;
+    
+    &.selected {
+      border-color: var(--ion-color-primary);
+      background: rgba(var(--ion-color-primary-rgb), 0.05);
+    }
+    
+    &:hover {
+      background: rgba(var(--ion-color-light-rgb), 0.5);
+    }
+  }
+}
+
+// Thermal receipt specific styles for PDF
+.thermal-receipt {
+  width: 70mm !important;
+  max-width: 70mm !important;
+  font-size: 10px !important;
+  line-height: 1.1 !important;
+  
+  * {
+    box-sizing: border-box;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+  }
+  
+  .receipt-item {
+    display: flex !important;
+    justify-content: space-between !important;
+    margin-bottom: 3px !important;
+    
+    div {
+      flex-shrink: 0;
+    }
+  }
+}
+
+// Add these styles to your component's SCSS file
+.receipt-container {
+  width: 100%;
+  max-width: 80mm;
+  margin: 0 auto;
+  background: white;
+  color: black;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.2;
+  padding: 15px;
+  border: 1px solid #ccc;
+}
+
+.receipt {
+  width: 100%;
+}
+
+.receipt-header {
+  text-align: center;
+  border-bottom: 1px dashed #000;
+  padding-bottom: 10px;
+  margin-bottom: 12px;
+  
+  .store-logo {
+    margin-bottom: 8px;
+    
+    img {
+      max-width: 150px;
+      max-height: 80px;
+      display: block;
+      margin: 0 auto;
+    }
+  }
+  
+  h2 {
+    font-size: 16px;
+    margin: 0 0 8px 0;
+    font-weight: bold;
+    line-height: 1.2;
+  }
+  
+  p {
+    margin: 4px 0;
+    font-size: 11px;
+    line-height: 1.2;
+  }
+}
+
+.receipt-items {
+  margin-bottom: 15px;
+}
+
+.receipt-item {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  padding: 2px 0;
+  border-bottom: 1px dotted #eee;
+  
+  .item-name {
+    flex: 3;
+    font-weight: bold;
+    word-break: break-word;
+    padding-right: 5px;
+  }
+  
+  .item-details {
+    flex: 2;
+    text-align: center;
+    font-size: 11px;
+  }
+  
+  .item-total {
+    flex: 2;
+    text-align: right;
+    font-weight: bold;
+    padding-left: 5px;
+  }
+}
+
+.receipt-summary {
+  border-top: 1px dashed #000;
+  padding-top: 10px;
+  margin-top: 10px;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+  padding: 2px 0;
+  
+  span {
+    font-size: 12px;
+  }
+}
+
+.total-row {
+  border-top: 1px solid #000;
+  padding-top: 4px;
+  margin-top: 4px;
+  
+  span {
+    font-size: 14px;
+    font-weight: bold;
+  }
+}
+
+.payment-details {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dotted #666;
+  
+  .summary-row {
+    font-size: 11px;
+  }
+}
+
+.cash-details, .debt-details {
+  margin-top: 5px;
+}
+
+.receipt-footer {
+  text-align: center;
+  margin-top: 15px;
+  padding-top: 10px;
+  border-top: 1px dashed #000;
+  
+  p {
+    margin: 4px 0;
+    font-size: 11px;
+    font-weight: bold;
+  }
+}
+
+// For print and download optimization
+@media print {
+  .receipt-container {
+    border: none;
+    padding: 10px;
+    max-width: 75mm;
+  }
+}
+
+// Download button styles
+.download-actions {
+  .download-btn {
+    margin-bottom: 8px;
+    --border-width: 1px;
+  }
+  
+  .done-btn {
+    margin-top: 16px;
+  }
+}
+/* Add to your component's SCSS file */
+.customer-modal {
+  --height: 80%;
+}
+
+.customer-item {
+  --padding-start: 8px;
+  --inner-padding-end: 8px;
+}
+
+.customer-avatar {
+  width: 40px;
+  height: 40px;
+  
+  .avatar-fallback {
+    width: 100%;
+    height: 100%;
+    background: var(--ion-color-primary);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+  }
+}
+
+.customer-info {
+  h3 {
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  
+  .customer-contact {
+    font-size: 12px;
+    color: var(--ion-color-medium);
+    margin-bottom: 2px;
+    
+    .phone, .email {
+      margin-right: 12px;
+    }
+  }
+  
+  .customer-address {
+    font-size: 11px;
+    color: var(--ion-color-medium);
+  }
+}
+
+.select-note {
+  color: var(--ion-color-primary);
+  font-weight: 500;
+}
+
+.no-customers, .empty-customers {
+  text-align: center;
+  padding: 40px 20px;
+  
+  ion-icon {
+    margin-bottom: 16px;
+  }
+  
+  h3 {
+    margin-bottom: 8px;
+    color: var(--ion-color-medium);
+  }
+  
+  p {
+    color: var(--ion-color-medium);
+    margin-bottom: 24px;
+  }
+}
+
+.add-customer-btn {
+  margin-top: 16px;
+}
+// Add these styles to your tab3.page.scss
+
+.clickable-input {
+  cursor: pointer;
+}
+
+.location-info {
+  margin-top: 16px;
+  padding: 12px;
+  background: var(--ion-color-light);
+  border-radius: 8px;
+  
+  ion-note {
+    font-size: 14px;
+    
+    ion-icon {
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+  }
+}
+
+.text-warning {
+  color: var(--ion-color-warning);
+  font-size: 14px;
+}
+
+// Style for selected items in modals
+ion-item.selected {
+  --background: rgba(var(--ion-color-primary-rgb), 0.1);
+}
+
+// Add to tab3.page.scss
+
+// Modal styling
+ion-modal {
+  --height: 70%;
+  --border-radius: 16px;
+}
+
+// Selected item styling
+ion-item[button].selected {
+  --background: rgba(var(--ion-color-primary-rgb), 0.1);
+  --border-color: var(--ion-color-primary);
+}
+
+// Location input styling
+.clickable-input {
+  cursor: pointer;
+  --background: #f8f9fa;
+}
+
+.readonly-input {
+  opacity: 0.8;
+  --background: #f8f9fa;
+}
+
+// Location summary card
+.address-summary-card {
+  margin: 16px 0;
+  
+  .complete-address {
+    font-weight: 500;
+    color: var(--ion-color-success);
+    margin: 8px 0;
+  }
+}
+
+// Form actions
+.form-actions {
+  ion-button {
+    margin-bottom: 8px;
+  }
+}
+
+// Location subtitle
+.location-subtitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ion-color-primary);
+  font-weight: 500;
+}
+
+.text-warning {
+  color: var(--ion-color-warning);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.password-requirements {
+  padding: 8px 16px;
+  ion-note {
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    ion-icon {
+      margin-right: 4px;
+    }
+  }
+}
+
+.readonly-input, .clickable-input {
+  --background: var(--ion-color-light);
+  opacity: 1;
+}
+
+.form-actions {
+  ion-button[disabled] {
+    --opacity: 0.6;
+  }
+}
+
+.location-subtitle, .text-warning {
+  display: flex;
+  align-items: center;
+  ion-icon {
+    margin-right: 8px;
+  }
+}
+.due-date-card {
+  margin: 16px 0;
+  
+  .due-date-segment {
+    margin-bottom: 16px;
+  }
+  
+  .custom-date-section {
+    margin-top: 16px;
+    
+    ion-note {
+      font-size: 12px;
+      display: block;
+      margin-top: 8px;
+    }
+  }
+  
+  .calculated-due-date {
+    margin-top: 16px;
+    padding: 12px;
+    background: var(--ion-color-light);
+    border-radius: 8px;
+    
+    ion-note {
+      display: block;
+      margin-top: 8px;
+      font-size: 12px;
+    }
+  }
+}
+
+.debt-note {
+  margin-top: 16px;
+  display: block;
+  text-align: center;
+}
+.receipt-container {
+  .receipt {
+    .receipt-summary {
+      .initial-payment-deduction {
+        color: #28a745;
+        font-weight: bold;
+      }
+    }
+    
+    .payment-details {
+      .remaining-balance {
+        border-top: 1px dashed #ccc;
+        padding-top: 8px;
+        margin-top: 8px;
+        color: #ffc107;
+        font-size: 1.1em;
+      }
+    }
+  }
+}
+}

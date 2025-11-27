@@ -1,0 +1,143 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Transaction Details</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="dismiss()">
+        <ion-icon slot="icon-only" name="close"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding" (click)="onBackdropClick($event)">
+  <div class="transaction-header">
+    <ion-badge [color]="getStatusColor(transaction)" class="type-badge">
+      {{ transaction.displayType }}
+    </ion-badge>
+    <h2>{{ transaction.customerName }}</h2>
+    <p class="transaction-date">
+      <ion-icon name="time" slot="start"></ion-icon>
+      {{ formatDate(transaction.date) }}
+    </p>
+  </div>
+
+  <ion-list lines="none">
+    <!-- Basic Information -->
+    <ion-item>
+      <ion-label>
+        <h3>Employee</h3>
+        <p>{{ transaction.employeeName }}</p>
+      </ion-label>
+    </ion-item>
+
+    <ion-item>
+      <ion-label>
+        <h3>Status</h3>
+        <p>
+          <ion-badge [color]="getStatusColor(transaction)">
+            {{ transaction.displayStatus }}
+          </ion-badge>
+        </p>
+      </ion-label>
+    </ion-item>
+
+    <!-- Cash/Debt Transaction Details -->
+    <ng-container *ngIf="transaction.type === 'cash' || transaction.type === 'debt'">
+      <ion-item>
+        <ion-label>
+          <h3>Total Amount</h3>
+          <p class="amount">{{ transaction.displayAmount }}</p>
+        </ion-label>
+      </ion-item>
+
+      <ion-item>
+        <ion-label>
+          <h3>Items Count</h3>
+          <p>{{ transaction.itemsCount }} items</p>
+        </ion-label>
+      </ion-item>
+
+      <!-- Debt Specific Details -->
+      <ng-container *ngIf="transaction.type === 'debt'">
+        <ion-item>
+          <ion-label>
+            <h3>Remaining Balance</h3>
+            <p class="balance">₱{{ (transaction.remainingBalance || 0).toFixed(2) }}</p>
+          </ion-label>
+        </ion-item>
+
+        <ion-item>
+          <ion-label>
+            <h3>Initial Payment</h3>
+            <p>₱{{ (transaction.initialPayment || 0).toFixed(2) }}</p>
+          </ion-label>
+        </ion-item>
+
+        <ion-item *ngIf="transaction.dueDate">
+          <ion-label>
+            <h3>Due Date</h3>
+            <p>{{ formatDueDate(transaction.dueDate) }}</p>
+          </ion-label>
+        </ion-item>
+      </ng-container>
+    </ng-container>
+
+    <!-- Stock Transaction Details -->
+    <ng-container *ngIf="transaction.type === 'stock'">
+      <ion-item>
+        <ion-label>
+          <h3>Product</h3>
+          <p>{{ transaction.productName }}</p>
+        </ion-label>
+      </ion-item>
+
+      <ion-item>
+        <ion-label>
+          <h3>Action</h3>
+          <p>
+            <ion-badge [color]="getStockActionColor(transaction)">
+              <ion-icon [name]="getStockActionIcon(transaction)" slot="start"></ion-icon>
+              {{ transaction.stockAction }}
+            </ion-badge>
+          </p>
+        </ion-label>
+      </ion-item>
+
+      <ion-item>
+        <ion-label>
+          <h3>Quantity</h3>
+          <p>{{ transaction.quantity }} units</p>
+        </ion-label>
+      </ion-item>
+
+      <ion-item *ngIf="transaction.reason">
+        <ion-label>
+          <h3>Reason</h3>
+          <p>{{ transaction.reason }}</p>
+        </ion-label>
+      </ion-item>
+
+      <ion-item *ngIf="transaction.previousStock !== undefined && transaction.newStock !== undefined">
+        <ion-label>
+          <h3>Stock Change</h3>
+          <div class="stock-change">
+            <span class="previous-stock">{{ transaction.previousStock }}</span>
+            <ion-icon 
+              [name]="transaction.newStock > transaction.previousStock ? 'arrow-forward' : 'arrow-back'" 
+              [color]="transaction.newStock > transaction.previousStock ? 'success' : 'warning'">
+            </ion-icon>
+            <span class="new-stock">{{ transaction.newStock }}</span>
+          </div>
+        </ion-label>
+      </ion-item>
+    </ng-container>
+  </ion-list>
+</ion-content>
+
+<ion-footer>
+  <ion-toolbar>
+    <ion-buttons slot="end">
+      <ion-button (click)="dismiss()" fill="solid">Close</ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-footer>

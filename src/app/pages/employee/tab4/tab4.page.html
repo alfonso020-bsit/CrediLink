@@ -1,13 +1,1528 @@
 <ion-header [translucent]="true">
-  <ion-toolbar>
-    <ion-title>tab4</ion-title>
+  <ion-toolbar color="primary">
+    <ion-title>Products Inventory</ion-title>
+    <ion-buttons slot="end">
+       <!-- Add this new camera button -->
+      <ion-button (click)="openCameraOptions()">
+        <ion-icon slot="icon-only" name="camera"></ion-icon>
+      </ion-button>
+      <ion-button (click)="loadProducts()">
+        <ion-icon slot="icon-only" name="refresh"></ion-icon>
+      </ion-button>
+      <ion-button (click)="openBarcodeInput()">
+        <ion-icon slot="icon-only" name="barcode"></ion-icon>
+      </ion-button>
+      <ion-button (click)="openAddProductModal()">
+        <ion-icon slot="icon-only" name="add"></ion-icon>
+      </ion-button>
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">tab4</ion-title>
-    </ion-toolbar>
-  </ion-header>
+<ion-content [fullscreen]="true" class="ion-padding">
+  
+    <!-- Summary Cards -->
+    <div class="summary-cards">
+      <ion-card color="primary">
+        <ion-card-content class="ion-text-center">
+          <ion-icon name="cube" size="large"></ion-icon>
+          <div class="summary-text">
+            <ion-text color="light">
+              <div class="summary-number">{{ productSummary.total_products }}</div>
+            </ion-text>
+            <ion-note color="light">Total Products</ion-note>
+          </div>
+        </ion-card-content>
+      </ion-card>
+
+      <ion-card color="success">
+        <ion-card-content class="ion-text-center">
+          <ion-icon name="checkmark-circle" size="large"></ion-icon>
+          <div class="summary-text">
+            <ion-text color="light">
+              <div class="summary-number">{{ productSummary.in_stock }}</div>
+            </ion-text>
+            <ion-note color="light">In Stock</ion-note>
+          </div>
+        </ion-card-content>
+      </ion-card>
+
+      <ion-card color="warning">
+        <ion-card-content class="ion-text-center">
+          <ion-icon name="alert-circle" size="large"></ion-icon>
+          <div class="summary-text">
+            <ion-text color="light">
+              <div class="summary-number">{{ productSummary.low_stock }}</div>
+            </ion-text>
+            <ion-note color="light">Low Stock</ion-note>
+          </div>
+        </ion-card-content>
+      </ion-card>
+
+      <ion-card color="danger">
+        <ion-card-content class="ion-text-center">
+          <ion-icon name="close-circle" size="large"></ion-icon>
+          <div class="summary-text">
+            <ion-text color="light">
+              <div class="summary-number">{{ productSummary.out_of_stock }}</div>
+            </ion-text>
+            <ion-note color="light">Out of Stock</ion-note>
+          </div>
+        </ion-card-content>
+      </ion-card>
+    </div>
+  <!-- Quick Actions -->
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>Quick Actions</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <ion-grid>
+        <ion-row>
+          <ion-col size="6">
+            <ion-button expand="block" color="primary" (click)="openAddProductModal()">
+              <ion-icon name="add-circle" slot="start"></ion-icon>
+              Add Product
+            </ion-button>
+          </ion-col>
+          <ion-col size="6">
+            <ion-button expand="block" color="secondary" (click)="openBarcodeInput()">
+              <ion-icon name="barcode" slot="start"></ion-icon>
+              Scan Barcode
+            </ion-button>
+          </ion-col>
+        </ion-row>
+        <ion-row>
+          <ion-col size="6">
+            <ion-button expand="block" color="warning" (click)="showLowStock()">
+              <ion-icon name="alert" slot="start"></ion-icon>
+              Low Stock
+            </ion-button>
+          </ion-col>
+          <ion-col size="6">
+            <ion-button expand="block" color="danger" (click)="showOutOfStock()">
+              <ion-icon name="close-circle" slot="start"></ion-icon>
+              Out of Stock
+            </ion-button>
+          </ion-col>
+          <!-- Add this to your quick actions section after the existing rows -->
+            <ion-col size="12">
+              <ion-button expand="block" color="dark" (click)="openCameraOptions()">
+                <ion-icon name="camera" slot="start"></ion-icon>
+                Camera Options
+              </ion-button>
+            </ion-col>
+        </ion-row>
+      </ion-grid>
+    </ion-card-content>
+  </ion-card>
+
+  <!-- Barcode Input Field -->
+  <ion-card *ngIf="showBarcodeInput">
+    <ion-card-header>
+      <ion-card-title>Barcode Scanner Input</ion-card-title>
+      <ion-card-subtitle>Scan barcode using your physical scanner</ion-card-subtitle>
+    </ion-card-header>
+    <ion-card-content>
+      <ion-item>
+        <ion-label position="stacked">Barcode Input</ion-label>
+        <ion-input 
+          #barcodeInput
+          type="text" 
+          [(ngModel)]="manualBarcode"
+          (ionInput)="onBarcodeInput()"
+          placeholder="Click here and scan barcode with your physical scanner"
+          autofocus>
+        </ion-input>
+        <ion-button slot="end" fill="clear" (click)="clearBarcodeInput()">
+          <ion-icon name="close"></ion-icon>
+        </ion-button>
+      </ion-item>
+      <ion-note color="medium">
+        💡 Tip: Click in the input field above, then use your physical barcode scanner. The barcode will be automatically entered and searched.
+      </ion-note>
+    </ion-card-content>
+  </ion-card>
+
+  <!-- Enhanced Search & Filter Section -->
+<ion-card>
+  <ion-card-header>
+    <ion-card-title>Search & Filter Products</ion-card-title>
+  </ion-card-header>
+  <ion-card-content>
+    <!-- Search Bar -->
+    <ion-searchbar 
+      [(ngModel)]="searchTerm"
+      (ionInput)="filterProducts()"
+      placeholder="Search products by name, barcode, or category..."
+      animated>
+    </ion-searchbar>
+
+    <!-- Filter Toggle -->
+    <ion-item>
+      <ion-label>Show Advanced Filters</ion-label>
+      <ion-toggle [(ngModel)]="showAdvancedFilters" (ionChange)="onFiltersToggle()"></ion-toggle>
+    </ion-item>
+
+    <!-- Advanced Filters -->
+    <div *ngIf="showAdvancedFilters" class="advanced-filters">
+      <ion-grid>
+        <ion-row>
+          <!-- Category Filter -->
+          <ion-col size="12" size-md="6">
+            <ion-item>
+              <ion-label position="stacked">Category</ion-label>
+              <ion-select 
+                [(ngModel)]="filters.category" 
+                (ionChange)="applyFilters()"
+                placeholder="All Categories">
+                <ion-select-option value="">All Categories</ion-select-option>
+                <ion-select-option value="Groceries">Groceries</ion-select-option>
+                <ion-select-option value="Beverages">Beverages</ion-select-option>
+                <ion-select-option value="Snacks">Snacks</ion-select-option>
+                <ion-select-option value="Dairy">Dairy</ion-select-option>
+                <ion-select-option value="Meat">Meat</ion-select-option>
+                <ion-select-option value="Vegetables">Vegetables</ion-select-option>
+                <ion-select-option value="Fruits">Fruits</ion-select-option>
+                <ion-select-option value="Household">Household</ion-select-option>
+                <ion-select-option value="Personal Care">Personal Care</ion-select-option>
+                <ion-select-option value="Other">Other</ion-select-option>
+              </ion-select>
+            </ion-item>
+          </ion-col>
+
+          <!-- Stock Status Filter -->
+          <ion-col size="12" size-md="6">
+            <ion-item>
+              <ion-label position="stacked">Stock Status</ion-label>
+              <ion-select 
+                [(ngModel)]="filters.stockStatus" 
+                (ionChange)="applyFilters()"
+                placeholder="All Stock Status">
+                <ion-select-option value="">All Products</ion-select-option>
+                <ion-select-option value="in_stock">In Stock</ion-select-option>
+                <ion-select-option value="low_stock">Low Stock</ion-select-option>
+                <ion-select-option value="out_of_stock">Out of Stock</ion-select-option>
+              </ion-select>
+            </ion-item>
+          </ion-col>
+        </ion-row>
+
+        <ion-row>
+          <!-- Price Range -->
+          <ion-col size="12" size-md="6">
+            <ion-item>
+              <ion-label position="stacked">Min Price (₱)</ion-label>
+              <ion-input 
+                type="number" 
+                [(ngModel)]="filters.minPrice" 
+                (ionInput)="applyFilters()"
+                placeholder="0"
+                min="0">
+              </ion-input>
+            </ion-item>
+          </ion-col>
+
+          <ion-col size="12" size-md="6">
+            <ion-item>
+              <ion-label position="stacked">Max Price (₱)</ion-label>
+              <ion-input 
+                type="number" 
+                [(ngModel)]="filters.maxPrice" 
+                (ionInput)="applyFilters()"
+                placeholder="No limit"
+                min="0">
+              </ion-input>
+            </ion-item>
+          </ion-col>
+        </ion-row>
+
+        <ion-row>
+          <!-- Date Added Filter -->
+          <ion-col size="12" size-md="6">
+            <ion-item>
+              <ion-label position="stacked">Added After</ion-label>
+              <ion-input 
+                type="date" 
+                [(ngModel)]="filters.addedAfter" 
+                (ionChange)="applyFilters()">
+              </ion-input>
+            </ion-item>
+          </ion-col>
+
+          <ion-col size="12" size-md="6">
+            <ion-item>
+              <ion-label position="stacked">Added Before</ion-label>
+              <ion-input 
+                type="date" 
+                [(ngModel)]="filters.addedBefore" 
+                (ionChange)="applyFilters()">
+              </ion-input>
+            </ion-item>
+          </ion-col>
+        </ion-row>
+
+        <ion-row>
+          <!-- Sort Options -->
+          <ion-col size="12" size-md="6">
+            <ion-item>
+              <ion-label position="stacked">Sort By</ion-label>
+              <ion-select 
+                [(ngModel)]="filters.sortBy" 
+                (ionChange)="applyFilters()"
+                placeholder="Name (A-Z)">
+                <ion-select-option value="name_asc">Name (A-Z)</ion-select-option>
+                <ion-select-option value="name_desc">Name (Z-A)</ion-select-option>
+                <ion-select-option value="price_asc">Price (Low to High)</ion-select-option>
+                <ion-select-option value="price_desc">Price (High to Low)</ion-select-option>
+                <ion-select-option value="stock_asc">Stock (Low to High)</ion-select-option>
+                <ion-select-option value="stock_desc">Stock (High to Low)</ion-select-option>
+                <ion-select-option value="date_desc">Newest First</ion-select-option>
+                <ion-select-option value="date_asc">Oldest First</ion-select-option>
+              </ion-select>
+            </ion-item>
+          </ion-col>
+
+          <!-- Product Type Filter -->
+          <ion-col size="12" size-md="6">
+            <ion-item>
+              <ion-label position="stacked">Product Type</ion-label>
+              <ion-select 
+                [(ngModel)]="filters.productType" 
+                (ionChange)="applyFilters()"
+                placeholder="All Types">
+                <ion-select-option value="">All Types</ion-select-option>
+                <ion-select-option value="barcode">Barcode Products</ion-select-option>
+                <ion-select-option value="no_barcode">No Barcode Products</ion-select-option>
+              </ion-select>
+            </ion-item>
+          </ion-col>
+        </ion-row>
+
+        <!-- Active Filters & Clear Button -->
+        <ion-row>
+          <ion-col size="12">
+            <div class="active-filters" *ngIf="hasActiveFilters()">
+              <ion-chip *ngFor="let filter of getActiveFilters()" color="primary" (click)="clearFilter(filter.key)">
+                <ion-label>{{ filter.label }}</ion-label>
+                <ion-icon name="close-circle"></ion-icon>
+              </ion-chip>
+              
+              <ion-button size="small" fill="clear" color="danger" (click)="clearAllFilters()">
+                <ion-icon name="close" slot="start"></ion-icon>
+                Clear All
+              </ion-button>
+            </div>
+
+            <div class="filter-stats" *ngIf="filteredProducts.length !== products.length">
+              <ion-note>
+                Showing {{ filteredProducts.length }} of {{ products.length }} products
+                <span *ngIf="searchTerm"> matching "{{ searchTerm }}"</span>
+              </ion-note>
+            </div>
+          </ion-col>
+        </ion-row>
+      </ion-grid>
+    </div>
+  </ion-card-content>
+</ion-card>
+
+  <!-- Scan Result -->
+  <div *ngIf="scannedProduct" class="scan-result-card">
+    <ion-card [color]="scannedProduct.exists ? 'success' : 'warning'">
+      <ion-card-header>
+        <ion-card-title>
+          <ion-icon 
+            [name]="scannedProduct.exists ? 'checkmark-circle' : 'information-circle'" 
+            slot="start">
+          </ion-icon>
+          {{ scannedProduct.exists ? 'Product Found' : 'New Product Detected' }}
+        </ion-card-title>
+        <ion-card-subtitle>Barcode: {{ scannedProduct.barcode }}</ion-card-subtitle>
+      </ion-card-header>
+      <ion-card-content>
+        <!-- Product Image -->
+        <div class="product-preview" *ngIf="scannedProduct.product?.image_url">
+          <img 
+            [src]="scannedProduct.product?.image_url" 
+            [alt]="scannedProduct.product?.name" 
+            class="scanned-product-image"
+            (error)="handleImageError($event)">
+        </div>
+        
+        <div *ngIf="scannedProduct.product" class="product-info">
+          <p><strong>Name:</strong> {{ scannedProduct.product.name }}</p>
+          <p><strong>Brand:</strong> {{ scannedProduct.product.brand || 'Unknown' }}</p>
+          <p><strong>Category:</strong> {{ scannedProduct.product.category }}</p>
+          <p><strong>Source:</strong> 
+            <ion-badge color="primary" *ngIf="scannedProduct.source === 'open_food_facts'">Open Food Facts</ion-badge>
+            <ion-badge color="medium" *ngIf="scannedProduct.source === 'manual'">Manual Entry</ion-badge>
+            <ion-badge color="success" *ngIf="scannedProduct.source === 'database'">Your Inventory</ion-badge>
+          </p>
+        </div>
+        
+        <p class="scan-message">{{ scannedProduct.message }}</p>
+        
+        <div class="action-buttons">
+          <ion-button *ngIf="!scannedProduct.exists" expand="block" color="primary" (click)="openAddProductWithBarcode()">
+            <ion-icon name="add-circle" slot="start"></ion-icon>
+            Add This Product
+          </ion-button>
+          
+          <ion-button *ngIf="scannedProduct.exists" expand="block" color="success" (click)="viewScannedProduct()">
+            <ion-icon name="eye" slot="start"></ion-icon>
+            View Product Details
+          </ion-button>
+          
+          <ion-button expand="block" fill="outline" color="medium" (click)="clearScanResult()">
+            <ion-icon name="close" slot="start"></ion-icon>
+            Clear
+          </ion-button>
+        </div>
+      </ion-card-content>
+    </ion-card>
+  </div>
+
+  <!-- Products List -->
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>Products ({{ filteredProducts.length }})</ion-card-title>
+      <ion-card-subtitle>Manage your store inventory</ion-card-subtitle>
+    </ion-card-header>
+    <ion-card-content>
+      
+      <!-- Loading State -->
+      <div *ngIf="isLoading" class="loading-container">
+        <ion-spinner></ion-spinner>
+        <p>Loading products...</p>
+      </div>
+
+      <!-- Empty State -->
+      <div *ngIf="!isLoading && filteredProducts.length === 0" class="empty-state">
+        <ion-icon name="cube-outline" size="large" color="medium"></ion-icon>
+        <h3>No Products Found</h3>
+        <p *ngIf="searchTerm">No products match your search "{{ searchTerm }}"</p>
+        <p *ngIf="!searchTerm">Add your first product to get started</p>
+        <ion-button (click)="openAddProductModal()" color="primary">
+          <ion-icon name="add" slot="start"></ion-icon>
+          Add Product
+        </ion-button>
+      </div>
+
+<!-- Products List -->
+<ion-list lines="full" *ngIf="!isLoading && filteredProducts.length > 0">
+  <ion-item-sliding *ngFor="let product of filteredProducts">
+    <ion-item [class]="getStockStatusClass(product)" class="product-item">
+      <ion-avatar slot="start" class="product-avatar">
+        <img *ngIf="product.image_url" [src]="product.image_url" [alt]="product.name" (error)="handleImageError($event)">
+        <div *ngIf="!product.image_url" class="product-avatar-fallback">
+          <ion-icon [name]="getProductIcon(product)"></ion-icon>
+        </div>
+      </ion-avatar>
+      
+      <ion-label class="product-info">
+        <div class="product-name">{{ product.name }}</div>
+        <div class="product-detail">
+          <strong>Stock:</strong> {{ product.stock_quantity }} {{ product.unit_of_measure }} | 
+          <strong>Price:</strong> ₱{{ product.selling_price | number:'1.2-2' }}
+        </div>
+        <div class="product-detail" *ngIf="product.bulk_unit">
+          <strong>Bulk:</strong> ₱{{ product.bulk_selling_price | number:'1.2-2' }} per {{ product.pieces_per_bulk }} {{ product.bulk_unit }}
+        </div>
+        <ion-badge [color]="getStockStatusColor(product)" class="stock-badge">
+          {{ getStockStatusText(product) }}
+        </ion-badge>
+      </ion-label>
+
+      <!-- Always Visible Action Buttons -->
+      <div slot="end" class="quick-action-buttons">
+        <ion-button fill="clear" size="small" color="primary" (click)="openProductDetailsModal(product)">
+          <ion-icon name="eye" slot="icon-only"></ion-icon>
+        </ion-button>
+        <ion-button fill="clear" size="small" color="warning" (click)="editProduct(product)">
+          <ion-icon name="create" slot="icon-only"></ion-icon>
+        </ion-button>
+      </div>
+    </ion-item>
+
+    <!-- Sliding Options for Secondary Actions -->
+    <ion-item-options side="end">
+      <ion-item-option color="success" (click)="adjustStock(product)">
+        <ion-icon slot="icon-only" name="swap-vertical"></ion-icon>
+        Stock
+      </ion-item-option>
+      <ion-item-option color="danger" (click)="deleteProduct(product)">
+        <ion-icon slot="icon-only" name="trash"></ion-icon>
+        Delete
+      </ion-item-option>
+    </ion-item-options>
+  </ion-item-sliding>
+</ion-list>
+
+    </ion-card-content>
+  </ion-card>
+
 </ion-content>
+
+<!-- Add/Edit Product Modal (Keep this the same as before) -->
+<ion-modal [isOpen]="showProductModal" (didDismiss)="closeProductModal()">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>{{ selectedProduct ? 'Edit Product' : 'Add New Product' }}</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="closeProductModal()">
+            <ion-icon name="close"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content class="ion-padding">
+      <form #productForm="ngForm" (ngSubmit)="saveProduct()">
+        
+        <!-- Product Preview -->
+        <div *ngIf="formProduct.image_url" class="product-preview-modal">
+          <img [src]="formProduct.image_url" [alt]="formProduct.name" class="product-image-modal">
+          <p class="image-source" *ngIf="scannedProduct?.source === 'open_food_facts'">
+            Image from Open Food Facts
+          </p>
+        </div>
+
+          <!-- Barcode & Product Type Section -->
+        <ion-card>
+          <ion-card-header>
+            <ion-card-title>Product Type & Identification</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            
+            <!-- Product Type Selection -->
+            <ion-item>
+              <ion-label>Product Type</ion-label>
+              <ion-select 
+                [(ngModel)]="formProduct.has_barcode" 
+                name="has_barcode"
+                (ionChange)="onProductTypeChange()"
+                interface="action-sheet">
+                <ion-select-option [value]="true">Barcode Product</ion-select-option>
+                <ion-select-option [value]="false">No Barcode Product</ion-select-option>
+              </ion-select>
+            </ion-item>
+
+            <!-- Barcode Input (shown for barcode products) -->
+            <ion-item *ngIf="formProduct.has_barcode">
+              <ion-label position="stacked">Barcode *</ion-label>
+              <ion-input 
+                type="text" 
+                [(ngModel)]="formProduct.barcode" 
+                name="barcode" 
+                required
+                placeholder="Scan or enter barcode"
+                [readonly]="!!selectedProduct">
+              </ion-input>
+              <ion-button slot="end" fill="clear" (click)="openBarcodeInputForForm()" [disabled]="!!selectedProduct">
+                <ion-icon name="barcode"></ion-icon>
+              </ion-button>
+            </ion-item>
+
+            <!-- Custom Product ID (shown for no-barcode products) -->
+            <ion-item *ngIf="!formProduct.has_barcode">
+              <ion-label position="stacked">Custom Product ID *</ion-label>
+              <ion-input 
+                type="text" 
+                [(ngModel)]="formProduct.custom_product_id" 
+                name="custom_product_id" 
+                required
+                placeholder="Enter unique product ID (e.g., PROD-001)">
+              </ion-input>
+              <ion-button slot="end" fill="clear" (click)="generateCustomId()">
+                <ion-icon name="refresh"></ion-icon>
+              </ion-button>
+            </ion-item>
+
+            <!-- Help text -->
+            <ion-note color="medium">
+              <span *ngIf="formProduct.has_barcode">
+                💡 Barcode products: Use physical scanner or manual entry. Product will be identified by barcode.
+              </span>
+              <span *ngIf="!formProduct.has_barcode">
+                💡 No-barcode products: Use custom ID for tracking. Perfect for homemade items, fresh produce, or bulk items.
+              </span>
+            </ion-note>
+
+            <ion-note *ngIf="scannedProduct?.source" color="primary">
+              Source: {{ scannedProduct?.source === 'open_food_facts' ? 'Open Food Facts' : scannedProduct?.source }}
+            </ion-note>
+          </ion-card-content>
+        </ion-card>
+
+
+        <!-- Basic Information -->
+        <ion-card>
+          <ion-card-header>
+            <ion-card-title>Basic Information</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <ion-item>
+              <ion-label position="stacked">Product Name *</ion-label>
+              <ion-input 
+                type="text" 
+                [(ngModel)]="formProduct.name" 
+                name="name" 
+                required
+                placeholder="Enter product name">
+              </ion-input>
+            </ion-item>
+
+            <ion-item>
+              <ion-label position="stacked">Description</ion-label>
+              <ion-textarea 
+                [(ngModel)]="formProduct.description" 
+                name="description"
+                placeholder="Enter product description"
+                rows="3">
+              </ion-textarea>
+            </ion-item>
+
+            <ion-item>
+              <ion-label position="stacked">Brand</ion-label>
+              <ion-input 
+                type="text" 
+                [(ngModel)]="formProduct.brand" 
+                name="brand"
+                placeholder="Enter brand name">
+              </ion-input>
+            </ion-item>
+
+            <ion-item>
+              <ion-label position="stacked">Category *</ion-label>
+              <ion-select 
+                [(ngModel)]="formProduct.category" 
+                name="category" 
+                required
+                placeholder="Select category">
+                <ion-select-option value="Groceries">Groceries</ion-select-option>
+                <ion-select-option value="Beverages">Beverages</ion-select-option>
+                <ion-select-option value="Snacks">Snacks</ion-select-option>
+                <ion-select-option value="Dairy">Dairy</ion-select-option>
+                <ion-select-option value="Meat">Meat</ion-select-option>
+                <ion-select-option value="Vegetables">Vegetables</ion-select-option>
+                <ion-select-option value="Fruits">Fruits</ion-select-option>
+                <ion-select-option value="Household">Household</ion-select-option>
+                <ion-select-option value="Personal Care">Personal Care</ion-select-option>
+                <ion-select-option value="Other">Other</ion-select-option>
+              </ion-select>
+            </ion-item>
+          </ion-card-content>
+        </ion-card>
+
+        <!-- Stock Information -->
+        <ion-card>
+          <ion-card-header>
+            <ion-card-title>Stock Information</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <ion-grid>
+              <ion-row>
+                <ion-col size="4">
+                  <ion-item>
+                    <ion-label position="stacked">Current Stock *</ion-label>
+                    <ion-input 
+                      type="number" 
+                      [(ngModel)]="formProduct.stock_quantity" 
+                      name="stock_quantity" 
+                      required 
+                      min="0"
+                      placeholder="Qty">
+                    </ion-input>
+                  </ion-item>
+                </ion-col>
+                <ion-col size="4">
+                  <ion-item>
+                    <ion-label position="stacked">Min Stock</ion-label>
+                    <ion-input 
+                      type="number" 
+                      [(ngModel)]="formProduct.min_stock_level" 
+                      name="min_stock_level" 
+                      min="0"
+                      placeholder="Min">
+                    </ion-input>
+                  </ion-item>
+                </ion-col>
+                <ion-col size="4">
+                  <ion-item>
+                    <ion-label position="stacked">Max Stock</ion-label>
+                    <ion-input 
+                      type="number" 
+                      [(ngModel)]="formProduct.max_stock_level" 
+                      name="max_stock_level" 
+                      min="0"
+                      placeholder="Max">
+                    </ion-input>
+                  </ion-item>
+                </ion-col>
+              </ion-row>
+            </ion-grid>
+
+            <ion-item>
+              <ion-label position="stacked">Unit of Measure *</ion-label>
+              <ion-select 
+                [(ngModel)]="formProduct.unit_of_measure" 
+                name="unit_of_measure" 
+                required
+                placeholder="Select unit">
+                <ion-select-option value="piece">Piece</ion-select-option>
+                <ion-select-option value="pack">Pack</ion-select-option>
+                <ion-select-option value="gram">Gram</ion-select-option>
+                <ion-select-option value="kilogram">Kilogram</ion-select-option>
+                <ion-select-option value="liter">Liter</ion-select-option>
+                <ion-select-option value="milliliter">Milliliter</ion-select-option>
+                <ion-select-option value="bottle">Bottle</ion-select-option>
+                <ion-select-option value="can">Can</ion-select-option>
+                <ion-select-option value="box">Box</ion-select-option>
+              </ion-select>
+            </ion-item>
+          </ion-card-content>
+        </ion-card>
+
+<!-- Pricing -->
+<ion-card>
+  <ion-card-header>
+    <ion-card-title>Pricing</ion-card-title>
+  </ion-card-header>
+  <ion-card-content>
+    <ion-grid>
+      <ion-row>
+        <ion-col size="6">
+          <ion-item>
+            <ion-label position="stacked">Cost Price (₱) *</ion-label>
+            <ion-input 
+              type="number" 
+              [(ngModel)]="formProduct.cost_price" 
+              name="cost_price" 
+              required 
+              min="0.01"
+              step="0.01"
+              placeholder="0.00">
+            </ion-input>
+          </ion-item>
+        </ion-col>
+        <ion-col size="6">
+          <ion-item>
+            <ion-label position="stacked">Selling Price (₱) *</ion-label>
+            <ion-input 
+              type="number" 
+              [(ngModel)]="formProduct.selling_price" 
+              name="selling_price" 
+              required 
+              min="0.01"
+              step="0.01"
+              placeholder="0.00">
+            </ion-input>
+          </ion-item>
+        </ion-col>
+      </ion-row>
+    </ion-grid>
+
+    <!-- Enhanced Bulk Pricing -->
+    <ion-card>
+      <ion-card-header>
+        <ion-card-title>Bulk Pricing Options</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        
+        <ion-item>
+          <ion-label>Enable Bulk Pricing</ion-label>
+          <ion-toggle [(ngModel)]="enableBulkPricing" name="enableBulkPricing"></ion-toggle>
+        </ion-item>
+
+        <!-- Simple Bulk Pricing (existing) -->
+        <div *ngIf="enableBulkPricing && !enableAdvancedBulk" class="bulk-pricing-section">
+          <ion-item>
+            <ion-label position="stacked">Bulk Unit</ion-label>
+            <ion-select 
+              [(ngModel)]="formProduct.bulk_unit" 
+              name="bulk_unit"
+              placeholder="Select bulk unit">
+              <ion-select-option value="pack">Pack</ion-select-option>
+              <ion-select-option value="dozen">Dozen</ion-select-option>
+              <ion-select-option value="case">Case</ion-select-option>
+              <ion-select-option value="box">Box</ion-select-option>
+              <ion-select-option value="carton">Carton</ion-select-option>
+              <ion-select-option value="bundle">Bundle</ion-select-option>
+            </ion-select>
+          </ion-item>
+
+          <ion-item>
+            <ion-label position="stacked">Pieces per Bulk</ion-label>
+            <ion-input 
+              type="number" 
+              [(ngModel)]="formProduct.pieces_per_bulk" 
+              name="pieces_per_bulk" 
+              min="1"
+              placeholder="e.g., 12 for dozen">
+            </ion-input>
+          </ion-item>
+
+          <ion-item>
+            <ion-label position="stacked">Bulk Selling Price (₱)</ion-label>
+            <ion-input 
+              type="number" 
+              [(ngModel)]="formProduct.bulk_selling_price" 
+              name="bulk_selling_price" 
+              min="0.01"
+              step="0.01"
+              placeholder="Price per bulk">
+            </ion-input>
+          </ion-item>
+
+          <!-- Advanced Bulk Options Toggle -->
+          <ion-item>
+            <ion-label>Advanced Bulk Options</ion-label>
+            <ion-toggle [(ngModel)]="enableAdvancedBulk" name="enableAdvancedBulk"></ion-toggle>
+          </ion-item>
+        </div>
+
+        <!-- Advanced Bulk Options -->
+        <div *ngIf="enableBulkPricing && enableAdvancedBulk" class="advanced-bulk-section">
+          <ion-item>
+            <ion-label>Multiple Bulk Options</ion-label>
+            <ion-button slot="end" fill="clear" size="small" (click)="addBulkOption()">
+              <ion-icon name="add" slot="icon-only"></ion-icon>
+            </ion-button>
+          </ion-item>
+
+          <!-- Bulk Options List -->
+          <div *ngFor="let option of formProduct.bulk_options; let i = index" class="bulk-option-item">
+            <ion-card>
+              <ion-card-header>
+                <ion-card-title>Bulk Option {{ i + 1 }}</ion-card-title>
+                <ion-button slot="end" fill="clear" color="danger" size="small" (click)="removeBulkOption(i)">
+                  <ion-icon name="trash" slot="icon-only"></ion-icon>
+                </ion-button>
+              </ion-card-header>
+              <ion-card-content>
+                <ion-grid>
+                  <ion-row>
+                    <ion-col size="6">
+                      <ion-item>
+                        <ion-label position="stacked">Unit</ion-label>
+                        <ion-input 
+                          type="text" 
+                          [(ngModel)]="option.unit" 
+                          [name]="'bulk_unit_' + i"
+                          placeholder="e.g., pack, case"
+                          required>
+                        </ion-input>
+                      </ion-item>
+                    </ion-col>
+                    <ion-col size="6">
+                      <ion-item>
+                        <ion-label position="stacked">Pieces</ion-label>
+                        <ion-input 
+                          type="number" 
+                          [(ngModel)]="option.pieces" 
+                          [name]="'bulk_pieces_' + i"
+                          min="1"
+                          required>
+                        </ion-input>
+                      </ion-item>
+                    </ion-col>
+                  </ion-row>
+                  <ion-row>
+                    <ion-col size="6">
+                      <ion-item>
+                        <ion-label position="stacked">Selling Price (₱)</ion-label>
+                        <ion-input 
+                          type="number" 
+                          [(ngModel)]="option.selling_price" 
+                          [name]="'bulk_selling_price_' + i"
+                          min="0.01"
+                          step="0.01"
+                          required>
+                        </ion-input>
+                      </ion-item>
+                    </ion-col>
+                    <ion-col size="6">
+                      <ion-item>
+                        <ion-label position="stacked">Cost Price (₱)</ion-label>
+                        <ion-input 
+                          type="number" 
+                          [(ngModel)]="option.cost_price" 
+                          [name]="'bulk_cost_price_' + i"
+                          min="0.01"
+                          step="0.01">
+                        </ion-input>
+                      </ion-item>
+                    </ion-col>
+                  </ion-row>
+                  <ion-row>
+                    <ion-col size="12">
+                      <ion-item>
+                        <ion-label>Set as Default</ion-label>
+                        <ion-checkbox 
+                          [(ngModel)]="option.is_default" 
+                          [name]="'bulk_default_' + i"
+                          (ionChange)="setDefaultBulkOption(i)">
+                        </ion-checkbox>
+                      </ion-item>
+                    </ion-col>
+                  </ion-row>
+                </ion-grid>
+              </ion-card-content>
+            </ion-card>
+          </div>
+
+          <!-- Simple Bulk Toggle -->
+          <ion-item>
+            <ion-label>Use Simple Bulk Pricing</ion-label>
+            <ion-toggle [(ngModel)]="enableAdvancedBulk" [checked]="false" name="enableAdvancedBulk"></ion-toggle>
+          </ion-item>
+        </div>
+
+      </ion-card-content>
+    </ion-card>
+    <!-- END Enhanced Bulk Pricing -->
+
+  </ion-card-content>
+</ion-card>
+<!-- END Pricing -->
+
+        <!-- Product Image -->
+        <ion-card>
+          <ion-card-header>
+            <ion-card-title>Product Image</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <!-- Image Preview -->
+            <div *ngIf="formProduct.image_url || cameraImage" class="image-preview">
+              <img 
+                [src]="cameraImage || formProduct.image_url" 
+                [alt]="formProduct.name" 
+                class="product-image-preview"
+                (error)="handleImageError($event)">
+              <ion-button 
+                fill="clear" 
+                color="danger" 
+                (click)="clearCapturedImage()"
+                class="remove-image-btn">
+                <ion-icon name="trash" slot="icon-only"></ion-icon>
+              </ion-button>
+            </div>
+
+            <!-- Camera Options -->
+            <div class="camera-options">
+              <ion-button 
+                expand="block" 
+                fill="outline" 
+                color="primary" 
+                (click)="captureProductImage()"
+                [disabled]="isCapturingImage">
+                <ion-spinner *ngIf="isCapturingImage" slot="start"></ion-spinner>
+                <ion-icon *ngIf="!isCapturingImage" name="camera" slot="start"></ion-icon>
+                {{ isCapturingImage ? 'Capturing...' : 'Take Photo' }}
+              </ion-button>
+              
+              <ion-button 
+                expand="block" 
+                fill="outline" 
+                color="secondary" 
+                (click)="pickImageFromGallery()">
+                <ion-icon name="images" slot="start"></ion-icon>
+                Choose from Gallery
+              </ion-button>
+            </div>
+
+            <!-- Manual URL Input (keep existing) -->
+            <ion-item>
+              <ion-label position="stacked">Or enter Image URL</ion-label>
+              <ion-input 
+                type="url" 
+                [(ngModel)]="formProduct.image_url" 
+                name="image_url"
+                placeholder="https://example.com/image.jpg">
+              </ion-input>
+            </ion-item>
+            
+            <ion-note>Use camera, gallery, or enter URL. Camera is recommended for best quality.</ion-note>
+          </ion-card-content>
+        </ion-card>
+
+ <!-- Action Buttons -->
+        <ion-button 
+          expand="block" 
+          type="submit" 
+          [disabled]="!isFormValid() || isSaving"
+          class="save-button">
+          <ion-spinner *ngIf="isSaving" slot="start"></ion-spinner>
+          <ion-icon *ngIf="!isSaving" name="save" slot="start"></ion-icon>
+          {{ isSaving ? 'Saving...' : (selectedProduct ? 'Update Product' : 'Add Product') }}
+        </ion-button>
+
+        <ion-button 
+          expand="block" 
+          fill="outline" 
+          color="medium" 
+          (click)="closeProductModal()"
+          class="cancel-button">
+          <ion-icon name="close" slot="start"></ion-icon>
+          Cancel
+        </ion-button>
+
+      </form>
+    </ion-content>
+  </ng-template>
+</ion-modal>
+
+
+<!-- Barcode Scanner Modal -->
+<ion-modal [isOpen]="showScannerModal" (didDismiss)="closeScannerModal()">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>Scan Barcode</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="closeScannerModal()">
+            <ion-icon name="close"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content class="ion-padding">
+      <div class="scanner-container">
+        <!-- Scanner will be rendered here -->
+        <div id="scanner-container" #scannerElement *ngIf="isScanning"></div>
+        
+        <div *ngIf="!isScanning" class="scanner-placeholder">
+          <ion-icon name="barcode" size="large" color="primary"></ion-icon>
+          <h3>Barcode Scanner</h3>
+          <p class="scanner-instructions">Position the barcode within the camera view to scan</p>
+          <ion-button (click)="startScanner()" color="primary" class="ion-margin-top">
+            <ion-icon name="camera" slot="start"></ion-icon>
+            Start Scanner
+          </ion-button>
+        </div>
+        
+        <!-- Scan Result -->
+        <div *ngIf="scannedProduct" class="scan-result">
+          <ion-card>
+            <ion-card-header>
+              <ion-card-title>
+                <ion-icon 
+                  [name]="scannedProduct.exists ? 'checkmark-circle' : 'information-circle'" 
+                  [color]="scannedProduct.exists ? 'success' : 'warning'">
+                </ion-icon>
+                Scan Result
+              </ion-card-title>
+            </ion-card-header>
+            <ion-card-content>
+              <!-- Product Image -->
+              <div class="product-preview" *ngIf="scannedProduct.product?.image_url">
+                <img 
+                  [src]="scannedProduct.product?.image_url || ''" 
+                  [alt]="scannedProduct.product?.name || 'Product image'" 
+                  class="scanned-product-image"
+                  (error)="handleImageError($event)">
+              </div>
+              
+              <p><strong>Barcode:</strong> {{ scannedProduct.barcode }}</p>
+              <p *ngIf="scannedProduct.exists">
+                <strong>Status:</strong> 
+                <ion-badge color="success">Product Found in Inventory</ion-badge>
+              </p>
+              <p *ngIf="!scannedProduct.exists">
+                <strong>Status:</strong> 
+                <ion-badge color="warning">New Product</ion-badge>
+              </p>
+              
+              <div *ngIf="scannedProduct.product" class="product-info">
+                <p><strong>Name:</strong> {{ scannedProduct.product.name }}</p>
+                <p><strong>Brand:</strong> {{ scannedProduct.product.brand || 'Unknown' }}</p>
+                <p><strong>Category:</strong> {{ scannedProduct.product.category }}</p>
+                <p><strong>Source:</strong> 
+                  <ion-badge color="primary" *ngIf="scannedProduct.source === 'open_food_facts'">Open Food Facts</ion-badge>
+                  <ion-badge color="medium" *ngIf="scannedProduct.source === 'manual'">Manual Entry</ion-badge>
+                  <ion-badge color="success" *ngIf="scannedProduct.source === 'database'">Your Inventory</ion-badge>
+                </p>
+              </div>
+              
+              <p class="scan-message">{{ scannedProduct.message }}</p>
+              
+              <div class="action-buttons">
+                <ion-button *ngIf="!scannedProduct.exists" expand="block" color="primary" (click)="openAddProductWithBarcode()">
+                  <ion-icon name="add-circle" slot="start"></ion-icon>
+                  Add This Product
+                </ion-button>
+                
+                <ion-button *ngIf="scannedProduct.exists" expand="block" color="success" (click)="viewScannedProduct()">
+                  <ion-icon name="eye" slot="start"></ion-icon>
+                  View Product Details
+                </ion-button>
+                
+                <ion-button expand="block" fill="outline" color="medium" (click)="scanAgain()">
+                  <ion-icon name="refresh" slot="start"></ion-icon>
+                  Scan Another
+                </ion-button>
+              </div>
+            </ion-card-content>
+          </ion-card>
+        </div>
+
+        <!-- Manual entry option -->
+        <div class="manual-entry" *ngIf="!isScanning && !scannedProduct">
+          <ion-button expand="block" fill="outline" (click)="enterBarcodeManually()">
+            <ion-icon name="keypad" slot="start"></ion-icon>
+            Enter Barcode Manually
+          </ion-button>
+        </div>
+
+        <!-- Scanner Instructions -->
+        <div class="scanner-tips" *ngIf="isScanning">
+          <ion-card>
+            <ion-card-content>
+              <p><strong>Tips for better scanning:</strong></p>
+              <ul>
+                <li>Ensure good lighting</li>
+                <li>Hold steady about 6-12 inches from the barcode</li>
+                <li>Position barcode within the viewfinder</li>
+                <li>Avoid glare and reflections</li>
+              </ul>
+              <ion-button expand="block" fill="clear" size="small" (click)="stopScanner()">
+                <ion-icon name="stop" slot="start"></ion-icon>
+                Stop Scanner
+              </ion-button>
+            </ion-card-content>
+          </ion-card>
+        </div>
+
+        <!-- Test Barcodes for Development -->
+        <div class="test-barcodes" *ngIf="!isScanning && !scannedProduct">
+          <ion-card>
+            <ion-card-header>
+              <ion-card-title>Test Barcodes</ion-card-title>
+              <ion-card-subtitle>For development and testing</ion-card-subtitle>
+            </ion-card-header>
+            <ion-card-content>
+              <ion-grid>
+                <ion-row>
+                  <ion-col size="6" *ngFor="let barcode of testBarcodes">
+                    <ion-button expand="block" fill="outline" size="small" (click)="handleScannedBarcode(barcode)">
+                      {{ barcode }}
+                    </ion-button>
+                  </ion-col>
+                </ion-row>
+              </ion-grid>
+            </ion-card-content>
+          </ion-card>
+        </div>
+      </div>
+    </ion-content>
+  </ng-template>
+</ion-modal>
+
+<!-- Product Details Modal -->
+<ion-modal [isOpen]="showProductDetailsModal" (didDismiss)="closeProductDetailsModal()">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>Product Details</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="closeProductDetailsModal()">
+            <ion-icon name="close"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content class="ion-padding">
+      <div *ngIf="productDetails" class="product-details-container">
+        
+        <!-- Product Image -->
+        <div class="product-image-container" *ngIf="productDetails.image_url">
+          <img [src]="productDetails.image_url" [alt]="productDetails.name" class="product-detail-image">
+        </div>
+        
+        <!-- Product Info -->
+        <ion-card>
+          <ion-card-header>
+            <ion-card-title>{{ productDetails.name }}</ion-card-title>
+            <ion-card-subtitle>Barcode: {{ productDetails.barcode }}</ion-card-subtitle>
+          </ion-card-header>
+          <ion-card-content>
+            <ion-list lines="none">
+              <ion-item>
+                <ion-label>Category</ion-label>
+                <ion-note slot="end">{{ productDetails.category }}</ion-note>
+              </ion-item>
+              <ion-item>
+                <ion-label>Brand</ion-label>
+                <ion-note slot="end">{{ productDetails.brand || 'N/A' }}</ion-note>
+              </ion-item>
+              <ion-item>
+                <ion-label>Description</ion-label>
+                <ion-note slot="end">{{ productDetails.description || 'N/A' }}</ion-note>
+              </ion-item>
+              <ion-item>
+                <ion-label>Current Stock</ion-label>
+                <ion-note slot="end">{{ productDetails.stock_quantity }} {{ productDetails.unit_of_measure }}</ion-note>
+              </ion-item>
+              <ion-item>
+                <ion-label>Stock Range</ion-label>
+                <ion-note slot="end">{{ productDetails.min_stock_level }} - {{ productDetails.max_stock_level }}</ion-note>
+              </ion-item>
+              <ion-item>
+                <ion-label>Price</ion-label>
+                <ion-note slot="end">₱{{ productDetails.selling_price | number:'1.2-2' }} per {{ productDetails.unit_of_measure }}</ion-note>
+              </ion-item>
+              <ion-item *ngIf="productDetails.bulk_unit && productDetails.pieces_per_bulk && productDetails.bulk_selling_price">
+                <ion-label>Bulk Price</ion-label>
+                <ion-note slot="end">₱{{ productDetails.bulk_selling_price | number:'1.2-2' }} per {{ productDetails.pieces_per_bulk }} {{ productDetails.bulk_unit }}</ion-note>
+              </ion-item>
+              <ion-item>
+                <ion-label>Cost Price</ion-label>
+                <ion-note slot="end">₱{{ productDetails.cost_price | number:'1.2-2' }}</ion-note>
+              </ion-item>
+            </ion-list>
+          </ion-card-content>
+        </ion-card>
+
+        <!-- In your product-details-modal section -->
+        <ion-card>
+          <ion-card-header>
+            <ion-card-title>Recent Stock Transactions</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <div *ngIf="productTransactions.length === 0" class="no-transactions">
+              <p>No stock transactions found</p>
+            </div>
+            
+            <ion-list *ngIf="productTransactions.length > 0">
+              <ion-item *ngFor="let transaction of productTransactions">
+                <ion-label>
+                  <h3>
+                    <ion-badge [color]="getTransactionColor(transaction.type)" class="transaction-badge">
+                      {{ formatTransactionType(transaction.type) }}
+                    </ion-badge>
+                    {{ transaction.quantity }} units
+                  </h3>
+                  <p>{{ transaction.reason }}</p>
+                  <p *ngIf="transaction.user_name" class="transaction-user">
+                    By: {{ transaction.user_name }}
+                  </p>
+                </ion-label>
+                <ion-note slot="end">
+                  {{ transaction.created_at | date:'MMM d, h:mm a' }}
+                </ion-note>
+              </ion-item>
+            </ion-list>
+          </ion-card-content>
+        </ion-card>
+
+        <!-- Action Buttons -->
+        <ion-grid>
+          <ion-row>
+            <ion-col size="6">
+              <ion-button expand="block" color="warning" (click)="adjustStock(productDetails); closeProductDetailsModal()">
+                <ion-icon name="swap-vertical" slot="start"></ion-icon>
+                Adjust Stock
+              </ion-button>
+            </ion-col>
+            <ion-col size="6">
+              <ion-button expand="block" color="primary" (click)="editProduct(productDetails); closeProductDetailsModal()">
+                <ion-icon name="create" slot="start"></ion-icon>
+                Edit
+              </ion-button>
+            </ion-col>
+          </ion-row>
+        </ion-grid>
+
+      </div>
+    </ion-content>
+  </ng-template>
+</ion-modal>
+
+<!-- Low Stock Products Modal -->
+<ion-modal [isOpen]="showLowStockModal" (didDismiss)="closeLowStockModal()">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar color="warning">
+        <ion-title>Low Stock Alert</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="closeLowStockModal()">
+            <ion-icon name="close"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content class="ion-padding">
+      
+      <!-- Header Info -->
+      <ion-card color="warning">
+        <ion-card-header>
+          <ion-card-title>
+            <ion-icon name="warning" slot="start"></ion-icon>
+            Low Stock Products
+          </ion-card-title>
+          <ion-card-subtitle>
+            {{ lowStockProducts.length }} product(s) need restocking
+          </ion-card-subtitle>
+        </ion-card-header>
+      </ion-card>
+
+      <!-- Low Stock Products List -->
+      <ion-list lines="full" *ngIf="lowStockProducts.length > 0">
+        <ion-item *ngFor="let product of lowStockProducts" [color]="getStockStatusColor(product)" class="low-stock-item">
+          <ion-avatar slot="start" class="product-avatar">
+            <img *ngIf="product.image_url" [src]="product.image_url" [alt]="product.name" (error)="handleImageError($event)">
+            <div *ngIf="!product.image_url" class="product-avatar-fallback">
+              <ion-icon [name]="getProductIcon(product)"></ion-icon>
+            </div>
+          </ion-avatar>
+          
+          <ion-label class="product-info">
+            <div class="product-name">{{ product.name }}</div>
+            <div class="product-detail">
+              <strong>Current Stock:</strong> {{ product.stock_quantity }} {{ product.unit_of_measure }}
+            </div>
+            <div class="product-detail">
+              <strong>Minimum Required:</strong> {{ product.min_stock_level }} {{ product.unit_of_measure }}
+            </div>
+            <ion-badge [color]="getStockStatusColor(product)" class="stock-badge">
+              {{ getStockStatusText(product) }}
+            </ion-badge>
+          </ion-label>
+
+          <div slot="end" class="quick-action-buttons">
+            <ion-button fill="clear" size="small" color="primary" (click)="openProductDetailsModal(product); closeLowStockModal()">
+              <ion-icon name="eye" slot="icon-only"></ion-icon>
+            </ion-button>
+            <ion-button fill="clear" size="small" color="success" (click)="adjustStock(product); closeLowStockModal()">
+              <ion-icon name="add-circle" slot="icon-only"></ion-icon>
+            </ion-button>
+          </div>
+        </ion-item>
+      </ion-list>
+
+      <!-- Action Buttons -->
+      <ion-grid class="ion-margin-top">
+        <ion-row>
+          <ion-col size="6">
+            <ion-button expand="block" color="warning" (click)="filterToLowStockProducts()">
+              <ion-icon name="filter" slot="start"></ion-icon>
+              Filter List
+            </ion-button>
+          </ion-col>
+          <ion-col size="6">
+            <ion-button expand="block" color="medium" (click)="closeLowStockModal()">
+              <ion-icon name="close" slot="start"></ion-icon>
+              Close
+            </ion-button>
+          </ion-col>
+        </ion-row>
+      </ion-grid>
+
+    </ion-content>
+  </ng-template>
+</ion-modal>
+
+<!-- Stock Adjustment Modal -->
+<ion-modal [isOpen]="showStockModal" (didDismiss)="closeStockModal()">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>Adjust Stock - {{ selectedProduct?.name }}</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="closeStockModal()">
+            <ion-icon name="close"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content class="ion-padding">
+      <form #stockForm="ngForm" (ngSubmit)="saveStockAdjustment()">
+        
+        <!-- Current Stock Info -->
+        <ion-card>
+          <ion-card-header>
+            <ion-card-title>Current Stock Information</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <ion-grid>
+              <ion-row>
+                <ion-col size="6">
+                  <ion-item>
+                    <ion-label>Current Stock</ion-label>
+                    <ion-note slot="end">{{ selectedProduct?.stock_quantity }} {{ selectedProduct?.unit_of_measure }}</ion-note>
+                  </ion-item>
+                </ion-col>
+                <ion-col size="6">
+                  <ion-item>
+                    <ion-label>Min Stock Level</ion-label>
+                    <ion-note slot="end">{{ selectedProduct?.min_stock_level }}</ion-note>
+                  </ion-item>
+                </ion-col>
+              </ion-row>
+            </ion-grid>
+          </ion-card-content>
+        </ion-card>
+
+        <!-- Stock Adjustment -->
+        <ion-card>
+          <ion-card-header>
+            <ion-card-title>Stock Adjustment</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <ion-item>
+              <ion-label position="stacked">Adjustment Type *</ion-label>
+              <ion-select 
+                [(ngModel)]="stockAdjustment.type" 
+                name="adjustment_type" 
+                required
+                (ionChange)="onAdjustmentTypeChange()">
+                <ion-select-option value="stock_in">Stock In (Add)</ion-select-option>
+                <ion-select-option value="stock_out">Stock Out (Remove)</ion-select-option>
+                <ion-select-option value="set">Set New Quantity</ion-select-option>
+              </ion-select>
+            </ion-item>
+
+            <ion-item>
+              <ion-label position="stacked">Quantity *</ion-label>
+              <ion-input 
+                type="number" 
+                [(ngModel)]="stockAdjustment.quantity" 
+                name="quantity" 
+                required 
+                min="1"
+                placeholder="Enter quantity">
+              </ion-input>
+            </ion-item>
+
+            <ion-item>
+              <ion-label position="stacked">Reason *</ion-label>
+              <ion-textarea 
+                [(ngModel)]="stockAdjustment.reason" 
+                name="reason" 
+                required
+                placeholder="Enter reason for adjustment (e.g., new shipment, sold items, etc.)"
+                rows="3">
+              </ion-textarea>
+            </ion-item>
+
+            <!-- Preview of new stock level -->
+            <div *ngIf="stockAdjustment.quantity" class="stock-preview">
+              <ion-item>
+                <ion-label>New Stock Level</ion-label>
+                <ion-note slot="end" [color]="getNewStockColor()">
+                  {{ calculateNewStock() }} {{ selectedProduct?.unit_of_measure }}
+                </ion-note>
+              </ion-item>
+            </div>
+          </ion-card-content>
+        </ion-card>
+
+        <!-- Action Buttons -->
+        <ion-button 
+          expand="block" 
+          type="submit" 
+          [disabled]="!isStockFormValid() || isAdjustingStock"
+          color="warning"
+          class="save-stock-button">
+          <ion-spinner *ngIf="isAdjustingStock" slot="start"></ion-spinner>
+          <ion-icon *ngIf="!isAdjustingStock" name="swap-vertical" slot="start"></ion-icon>
+          {{ isAdjustingStock ? 'Updating...' : 'Update Stock' }}
+        </ion-button>
+
+        <ion-button 
+          expand="block" 
+          fill="outline" 
+          color="medium" 
+          (click)="closeStockModal()">
+          Cancel
+        </ion-button>
+
+      </form>
+    </ion-content>
+  </ng-template>
+</ion-modal>
+
+<!-- Out of Stock Products Modal -->
+<ion-modal [isOpen]="showOutOfStockModal" (didDismiss)="closeOutOfStockModal()">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar color="danger">
+        <ion-title>Out of Stock Alert</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="closeOutOfStockModal()">
+            <ion-icon name="close"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content class="ion-padding">
+      
+      <!-- Header Info -->
+      <ion-card color="danger">
+        <ion-card-header>
+          <ion-card-title>
+            <ion-icon name="close-circle" slot="start"></ion-icon>
+            Out of Stock Products
+          </ion-card-title>
+          <ion-card-subtitle>
+            {{ outOfStockProducts.length }} product(s) need restocking
+          </ion-card-subtitle>
+        </ion-card-header>
+      </ion-card>
+
+      <!-- Out of Stock Products List -->
+      <ion-list lines="full" *ngIf="outOfStockProducts.length > 0">
+        <ion-item *ngFor="let product of outOfStockProducts" color="danger" class="out-of-stock-item">
+          <ion-avatar slot="start" class="product-avatar">
+            <img *ngIf="product.image_url" [src]="product.image_url" [alt]="product.name" (error)="handleImageError($event)">
+            <div *ngIf="!product.image_url" class="product-avatar-fallback">
+              <ion-icon [name]="getProductIcon(product)"></ion-icon>
+            </div>
+          </ion-avatar>
+          
+          <ion-label class="product-info">
+            <div class="product-name">{{ product.name }}</div>
+            <div class="product-detail">
+              <strong>Current Stock:</strong> {{ product.stock_quantity }} {{ product.unit_of_measure }}
+            </div>
+            <div class="product-detail">
+              <strong>Minimum Required:</strong> {{ product.min_stock_level }} {{ product.unit_of_measure }}
+            </div>
+            <ion-badge color="danger" class="stock-badge">
+              Out of Stock
+            </ion-badge>
+          </ion-label>
+
+          <div slot="end" class="quick-action-buttons">
+            <ion-button fill="clear" size="small" color="primary" (click)="openProductDetailsModal(product); closeOutOfStockModal()">
+              <ion-icon name="eye" slot="icon-only"></ion-icon>
+            </ion-button>
+            <ion-button fill="clear" size="small" color="success" (click)="adjustStock(product); closeOutOfStockModal()">
+              <ion-icon name="add-circle" slot="icon-only"></ion-icon>
+            </ion-button>
+          </div>
+        </ion-item>
+      </ion-list>
+
+      <!-- Action Buttons -->
+      <ion-grid class="ion-margin-top">
+        <ion-row>
+          <ion-col size="6">
+            <ion-button expand="block" color="danger" (click)="filterToOutOfStockProducts()">
+              <ion-icon name="filter" slot="start"></ion-icon>
+              Filter List
+            </ion-button>
+          </ion-col>
+          <ion-col size="6">
+            <ion-button expand="block" color="medium" (click)="closeOutOfStockModal()">
+              <ion-icon name="close" slot="start"></ion-icon>
+              Close
+            </ion-button>
+          </ion-col>
+        </ion-row>
+      </ion-grid>
+
+    </ion-content>
+  </ng-template>
+</ion-modal>

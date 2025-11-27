@@ -1,13 +1,377 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
-    <ion-title>tab5</ion-title>
+    <ion-title>Employee Reports</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="openFilterModal()" fill="clear">
+        <ion-icon slot="icon-only" name="filter"></ion-icon>
+      </ion-button>
+      <ion-button (click)="exportToPDF()" fill="clear">
+        <ion-icon slot="icon-only" name="download"></ion-icon>
+      </ion-button>
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
 <ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">tab5</ion-title>
-    </ion-toolbar>
-  </ion-header>
+  <ion-refresher slot="fixed" (ionRefresh)="doRefresh($event)">
+    <ion-refresher-content
+      pullingIcon="lines"
+      refreshingSpinner="crescent">
+    </ion-refresher-content>
+  </ion-refresher>
+
+  <!-- Report Period Header -->
+  <div class="report-period">
+    <ion-chip color="primary" outline>
+      <ion-icon name="calendar" color="primary"></ion-icon>
+      <ion-label>
+        {{ formatFilterDate(currentFilter.startDate) }} - {{ formatFilterDate(currentFilter.endDate) }}
+      </ion-label>
+    </ion-chip>
+    <div class="active-filters" *ngIf="hasActiveFilters()">
+      <ion-chip *ngIf="currentFilter.transactionType !== 'all'" color="secondary">
+        <ion-label>{{ getTransactionTypeLabel() }}</ion-label>
+        <ion-icon name="close" (click)="clearTransactionTypeFilter()"></ion-icon>
+      </ion-chip>
+      <ion-chip *ngIf="currentFilter.status !== 'all'" color="tertiary">
+        <ion-label>{{ getStatusLabel() }}</ion-label>
+        <ion-icon name="close" (click)="clearStatusFilter()"></ion-icon>
+      </ion-chip>
+    </div>
+  </div>
+
+  <!-- Summary Cards - UPDATED with stock metrics -->
+  <div class="summary-section">
+    <h2 class="section-title">Performance Overview</h2>
+    <div class="summary-cards">
+      <ion-card class="summary-card total-transactions" (click)="filterByType('all')">
+        <ion-card-content>
+          <div class="card-icon">
+            <ion-icon name="receipt"></ion-icon>
+          </div>
+          <div class="card-content">
+            <h3>{{ reportSummary.totalTransactions }}</h3>
+            <p>Total Transactions</p>
+          </div>
+          <ion-badge color="primary" *ngIf="currentFilter.transactionType === 'all'">Active</ion-badge>
+        </ion-card-content>
+      </ion-card>
+
+      <ion-card class="summary-card cash-sales" (click)="filterByType('cash')">
+        <ion-card-content>
+          <div class="card-icon">
+            <ion-icon name="cash"></ion-icon>
+          </div>
+          <div class="card-content">
+            <h3>₱{{ reportSummary.totalCashAmount.toFixed(2) }}</h3>
+            <p>Cash Sales</p>
+          </div>
+          <ion-badge color="success" *ngIf="currentFilter.transactionType === 'cash'">Active</ion-badge>
+        </ion-card-content>
+      </ion-card>
+
+      <ion-card class="summary-card debt-sales" (click)="filterByType('debt')">
+        <ion-card-content>
+          <div class="card-icon">
+            <ion-icon name="card"></ion-icon>
+          </div>
+          <div class="card-content">
+            <h3>₱{{ reportSummary.totalDebtAmount.toFixed(2) }}</h3>
+            <p>Debt Sales</p>
+          </div>
+          <ion-badge color="warning" *ngIf="currentFilter.transactionType === 'debt'">Active</ion-badge>
+        </ion-card-content>
+      </ion-card>
+
+      <ion-card class="summary-card stock-transactions" (click)="filterByType('stock')">
+        <ion-card-content>
+          <div class="card-icon">
+            <ion-icon name="cube"></ion-icon>
+          </div>
+          <div class="card-content">
+            <h3>{{ reportSummary.totalStockTransactions }}</h3>
+            <p>Stock Transactions</p>
+          </div>
+          <ion-badge color="tertiary" *ngIf="currentFilter.transactionType === 'stock'">Active</ion-badge>
+        </ion-card-content>
+      </ion-card>
+    </div>
+
+    <!-- Stock Metrics Row -->
+    <div class="stock-metrics" *ngIf="reportSummary.totalStockTransactions > 0">
+      <div class="metric-item">
+        <div class="metric-value">{{ reportSummary.stockIn }}</div>
+        <div class="metric-label">Stock In</div>
+      </div>
+      <div class="metric-item">
+        <div class="metric-value">{{ reportSummary.stockOut }}</div>
+        <div class="metric-label">Stock Out</div>
+      </div>
+      <div class="metric-item">
+        <div class="metric-value">{{ reportSummary.stockAdjustments }}</div>
+        <div class="metric-label">Adjustments</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status Overview -->
+  <div class="status-section">
+    <h2 class="section-title">Status Overview</h2>
+    <div class="status-cards">
+      <ion-card class="status-card completed" (click)="filterByStatus('completed')">
+        <ion-card-content>
+          <div class="status-indicator completed"></div>
+          <div class="status-content">
+            <h3>{{ reportSummary.completedTransactions }}</h3>
+            <p>Completed</p>
+          </div>
+          <ion-badge *ngIf="currentFilter.status === 'completed'">Active</ion-badge>
+        </ion-card-content>
+      </ion-card>
+
+      <ion-card class="status-card pending" (click)="filterByStatus('pending')">
+        <ion-card-content>
+          <div class="status-indicator pending"></div>
+          <div class="status-content">
+            <h3>{{ reportSummary.pendingTransactions }}</h3>
+            <p>Pending</p>
+          </div>
+          <ion-badge *ngIf="currentFilter.status === 'pending'">Active</ion-badge>
+        </ion-card-content>
+      </ion-card>
+    </div>
+  </div>
+
+  <!-- Transactions List - UPDATED with enhanced stock display -->
+  <div class="transactions-section">
+    <div class="section-header">
+      <h2 class="section-title">Transaction Details</h2>
+      <div class="section-actions">
+        <span class="transaction-count">{{ filteredTransactions.length }} transactions</span>
+        <ion-button size="small" fill="clear" (click)="exportToCSV()">
+          <ion-icon name="download" slot="start"></ion-icon>
+          Export CSV
+        </ion-button>
+      </div>
+    </div>
+
+    <!-- Loading State -->
+    <div *ngIf="isLoading" class="loading-state">
+      <ion-spinner name="crescent"></ion-spinner>
+      <p>Loading transactions...</p>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="!isLoading && filteredTransactions.length === 0" class="empty-state">
+      <div class="empty-icon">
+        <ion-icon name="document-text-outline"></ion-icon>
+      </div>
+      <h3>No Transactions Found</h3>
+      <p>No transactions match your current filters.</p>
+      <ion-button fill="solid" (click)="clearFilters()">
+        <ion-icon name="refresh" slot="start"></ion-icon>
+        Clear Filters
+      </ion-button>
+    </div>
+
+    <!-- Transactions List -->
+    <div *ngIf="!isLoading && filteredTransactions.length > 0" class="transactions-list">
+      <ion-list lines="none">
+        <ion-item 
+          *ngFor="let transaction of filteredTransactions" 
+          (click)="viewTransactionDetails(transaction)"
+          class="transaction-item"
+          [class]="getTransactionTypeClass(transaction.type)">
+          <div class="transaction-icon" slot="start">
+            <ion-icon [name]="getTransactionIcon(transaction.type)"></ion-icon>
+          </div>
+          
+          <ion-label class="transaction-content">
+            <div class="transaction-header">
+              <h3>{{ transaction.customerName }}</h3>
+              <span class="transaction-amount" [class]="getAmountColorClass(transaction)">
+                {{ transaction.displayAmount || getStockTransactionDescription(transaction) }}
+              </span>
+            </div>
+            
+            <div class="transaction-details">
+              <div class="detail-left">
+                <p class="transaction-date">
+                  <ion-icon name="time" slot="start"></ion-icon>
+                  {{ formatDate(transaction.date) }}
+                </p>
+                <p class="transaction-type-employee">
+                  {{ transaction.displayType }} • {{ transaction.employeeName }}
+                </p>
+                
+                <!-- Stock specific details -->
+                <div *ngIf="transaction.type === 'stock'" class="stock-details">
+                  <p class="stock-action">
+                    <ion-icon 
+                      [name]="getStockActionIcon(transaction)" 
+                      [color]="getStockActionColor(transaction)">
+                    </ion-icon>
+                    {{ transaction.stockAction }}
+                    <span *ngIf="transaction.reason" class="stock-reason">• {{ transaction.reason }}</span>
+                  </p>
+                </div>
+              </div>
+              
+              <div class="detail-right">
+                <ion-badge [color]="getStatusColor(transaction.status, transaction.paymentStatus)" class="status-badge">
+                  {{ transaction.displayStatus }}
+                </ion-badge>
+                <p class="items-count">
+                  {{ transaction.type === 'stock' ? (transaction.quantity + ' units') : (transaction.itemsCount + ' items') }}
+                </p>
+              </div>
+            </div>
+
+            <!-- Additional details for debt transactions -->
+            <div *ngIf="transaction.type === 'debt' && transaction.remainingBalance" class="debt-details">
+              <div class="balance-info">
+                <span class="balance-label">Remaining Balance:</span>
+                <span class="balance-amount">₱{{ transaction.remainingBalance.toFixed(2) }}</span>
+              </div>
+            </div>
+
+            <!-- Stock change visualization -->
+            <div *ngIf="transaction.type === 'stock' && transaction.previousStock !== undefined && transaction.newStock !== undefined" 
+                 class="stock-change">
+              <div class="stock-change-bar">
+                <div class="stock-change-labels">
+                  <span>Previous: {{ transaction.previousStock }}</span>
+                  <span>New: {{ transaction.newStock }}</span>
+                </div>
+                <div class="stock-change-visual">
+                  <div class="stock-change-from">{{ transaction.previousStock }}</div>
+                  <div class="stock-change-arrow">
+                    <ion-icon 
+                      [name]="transaction.newStock > transaction.previousStock ? 'arrow-forward' : 'arrow-back'" 
+                      [color]="transaction.newStock > transaction.previousStock ? 'success' : 'warning'">
+                    </ion-icon>
+                  </div>
+                  <div class="stock-change-to">{{ transaction.newStock }}</div>
+                </div>
+              </div>
+            </div>
+          </ion-label>
+        </ion-item>
+      </ion-list>
+    </div>
+  </div>
+
+  <!-- Filter Modal -->
+  <ion-modal [isOpen]="showFilterModal" (didDismiss)="closeFilterModal()">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar>
+          <ion-buttons slot="start">
+            <ion-button (click)="closeFilterModal()" fill="clear">
+              <ion-icon name="close" slot="icon-only"></ion-icon>
+            </ion-button>
+          </ion-buttons>
+          <ion-title>Filter Report</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="applyFilters()" fill="clear" strong>
+              Apply
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      
+      <ion-content class="ion-padding">
+        <div class="filter-section">
+          <h3>Date Range</h3>
+          <div class="date-inputs">
+            <ion-item>
+              <ion-label position="stacked">Start Date</ion-label>
+              <ion-input 
+                type="date" 
+                [(ngModel)]="currentFilter.startDate"
+                placeholder="Select start date">
+              </ion-input>
+            </ion-item>
+            
+            <ion-item>
+              <ion-label position="stacked">End Date</ion-label>
+              <ion-input 
+                type="date" 
+                [(ngModel)]="currentFilter.endDate"
+                placeholder="Select end date">
+              </ion-input>
+            </ion-item>
+          </div>
+        </div>
+
+        <div class="filter-section">
+          <h3>Transaction Type</h3>
+          <ion-segment [(ngModel)]="currentFilter.transactionType" value="all">
+            <ion-segment-button value="all">
+              <ion-label>All</ion-label>
+            </ion-segment-button>
+            <ion-segment-button value="cash">
+              <ion-label>Cash</ion-label>
+            </ion-segment-button>
+            <ion-segment-button value="debt">
+              <ion-label>Debt</ion-label>
+            </ion-segment-button>
+            <ion-segment-button value="stock">
+              <ion-label>Stock</ion-label>
+            </ion-segment-button>
+          </ion-segment>
+        </div>
+
+        <div class="filter-section">
+          <h3>Status</h3>
+          <ion-segment [(ngModel)]="currentFilter.status" value="all">
+            <ion-segment-button value="all">
+              <ion-label>All</ion-label>
+            </ion-segment-button>
+            <ion-segment-button value="completed">
+              <ion-label>Completed</ion-label>
+            </ion-segment-button>
+            <ion-segment-button value="pending">
+              <ion-label>Pending</ion-label>
+            </ion-segment-button>
+          </ion-segment>
+        </div>
+
+        <div class="filter-section">
+          <h3>Employee</h3>
+          <ion-item>
+            <ion-select 
+              [(ngModel)]="currentFilter.employeeId" 
+              interface="action-sheet"
+              placeholder="Select employee">
+              <ion-select-option value="all">All Employees</ion-select-option>
+              <ion-select-option value="current">My Transactions Only</ion-select-option>
+              <ion-select-option 
+                *ngFor="let employee of employees" 
+                [value]="employee.id">
+                {{ employee.full_name }}
+              </ion-select-option>
+            </ion-select>
+          </ion-item>
+        </div>
+
+        <div class="filter-actions">
+          <ion-button 
+            expand="block" 
+            (click)="applyFilters()" 
+            color="primary"
+            class="apply-button">
+            Apply Filters
+          </ion-button>
+          <ion-button 
+            expand="block" 
+            (click)="clearFilters()" 
+            fill="outline" 
+            color="medium">
+            Clear All Filters
+          </ion-button>
+        </div>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
 </ion-content>

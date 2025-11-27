@@ -9,6 +9,7 @@ export interface User {
   full_name: string;
   email?: string;
   phone_number?: string;
+  region?: string;
   province: string;
   municipality: string;
   barangay: string;
@@ -17,7 +18,10 @@ export interface User {
   status: 'active' | 'inactive';
   created_at: any;
   updated_at: any;
-  store_owner_id?: string; // ID of the store owner who created this employee
+  store_owner_id?: string;
+  store_name?: string;
+  profile_image?: string;
+  position?: string;
 }
 
 export interface PasswordResetToken {
@@ -35,7 +39,6 @@ export interface PasswordResetToken {
 export class AuthService {
   private currentUser: User | null = null;
 
-  // ✅ EMAILJS CONFIGURATION - ADD THIS
   private emailjsConfig = {
     serviceId: 'service_40dgh2o',
     templateId: 'template_wkq2cqy', 
@@ -43,9 +46,37 @@ export class AuthService {
   };
 
   constructor(private firestore: Firestore) {
-    // ✅ INITIALIZE EMAILJS - ADD THIS
     emailjs.init(this.emailjsConfig.publicKey);
+    this.initializeFromStorage();
   }
+
+  // ADD THIS METHOD: Initialize from localStorage
+  private initializeFromStorage(): void {
+    const stored = localStorage.getItem('currentUser');
+    if (stored) {
+      try {
+        this.currentUser = JSON.parse(stored);
+        console.log('🔄 AuthService initialized from storage:', this.currentUser?.full_name);
+      } catch (error) {
+        console.error('❌ Error parsing stored user:', error);
+        this.clearStoredUser();
+      }
+    }
+  }
+
+  // ADD THIS METHOD: Clear stored user
+  private clearStoredUser(): void {
+    this.currentUser = null;
+    localStorage.removeItem('currentUser');
+  }
+
+  // ADD THIS METHOD: Set current user properly
+  private setCurrentUser(user: User): void {
+    this.currentUser = user;
+    localStorage.setItem('currentUser', JSON.stringify(user));
+    console.log('✅ AuthService - User set:', user.full_name);
+  }
+
 
   // ✅ ADD EMAIL SENDING METHOD
   private async sendPasswordResetEmail(email: string, resetLink: string, userFullName: string): Promise<void> {
@@ -356,6 +387,7 @@ export class AuthService {
     full_name: string;
     email?: string;
     phone_number?: string;
+    region: string;
     province: string;
     municipality: string;
     barangay: string;
@@ -385,6 +417,7 @@ export class AuthService {
         full_name: userData.full_name,
         email: userData.email || '',
         phone_number: userData.phone_number || '',
+        region: userData.region, // ADD THIS
         province: userData.province,
         municipality: userData.municipality,
         barangay: userData.barangay,
@@ -409,10 +442,12 @@ export class AuthService {
     full_name: string;
     email?: string;
     phone_number?: string;
+    region: string; // ADD THIS
     province: string;
     municipality: string;
     barangay: string;
     sitio_purok?: string;
+    store_name: string;
   }): Promise<void> {
     try {
       const exists = await this.checkUsernameExists(userData.username);
@@ -438,12 +473,14 @@ export class AuthService {
         full_name: userData.full_name,
         email: userData.email || '',
         phone_number: userData.phone_number || '',
+        region: userData.region, // ADD THIS
         province: userData.province,
         municipality: userData.municipality,
         barangay: userData.barangay,
         sitio_purok: userData.sitio_purok || '',
         role: 'StoreOwner',
         status: 'active',
+        store_name: userData.store_name, 
         created_at: Timestamp.now(),
         updated_at: Timestamp.now()
       };
@@ -456,16 +493,15 @@ export class AuthService {
   }
 
   // Login with username, password, and role
+// Login with username, password, and role - UPDATE THIS METHOD
   async login(username: string, password: string, role: 'Admin' | 'Employee' | 'Customer' | 'StoreOwner'): Promise<User> {
     try {
       const usersRef = collection(this.firestore, 'all_users');
       
-      // Normalize username to lowercase
       const normalizedUsername = username.trim().toLowerCase();
       
-      console.log('Attempting login:', { username: normalizedUsername, role });
+      console.log('🔐 Attempting login:', { username: normalizedUsername, role });
 
-      // Query for username and role
       const q = query(
         usersRef, 
         where('username', '==', normalizedUsername),
@@ -474,7 +510,7 @@ export class AuthService {
       
       const querySnapshot = await getDocs(q);
       
-      console.log('Query results:', querySnapshot.size, 'documents found');
+      console.log('📊 Query results:', querySnapshot.size, 'documents found');
 
       if (querySnapshot.empty) {
         throw new Error('Invalid username or role');
@@ -483,7 +519,7 @@ export class AuthService {
       const userDoc = querySnapshot.docs[0];
       const user = userDoc.data() as User;
       
-      console.log('Found user:', user.username, user.role);
+      console.log('👤 Found user:', user.full_name, user.role, user.id);
 
       // Verify password
       if (!this.verifyPassword(password, user.password_hash)) {
@@ -495,34 +531,33 @@ export class AuthService {
         throw new Error('Account is inactive. Please contact administrator.');
       }
 
-      this.currentUser = user;
-      localStorage.setItem('currentUser', JSON.stringify(user));
+      // USE THE NEW METHOD TO SET USER
+      this.setCurrentUser(user);
 
+      console.log('✅ Login successful for:', user.full_name);
       return user;
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('❌ Login error:', error);
       throw error;
     }
   }
 
+  // UPDATE getCurrentUser method
   getCurrentUser(): User | null {
-    if (!this.currentUser) {
-      const stored = localStorage.getItem('currentUser');
-      if (stored) {
-        this.currentUser = JSON.parse(stored);
-      }
-    }
     return this.currentUser;
   }
 
+  // UPDATE logout method
   logout(): void {
-    this.currentUser = null;
-    localStorage.removeItem('currentUser');
+    console.log('🚪 Logging out user:', this.currentUser?.full_name);
+    this.clearStoredUser();
+    console.log('✅ User logged out successfully');
   }
 
   isLoggedIn(): boolean {
     return this.getCurrentUser() !== null;
   }
+
 
  // Create employee for store owner
 async createStoreEmployee(userData: {
@@ -535,6 +570,7 @@ async createStoreEmployee(userData: {
   municipality: string;
   barangay: string;
   sitio_purok?: string;
+  position?: string;
 }): Promise<void> {
   try {
     const currentUser = this.getCurrentUser();
@@ -572,6 +608,7 @@ async createStoreEmployee(userData: {
       municipality: userData.municipality,
       barangay: userData.barangay,
       sitio_purok: userData.sitio_purok || '',
+      position: userData.position || '',
       role: 'Employee',
       status: 'active',
       // ✅ CRITICAL: Link employee to store owner
@@ -755,6 +792,320 @@ async getStoreEmployeeById(employeeId: string): Promise<User | null> {
   } catch (error) {
     console.error('Get employee by ID error:', error);
     throw error;
+  }
+}
+// Get store name for current user
+getCurrentUserStoreName(): string | null {
+  const user = this.getCurrentUser();
+  return user?.store_name || null;
+}
+
+// Get store owner information by ID
+async getStoreOwnerById(storeOwnerId: string): Promise<User | null> {
+  try {
+    const userRef = doc(this.firestore, 'all_users', storeOwnerId);
+    const userDoc = await getDoc(userRef);
+    
+    if (!userDoc.exists()) {
+      return null;
+    }
+    
+    return userDoc.data() as User;
+  } catch (error) {
+    console.error('Get store owner error:', error);
+    return null;
+  }
+}
+
+// Get store information for employees
+async getEmployeeStoreInfo(): Promise<{ store_name: string; store_owner: User } | null> {
+  try {
+    const currentUser = this.getCurrentUser();
+    
+    if (!currentUser || currentUser.role !== 'Employee' || !currentUser.store_owner_id) {
+      return null;
+    }
+
+    const storeOwner = await this.getStoreOwnerById(currentUser.store_owner_id);
+    if (!storeOwner) {
+      return null;
+    }
+
+    return {
+      store_name: storeOwner.store_name || 'Unknown Store',
+      store_owner: storeOwner
+    };
+  } catch (error) {
+    console.error('Get employee store info error:', error);
+    return null;
+  }
+}
+
+// Add to AuthService in auth.service.ts
+
+// Customer Management Methods
+async getAllCustomers(): Promise<User[]> {
+  try {
+    const currentUser = this.getCurrentUser();
+    
+    if (!currentUser) {
+      throw new Error('User not authenticated');
+    }
+
+    const usersRef = collection(this.firestore, 'all_users');
+    
+    // If store owner, get customers for their store
+    let q;
+    if (currentUser.role === 'StoreOwner') {
+      q = query(
+        usersRef, 
+        where('role', '==', 'Customer'),
+        where('store_owner_id', '==', currentUser.id)
+      );
+    } else if (currentUser.role === 'Employee') {
+      q = query(
+        usersRef, 
+        where('role', '==', 'Customer'),
+        where('store_owner_id', '==', currentUser.store_owner_id)
+      );
+    } else {
+      q = query(usersRef, where('role', '==', 'Customer'));
+    }
+    
+    const querySnapshot = await getDocs(q);
+    
+    const customers: User[] = [];
+    querySnapshot.forEach((doc) => {
+      customers.push(doc.data() as User);
+    });
+    
+    return customers;
+    
+  } catch (error) {
+    console.error('Get customers error:', error);
+    throw error;
+  }
+}
+
+// Search customers by name, phone, or email
+async searchCustomers(searchTerm: string): Promise<User[]> {
+  try {
+    const allCustomers = await this.getAllCustomers();
+    
+    if (!searchTerm.trim()) {
+      return allCustomers;
+    }
+
+    const term = searchTerm.toLowerCase();
+    return allCustomers.filter(customer => 
+      customer.full_name.toLowerCase().includes(term) ||
+      (customer.phone_number && customer.phone_number.includes(term)) ||
+      (customer.email && customer.email.toLowerCase().includes(term))
+    );
+    
+  } catch (error) {
+    console.error('Search customers error:', error);
+    return [];
+  }
+}
+
+// Get customer by ID
+async getCustomerById(customerId: string): Promise<User | null> {
+  try {
+    const customerRef = doc(this.firestore, 'all_users', customerId);
+    const customerDoc = await getDoc(customerRef);
+    
+    if (!customerDoc.exists()) {
+      return null;
+    }
+    
+    return customerDoc.data() as User;
+  } catch (error) {
+    console.error('Get customer by ID error:', error);
+    return null;
+  }
+}
+// Update these methods in AuthService
+
+// Get customers by location (same region and province as store owner)
+async getCustomersByStoreOwnerLocation(): Promise<User[]> {
+  try {
+    const currentUser = this.getCurrentUser();
+    
+    if (!currentUser) {
+      throw new Error('User not authenticated');
+    }
+
+    // For store owners, use their own location
+    // For employees, get their store owner's location
+    let storeOwnerId = currentUser.id;
+    let storeOwnerProvince = currentUser.province;
+    
+    if (currentUser.role === 'Employee' && currentUser.store_owner_id) {
+      storeOwnerId = currentUser.store_owner_id;
+      const storeOwner = await this.getStoreOwnerById(storeOwnerId);
+      if (!storeOwner) {
+        throw new Error('Store owner not found');
+      }
+      storeOwnerProvince = storeOwner.province;
+    }
+
+    // Check if store owner province is defined
+    if (!storeOwnerProvince) {
+      console.warn('Store owner province not set, returning empty customer list');
+      return [];
+    }
+
+    const usersRef = collection(this.firestore, 'all_users');
+    
+    // Query customers in the same province as store owner
+    const q = query(
+      usersRef, 
+      where('role', '==', 'Customer'),
+      where('province', '==', storeOwnerProvince)
+    );
+    
+    const querySnapshot = await getDocs(q);
+    
+    const customers: User[] = [];
+    querySnapshot.forEach((doc) => {
+      customers.push(doc.data() as User);
+    });
+    
+    console.log(`📋 Found ${customers.length} customers in ${storeOwnerProvince}`);
+    return customers;
+    
+  } catch (error) {
+    console.error('Get customers by location error:', error);
+    throw error;
+  }
+}
+
+// Search customers by name, phone, or email within store owner's location
+async searchCustomersByLocation(searchTerm: string): Promise<User[]> {
+  try {
+    const allCustomers = await this.getCustomersByStoreOwnerLocation();
+    
+    if (!searchTerm.trim()) {
+      return allCustomers;
+    }
+
+    const term = searchTerm.toLowerCase();
+    return allCustomers.filter(customer => 
+      customer.full_name.toLowerCase().includes(term) ||
+      (customer.phone_number && customer.phone_number.includes(term)) ||
+      (customer.email && customer.email.toLowerCase().includes(term))
+    );
+    
+  } catch (error) {
+    console.error('Search customers by location error:', error);
+    return [];
+  }
+}
+
+// Register customer with store owner's province automatically set
+async registerCustomerForStoreOwner(userData: {
+  username: string;
+  password: string;
+  full_name: string;
+  email?: string;
+  phone_number?: string;
+  region: string; // ADD THIS
+  municipality: string;
+  barangay: string;
+  sitio_purok?: string;
+}): Promise<void> {
+  try {
+    const currentUser = this.getCurrentUser();
+    
+    if (!currentUser) {
+      throw new Error('User not authenticated');
+    }
+
+    // Get store owner's location
+    let storeOwnerId = currentUser.id;
+    let storeOwnerProvince = currentUser.province;
+    let storeOwnerRegion = currentUser.region;
+    
+    if (currentUser.role === 'Employee' && currentUser.store_owner_id) {
+      storeOwnerId = currentUser.store_owner_id;
+      const storeOwner = await this.getStoreOwnerById(storeOwnerId);
+      if (!storeOwner) {
+        throw new Error('Store owner not found');
+      }
+      storeOwnerRegion = storeOwner.region; 
+      storeOwnerProvince = storeOwner.province;
+    }
+
+    // Validate store owner province exists
+    if (!storeOwnerProvince) {
+      throw new Error('Store owner province is not set. Please update store owner profile with location information.');
+    }
+
+    const exists = await this.checkUsernameExists(userData.username);
+    if (exists) {
+      throw new Error('Username already exists');
+    }
+
+    // Check if email already exists if provided
+    if (userData.email) {
+      const emailExists = await this.checkEmailExists(userData.email);
+      if (emailExists) {
+        throw new Error('Email already exists');
+      }
+    }
+
+    const usersRef = collection(this.firestore, 'all_users');
+    const newUserRef = doc(usersRef);
+    
+    const newUser: User = {
+      id: newUserRef.id,
+      username: userData.username.toLowerCase(),
+      password_hash: this.hashPassword(userData.password),
+      full_name: userData.full_name,
+      email: userData.email || '',
+      phone_number: userData.phone_number || '',
+      region: storeOwnerRegion, 
+      province: storeOwnerProvince, // Auto-set from store owner (now guaranteed to be string)
+      municipality: userData.municipality,
+      barangay: userData.barangay,
+      sitio_purok: userData.sitio_purok || '',
+      role: 'Customer',
+      status: 'active',
+      store_owner_id: storeOwnerId, // Link to store owner
+      created_at: Timestamp.now(),
+      updated_at: Timestamp.now()
+    };
+
+    await setDoc(newUserRef, newUser);
+    
+    console.log('✅ Customer registered for store owner:', storeOwnerId, 'in province:', storeOwnerProvince);
+    
+  } catch (error) {
+    console.error('Customer registration error:', error);
+    throw error;
+  }
+}
+
+// Helper method to get store owner province safely
+async getStoreOwnerProvince(): Promise<string | null> {
+  try {
+    const currentUser = this.getCurrentUser();
+    if (!currentUser) return null;
+
+    let storeOwnerProvince = currentUser.province;
+    
+    if (currentUser.role === 'Employee' && currentUser.store_owner_id) {
+      const storeOwner = await this.getStoreOwnerById(currentUser.store_owner_id);
+      if (storeOwner) {
+        storeOwnerProvince = storeOwner.province;
+      }
+    }
+    
+    return storeOwnerProvince || null;
+  } catch (error) {
+    console.error('Error getting store owner province:', error);
+    return null;
   }
 }
 }

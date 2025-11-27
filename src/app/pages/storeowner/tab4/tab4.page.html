@@ -1,13 +1,348 @@
 <ion-header [translucent]="true">
-  <ion-toolbar>
-    <ion-title>tab4</ion-title>
+  <ion-toolbar color="primary">
+    <ion-title>Store Inventory Overview</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="loadProducts()">
+        <ion-icon slot="icon-only" name="refresh"></ion-icon>
+      </ion-button>
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">tab4</ion-title>
-    </ion-toolbar>
-  </ion-header>
+<ion-content [fullscreen]="true" class="ion-padding">
+  
+  <!-- Summary Cards -->
+  <div class="summary-cards">
+    <ion-card color="primary">
+      <ion-card-content class="ion-text-center">
+        <ion-icon name="cube" size="large"></ion-icon>
+        <div class="summary-text">
+          <ion-text color="light">
+            <div class="summary-number">{{ productSummary.total_products }}</div>
+          </ion-text>
+          <ion-note color="light">Total Products</ion-note>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <ion-card color="success">
+      <ion-card-content class="ion-text-center">
+        <ion-icon name="checkmark-circle" size="large"></ion-icon>
+        <div class="summary-text">
+          <ion-text color="light">
+            <div class="summary-number">{{ productSummary.in_stock }}</div>
+          </ion-text>
+          <ion-note color="light">In Stock</ion-note>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <ion-card color="warning">
+      <ion-card-content class="ion-text-center">
+        <ion-icon name="alert-circle" size="large"></ion-icon>
+        <div class="summary-text">
+          <ion-text color="light">
+            <div class="summary-number">{{ productSummary.low_stock }}</div>
+          </ion-text>
+          <ion-note color="light">Low Stock</ion-note>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <ion-card color="danger">
+      <ion-card-content class="ion-text-center">
+        <ion-icon name="close-circle" size="large"></ion-icon>
+        <div class="summary-text">
+          <ion-text color="light">
+            <div class="summary-number">{{ productSummary.out_of_stock }}</div>
+          </ion-text>
+          <ion-note color="light">Out of Stock</ion-note>
+        </div>
+      </ion-card-content>
+    </ion-card>
+  </div>
+
+  <!-- Quick Actions -->
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>Quick Actions</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <ion-grid>
+        <ion-row>
+          <ion-col size="6">
+            <ion-button expand="block" color="warning" (click)="showLowStock()">
+              <ion-icon name="alert" slot="start"></ion-icon>
+              Low Stock ({{ productSummary.low_stock }})
+            </ion-button>
+          </ion-col>
+          <ion-col size="6">
+            <ion-button expand="block" color="danger" (click)="showOutOfStock()">
+              <ion-icon name="close-circle" slot="start"></ion-icon>
+              Out of Stock ({{ productSummary.out_of_stock }})
+            </ion-button>
+          </ion-col>
+        </ion-row>
+        <ion-row>
+          <ion-col size="6">
+            <ion-button expand="block" color="tertiary" (click)="exportInventory()">
+              <ion-icon name="download" slot="start"></ion-icon>
+              Export PDF Report
+            </ion-button>
+          </ion-col>
+          <ion-col size="6">
+            <ion-button expand="block" color="medium" (click)="showAllProducts()">
+              <ion-icon name="list" slot="start"></ion-icon>
+              Show All
+            </ion-button>
+          </ion-col>
+        </ion-row>
+      </ion-grid>
+    </ion-card-content>
+  </ion-card>
+
+  <!-- Search Bar -->
+  <ion-card>
+    <ion-card-content>
+      <ion-searchbar 
+        [(ngModel)]="searchTerm"
+        (ionInput)="filterProducts()"
+        placeholder="Search products by name, barcode, category, or brand..."
+        animated>
+      </ion-searchbar>
+    </ion-card-content>
+  </ion-card>
+
+  <!-- Filter Badges -->
+  <div *ngIf="activeFilter" class="ion-margin-bottom">
+    <ion-chip [color]="getFilterColor()" (click)="clearFilter()">
+      <ion-label>Filter: {{ activeFilter }}</ion-label>
+      <ion-icon name="close-circle"></ion-icon>
+    </ion-chip>
+  </div>
+
+  <!-- Products List -->
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>Products ({{ filteredProducts.length }})</ion-card-title>
+      <ion-card-subtitle>Store Inventory Overview</ion-card-subtitle>
+    </ion-card-header>
+    <ion-card-content>
+      
+      <!-- Loading State -->
+      <div *ngIf="isLoading" class="loading-container">
+        <ion-spinner></ion-spinner>
+        <p>Loading inventory...</p>
+      </div>
+
+      <!-- Empty State -->
+      <div *ngIf="!isLoading && filteredProducts.length === 0" class="empty-state">
+        <ion-icon name="cube-outline" size="large" color="medium"></ion-icon>
+        <h3>No Products Found</h3>
+        <p *ngIf="searchTerm">No products match your search "{{ searchTerm }}"</p>
+        <p *ngIf="activeFilter">No products match the current filter</p>
+        <p *ngIf="!searchTerm && !activeFilter">No products in inventory</p>
+        <ion-button (click)="clearFilter()" color="primary">
+          <ion-icon name="refresh" slot="start"></ion-icon>
+          Clear Filter
+        </ion-button>
+      </div>
+
+      <!-- Products List -->
+      <ion-list lines="full" *ngIf="!isLoading && filteredProducts.length > 0">
+        <ion-item *ngFor="let product of filteredProducts" 
+                  [class]="getStockStatusClass(product)" 
+                  class="product-item"
+                  (click)="openProductDetailsModal(product)">
+          <ion-avatar slot="start" class="product-avatar">
+            <img *ngIf="product.image_url" [src]="product.image_url" [alt]="product.name" (error)="handleImageError($event)">
+            <div *ngIf="!product.image_url" class="product-avatar-fallback">
+              <ion-icon [name]="getProductIcon(product)"></ion-icon>
+            </div>
+          </ion-avatar>
+          
+          <ion-label class="product-info">
+            <div class="product-name">{{ product.name }}</div>
+            <div class="product-detail">
+              <strong>Stock:</strong> {{ product.stock_quantity }} {{ product.unit_of_measure }} | 
+              <strong>Price:</strong> ₱{{ product.selling_price | number:'1.2-2' }}
+            </div>
+            <div class="product-detail">
+              <strong>Category:</strong> {{ product.category }} | 
+              <strong>Brand:</strong> {{ product.brand || 'N/A' }}
+            </div>
+            <div class="product-detail" *ngIf="product.bulk_unit">
+              <strong>Bulk:</strong> ₱{{ product.bulk_selling_price | number:'1.2-2' }} per {{ product.pieces_per_bulk }} {{ product.bulk_unit }}
+            </div>
+            <ion-badge [color]="getStockStatusColor(product)" class="stock-badge">
+              {{ getStockStatusText(product) }}
+            </ion-badge>
+          </ion-label>
+
+          <ion-icon slot="end" name="chevron-forward" color="medium"></ion-icon>
+        </ion-item>
+      </ion-list>
+
+    </ion-card-content>
+  </ion-card>
+
 </ion-content>
+
+<!-- Product Details Modal -->
+<ion-modal [isOpen]="showProductDetailsModal" (didDismiss)="closeProductDetailsModal()">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>Product Details</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="closeProductDetailsModal()">
+            <ion-icon name="close"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content class="ion-padding">
+      <div *ngIf="productDetails" class="product-details-container">
+        
+        <!-- Product Image -->
+        <div class="product-image-container" *ngIf="productDetails.image_url">
+          <img [src]="productDetails.image_url" [alt]="productDetails.name" class="product-detail-image">
+        </div>
+        
+        <!-- Product Info -->
+        <ion-card>
+          <ion-card-header>
+            <ion-card-title>{{ productDetails.name }}</ion-card-title>
+            <ion-card-subtitle>Barcode: {{ productDetails.barcode }}</ion-card-subtitle>
+          </ion-card-header>
+          <ion-card-content>
+            <ion-list lines="none">
+              <ion-item>
+                <ion-label>Category</ion-label>
+                <ion-note slot="end">{{ productDetails.category }}</ion-note>
+              </ion-item>
+              <ion-item>
+                <ion-label>Brand</ion-label>
+                <ion-note slot="end">{{ productDetails.brand || 'N/A' }}</ion-note>
+              </ion-item>
+              <ion-item>
+                <ion-label>Description</ion-label>
+                <ion-note slot="end">{{ productDetails.description || 'N/A' }}</ion-note>
+              </ion-item>
+              <ion-item>
+                <ion-label>Current Stock</ion-label>
+                <ion-note slot="end">{{ productDetails.stock_quantity }} {{ productDetails.unit_of_measure }}</ion-note>
+              </ion-item>
+              <ion-item>
+                <ion-label>Stock Range</ion-label>
+                <ion-note slot="end">{{ productDetails.min_stock_level }} - {{ productDetails.max_stock_level }}</ion-note>
+              </ion-item>
+              <ion-item>
+                <ion-label>Price</ion-label>
+                <ion-note slot="end">₱{{ productDetails.selling_price | number:'1.2-2' }} per {{ productDetails.unit_of_measure }}</ion-note>
+              </ion-item>
+              <ion-item *ngIf="productDetails.bulk_unit && productDetails.pieces_per_bulk && productDetails.bulk_selling_price">
+                <ion-label>Bulk Price</ion-label>
+                <ion-note slot="end">₱{{ productDetails.bulk_selling_price | number:'1.2-2' }} per {{ productDetails.pieces_per_bulk }} {{ productDetails.bulk_unit }}</ion-note>
+              </ion-item>
+              <ion-item>
+                <ion-label>Cost Price</ion-label>
+                <ion-note slot="end">₱{{ productDetails.cost_price | number:'1.2-2' }}</ion-note>
+              </ion-item>
+              <ion-item>
+                <ion-label>Status</ion-label>
+                <ion-note slot="end">
+                  <ion-badge [color]="getStockStatusColor(productDetails)">
+                    {{ getStockStatusText(productDetails) }}
+                  </ion-badge>
+                </ion-note>
+              </ion-item>
+            </ion-list>
+          </ion-card-content>
+        </ion-card>
+
+        <!-- Stock Status Alert -->
+        <ion-card *ngIf="productDetails.stock_quantity <= productDetails.min_stock_level" 
+                 [color]="productDetails.stock_quantity === 0 ? 'danger' : 'warning'">
+          <ion-card-header>
+            <ion-card-title>
+              <ion-icon name="warning" slot="start"></ion-icon>
+              Stock Alert
+            </ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <p *ngIf="productDetails.stock_quantity === 0">
+              This product is out of stock and needs immediate attention.
+            </p>
+            <p *ngIf="productDetails.stock_quantity > 0 && productDetails.stock_quantity <= productDetails.min_stock_level">
+              This product is running low on stock. Consider restocking soon.
+            </p>
+          </ion-card-content>
+        </ion-card>
+
+      </div>
+    </ion-content>
+  </ng-template>
+</ion-modal>
+
+<!-- Low Stock Products Modal -->
+<ion-modal [isOpen]="showLowStockModal" (didDismiss)="closeLowStockModal()">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar color="warning">
+        <ion-title>Low Stock Alert</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="closeLowStockModal()">
+            <ion-icon name="close"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content class="ion-padding">
+      
+      <!-- Header Info -->
+      <ion-card color="warning">
+        <ion-card-header>
+          <ion-card-title>
+            <ion-icon name="warning" slot="start"></ion-icon>
+            Low Stock Products
+          </ion-card-title>
+          <ion-card-subtitle>
+            {{ lowStockProducts.length }} product(s) need restocking
+          </ion-card-subtitle>
+        </ion-card-header>
+      </ion-card>
+
+      <!-- Low Stock Products List -->
+      <ion-list lines="full" *ngIf="lowStockProducts.length > 0">
+        <ion-item *ngFor="let product of lowStockProducts" 
+                  [color]="getStockStatusColor(product)" 
+                  class="low-stock-item"
+                  (click)="openProductDetailsModal(product); closeLowStockModal()">
+          <ion-avatar slot="start" class="product-avatar">
+            <img *ngIf="product.image_url" [src]="product.image_url" [alt]="product.name" (error)="handleImageError($event)">
+            <div *ngIf="!product.image_url" class="product-avatar-fallback">
+              <ion-icon [name]="getProductIcon(product)"></ion-icon>
+            </div>
+          </ion-avatar>
+          
+          <ion-label class="product-info">
+            <div class="product-name">{{ product.name }}</div>
+            <div class="product-detail">
+              <strong>Current Stock:</strong> {{ product.stock_quantity }} {{ product.unit_of_measure }}
+            </div>
+            <div class="product-detail">
+              <strong>Minimum Required:</strong> {{ product.min_stock_level }} {{ product.unit_of_measure }}
+            </div>
+            <ion-badge [color]="getStockStatusColor(product)" class="stock-badge">
+              {{ getStockStatusText(product) }}
+            </ion-badge>
+          </ion-label>
+
+          <ion-icon slot="end" name="chevron-forward" color="medium"></ion-icon>
+        </ion-item>
+      </ion-list>
+
+    </ion-content>
+  </ng-template>
+</ion-modal>

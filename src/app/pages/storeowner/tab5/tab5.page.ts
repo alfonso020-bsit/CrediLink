@@ -3,6 +3,8 @@ import { NgForm } from '@angular/forms';
 import { AlertController, ToastController, LoadingController } from '@ionic/angular';
 import { HttpClient } from '@angular/common/http';
 import { AuthService, User } from 'src/app/services/auth.service';
+import { EmployeeService, EmployeeProfile } from 'src/app/services/employee.service';
+import { Firestore, collection, doc, setDoc, updateDoc, query, where, getDocs, Timestamp } from '@angular/fire/firestore';
 import { lastValueFrom } from 'rxjs';
 
 interface Region {
@@ -25,6 +27,12 @@ interface LocationData {
   };
 }
 
+// Add this interface at the top with other interfaces
+interface EmployeeWithProfile extends User {
+  profile?: EmployeeProfile;
+  profileImageError?: boolean;
+}
+
 @Component({
   selector: 'app-tab5',
   templateUrl: './tab5.page.html',
@@ -34,7 +42,8 @@ interface LocationData {
 export class Tab5Page implements OnInit {
   @ViewChild('employeeForm') employeeForm!: NgForm;
   
-  employees: User[] = [];
+  // FIX: Change from User[] to EmployeeWithProfile[]
+  employees: EmployeeWithProfile[] = [];
   isLoading = false;
   isLoadingEmployees = false;
   showPassword = false;
@@ -43,7 +52,13 @@ export class Tab5Page implements OnInit {
   formMode: 'create' | 'edit' = 'create';
   editingEmployeeId: string | null = null;
 
-  // Address Selection Variables - Same as register page
+  // Employee Details Modal
+  showEmployeeDetails = false;
+  // FIX: Change from User to EmployeeWithProfile
+  selectedEmployee: EmployeeWithProfile | null = null;
+  selectedEmployeeProfile: EmployeeProfile | null = null;
+
+  // Address Selection Variables
   regions: Region[] = [];
   provinces: string[] = [];
   municipalities: string[] = [];
@@ -72,7 +87,9 @@ export class Tab5Page implements OnInit {
   isLoadingLocations = true;
 
   constructor(
+    private firestore: Firestore,
     private authService: AuthService,
+    private employeeService: EmployeeService,
     private alertController: AlertController,
     private toastController: ToastController,
     private loadingController: LoadingController,
@@ -121,7 +138,7 @@ export class Tab5Page implements OnInit {
     return this.phLocations[regionCode]?.region_name || '';
   }
 
-  // Search functionality - same as register page
+  // Search functionality
   get filteredRegions(): Region[] {
     if (!this.searchRegion) return this.regions;
     return this.regions.filter(region => 
@@ -215,6 +232,39 @@ export class Tab5Page implements OnInit {
 
   closeBarangaySelection() {
     this.showBarangayModal = false;
+  }
+
+  // Employee Details Modal
+  // Employee Details Modal
+async viewEmployee(employee: EmployeeWithProfile) {
+  const loading = await this.loadingController.create({
+    message: 'Loading employee details...'
+  });
+  
+  await loading.present();
+
+  try {
+    this.selectedEmployee = employee;
+    
+    // Get employee profile data from employee_profiles collection
+    this.selectedEmployeeProfile = await this.employeeService.getEmployeeProfile(employee.id!);
+    
+    console.log('Employee Profile Loaded:', this.selectedEmployeeProfile); // Debug log
+    
+    this.showEmployeeDetails = true;
+    
+  } catch (error: any) {
+    console.error('Error loading employee details:', error);
+    await this.showToast('Error loading employee details', 'danger');
+  } finally {
+    await loading.dismiss();
+  }
+}
+
+  closeEmployeeDetails() {
+    this.showEmployeeDetails = false;
+    this.selectedEmployee = null;
+    this.selectedEmployeeProfile = null;
   }
 
   // Selection handlers
@@ -319,7 +369,20 @@ export class Tab5Page implements OnInit {
   async loadEmployees() {
     this.isLoadingEmployees = true;
     try {
-      this.employees = await this.authService.getStoreEmployees();
+      const currentUser = this.authService.getCurrentUser();
+      if (!currentUser?.id) {
+        throw new Error('User not authenticated');
+      }
+
+      // Get employees with their profiles
+      const employeesWithProfiles = await this.employeeService.getStoreEmployeesWithProfiles(currentUser.id);
+      
+      // FIX: Cast to EmployeeWithProfile[]
+      this.employees = employeesWithProfiles.map(emp => ({
+        ...emp.user,
+        profile: emp.profile
+      })) as EmployeeWithProfile[];
+      
     } catch (error: any) {
       await this.showToast(error.message, 'danger');
     } finally {
@@ -349,13 +412,14 @@ export class Tab5Page implements OnInit {
 
     try {
       if (this.formMode === 'create') {
-        // CREATE new employee
+        // CREATE new employee - WITH POSITION
         const employeeData = {
           username: formData.username,
           password: formData.password,
           full_name: formData.full_name,
           email: formData.email || '',
           phone_number: formData.phone_number || '',
+          position: formData.position || '',
           province: this.selectedProvince,
           municipality: this.selectedMunicipality,
           barangay: this.selectedBarangay,
@@ -364,12 +428,14 @@ export class Tab5Page implements OnInit {
 
         await this.authService.createStoreEmployee(employeeData);
         await this.showToast('Employee created successfully!', 'success');
+        
       } else if (this.formMode === 'edit' && this.editingEmployeeId) {
-        // UPDATE existing employee
+        // UPDATE existing employee - WITH POSITION
         const updateData = {
           full_name: formData.full_name,
           email: formData.email || '',
           phone_number: formData.phone_number || '',
+          position: formData.position || '',
           province: this.selectedProvince,
           municipality: this.selectedMunicipality,
           barangay: this.selectedBarangay,
@@ -391,8 +457,8 @@ export class Tab5Page implements OnInit {
     }
   }
 
-  // Edit employee - FIXED VERSION
-  async editEmployee(employee: User) {
+  // Edit employee - FIX: Accept EmployeeWithProfile
+  async editEmployee(employee: EmployeeWithProfile) {
     try {
       const loading = await this.loadingController.create({
         message: 'Loading employee data...'
@@ -410,7 +476,7 @@ export class Tab5Page implements OnInit {
       this.formMode = 'edit';
       this.editingEmployeeId = employee.id!;
 
-      // Fill form with employee data using patchValue (safer approach)
+      // Fill form with employee data
       setTimeout(() => {
         if (this.employeeForm && this.employeeForm.form) {
           this.employeeForm.form.patchValue({
@@ -418,6 +484,7 @@ export class Tab5Page implements OnInit {
             full_name: freshEmployee.full_name,
             email: freshEmployee.email || '',
             phone_number: freshEmployee.phone_number || '',
+            position: freshEmployee.position || '',
             sitio_purok: freshEmployee.sitio_purok || ''
           });
         }
@@ -488,7 +555,8 @@ export class Tab5Page implements OnInit {
     }
   }
 
-  async toggleEmployeeStatus(employee: User) {
+  // FIX: Accept EmployeeWithProfile
+  async toggleEmployeeStatus(employee: EmployeeWithProfile) {
     const newStatus = employee.status === 'active' ? 'inactive' : 'active';
     
     const alert = await this.alertController.create({
@@ -529,7 +597,8 @@ export class Tab5Page implements OnInit {
     }
   }
 
-  async deleteEmployee(employee: User) {
+  // FIX: Accept EmployeeWithProfile
+  async deleteEmployee(employee: EmployeeWithProfile) {
     const alert = await this.alertController.create({
       header: 'Delete Employee',
       message: `Are you sure you want to delete ${employee.full_name}? This action cannot be undone.`,
@@ -582,5 +651,29 @@ export class Tab5Page implements OnInit {
       position: 'bottom'
     });
     await toast.present();
+  }
+
+  // Avatar helper methods
+  getInitials(fullName: string): string {
+    if (!fullName) return '?';
+    return fullName
+      .split(' ')
+      .map(name => name.charAt(0))
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
+  }
+
+  getAvatarColor(fullName: string): string {
+    if (!fullName) return '#666666';
+    
+    const colors = [
+      '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
+      '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9',
+      '#F8C471', '#82E0AA', '#F1948A', '#85C1E9', '#D7BDE2'
+    ];
+    
+    const colorIndex = fullName.charCodeAt(0) % colors.length;
+    return colors[colorIndex];
   }
 }

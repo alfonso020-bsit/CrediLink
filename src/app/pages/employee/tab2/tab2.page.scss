@@ -1,0 +1,669 @@
+// Optimized SCSS for responsive Sales Records UI
+
+// Variables
+$border-radius: 12px;
+$card-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+$item-spacing: 12px;
+
+// Global Styles
+ion-content {
+  --padding-top: 0;
+  --padding-bottom: 0;
+  --padding-start: 0;
+  --padding-end: 0;
+}
+
+// Header Styles
+ion-toolbar {
+  --background: var(--ion-color-primary);
+  --color: white;
+  
+  ion-title {
+    font-weight: 600;
+  }
+  
+  ion-badge {
+    margin-right: 8px;
+  }
+}
+
+// Fixed Segment Control Styles
+.sales-segment {
+  padding: 16px;
+  background: white;
+  border-bottom: 1px solid var(--ion-color-light);
+  
+  ion-segment-button {
+    --color: var(--ion-color-medium);
+    --color-checked: var(--ion-color-primary);
+    --indicator-color: var(--ion-color-primary);
+    --padding-top: 12px;
+    --padding-bottom: 12px;
+    min-height: 48px;
+    border-radius: 8px;
+    
+    ion-icon {
+      font-size: 1.25rem;
+      margin-bottom: 4px;
+    }
+    
+    ion-label {
+      font-size: 0.875rem;
+      font-weight: 600;
+      margin-top: 4px;
+    }
+    
+    &.segment-button-checked {
+      --color: var(--ion-color-primary);
+    }
+  }
+}
+
+// For dark mode
+@media (prefers-color-scheme: dark) {
+  .sales-segment {
+    background: var(--ion-color-step-50);
+    
+    ion-segment-button {
+      --color: var(--ion-color-step-600);
+      --color-checked: white;
+    }
+  }
+}
+
+// Search Bar
+.search-toolbar {
+  --background: transparent;
+  --border-width: 0;
+  padding: 8px 12px;
+  
+  .custom-searchbar {
+    --background: white;
+    --border-radius: #{$border-radius};
+    --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    padding: 0;
+  }
+}
+
+// Status Filter Toolbar
+.status-toolbar {
+  --background: transparent;
+  --border-width: 0;
+  padding: 0 12px 8px;
+  
+  ion-segment {
+    background: white;
+    border-radius: $border-radius;
+    box-shadow: $card-shadow;
+    
+    ion-segment-button {
+      --padding-top: 8px;
+      --padding-bottom: 8px;
+      min-height: 40px;
+      
+      ion-label {
+        font-size: 0.75rem;
+        font-weight: 500;
+      }
+    }
+  }
+}
+
+// Summary Cards
+.summary-cards {
+  padding: 12px;
+  display: flex;
+  justify-content: center;
+  
+  .summary-card {
+    margin: 0;
+    border-radius: $border-radius;
+    box-shadow: $card-shadow;
+    width: 100%;
+    max-width: 400px;
+    
+    ion-card-header {
+      padding-bottom: 8px;
+      
+      ion-card-title {
+        font-size: 1rem;
+        font-weight: 600;
+      }
+    }
+    
+    ion-card-content {
+      padding-top: 0;
+      
+      h2 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--ion-color-primary);
+        margin: 0 0 4px 0;
+      }
+      
+      p {
+        font-size: 0.875rem;
+        color: var(--ion-color-medium);
+        margin: 0;
+      }
+    }
+  }
+}
+
+// Sales List Container
+.sales-list-container {
+  padding: 0 12px 12px;
+}
+
+.sales-list {
+  background: transparent;
+  
+  .list-header {
+    --background: transparent;
+    --border-width: 0;
+    padding: 16px 0 8px;
+    
+    ion-label {
+      h2 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin: 0;
+      }
+      
+      p {
+        font-size: 0.875rem;
+        color: var(--ion-color-medium);
+        margin: 2px 0 0 0;
+      }
+    }
+    
+    ion-button {
+      --padding-start: 8px;
+      --padding-end: 8px;
+      --padding-top: 8px;
+      --padding-bottom: 8px;
+      margin: 0;
+    }
+  }
+}
+
+// Sale Item
+.sale-item {
+  margin-bottom: 8px;
+  border-radius: $border-radius;
+  overflow: hidden;
+  
+  .sale-item-content {
+    --padding-start: 12px;
+    --padding-end: 12px;
+    --inner-padding-end: 8px;
+    --background: white;
+    --border-radius: #{$border-radius};
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    margin-bottom: 1px;
+    
+    .sale-avatar {
+      width: 40px;
+      height: 40px;
+      background: var(--ion-color-light);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      
+      ion-icon {
+        font-size: 1.25rem;
+      }
+    }
+    
+    .sale-details {
+      h2 {
+        font-size: 1rem;
+        font-weight: 600;
+        margin: 0 0 4px 0;
+        line-height: 1.2;
+      }
+      
+      .customer-info {
+        font-size: 0.875rem;
+        color: var(--ion-color-medium);
+        margin: 0 0 8px 0;
+        display: flex;
+        align-items: center;
+        
+        ion-icon {
+          margin-right: 4px;
+        }
+      }
+      
+      .amounts-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 8px;
+        
+        .amount-item {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          
+          .amount-label {
+            font-size: 0.75rem;
+            color: var(--ion-color-medium);
+          }
+          
+          .amount-value {
+            font-size: 0.875rem;
+            font-weight: 600;
+            
+            &.paid {
+              color: var(--ion-color-success);
+            }
+            
+            &.change {
+              color: var(--ion-color-warning);
+            }
+            
+            &.remaining {
+              color: var(--ion-color-danger);
+            }
+          }
+        }
+      }
+      
+      .date-container {
+        .date-info {
+          font-size: 0.75rem;
+          color: var(--ion-color-medium);
+          margin: 2px 0;
+          display: flex;
+          align-items: center;
+          
+          ion-icon {
+            margin-right: 4px;
+          }
+        }
+      }
+    }
+    
+    .status-container {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
+    }
+    
+    .status-badge, .payment-badge {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: capitalize;
+    }
+  }
+  
+  .action-option {
+    flex-direction: column;
+    padding: 16px 12px;
+    
+    ion-icon {
+      font-size: 1.25rem;
+      margin-bottom: 4px;
+    }
+    
+    span {
+      font-size: 0.75rem;
+    }
+  }
+}
+
+// Empty State
+.empty-state {
+  --background: transparent;
+  --border-width: 0;
+  margin: 40px 0;
+  
+  .empty-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    width: 100%;
+    
+    ion-icon {
+      font-size: 3rem;
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+    
+    ion-label {
+      h2 {
+        font-size: 1.125rem;
+        font-weight: 600;
+        margin: 0 0 8px 0;
+        color: var(--ion-color-medium);
+      }
+      
+      p {
+        font-size: 0.875rem;
+        color: var(--ion-color-medium);
+        margin: 0;
+      }
+    }
+  }
+}
+
+// Receipt Modal
+.receipt-modal {
+  --width: 100%;
+  --height: 100%;
+  --max-width: 500px;
+  --max-height: 90%;
+  --border-radius: 16px 16px 0 0;
+  
+  .receipt-content {
+    --padding-top: 0;
+    --padding-bottom: 0;
+    
+    .receipt-container {
+      padding: 16px 0;
+      
+      .receipt-image-container {
+        text-align: center;
+        margin-bottom: 20px;
+        
+        .receipt-image {
+          max-width: 100%;
+          height: auto;
+          border-radius: $border-radius;
+          box-shadow: $card-shadow;
+        }
+      }
+      
+      .no-receipt {
+        text-align: center;
+        padding: 40px 20px;
+        background: var(--ion-color-light);
+        border-radius: $border-radius;
+        margin-bottom: 20px;
+        
+        ion-icon {
+          font-size: 3rem;
+          color: var(--ion-color-medium);
+          margin-bottom: 12px;
+        }
+        
+        p {
+          color: var(--ion-color-medium);
+          margin: 0;
+        }
+      }
+      
+      .receipt-details, .payment-history {
+        border-radius: $border-radius;
+        box-shadow: $card-shadow;
+        margin-bottom: 16px;
+        
+        ion-card-header {
+          padding-bottom: 8px;
+          
+          ion-card-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+          }
+        }
+        
+        .receipt-grid, .debt-grid {
+          .text-right {
+            text-align: right;
+          }
+          
+          ion-row {
+            padding: 8px 0;
+            border-bottom: 1px solid var(--ion-color-light);
+            
+            &:last-child {
+              border-bottom: none;
+            }
+          }
+        }
+      }
+      
+      .payment-history {
+        .payment-list {
+          .payment-item {
+            --padding-start: 0;
+            --inner-padding-end: 0;
+            --background: transparent;
+            
+            .payment-avatar {
+              width: 32px;
+              height: 32px;
+              background: var(--ion-color-light);
+              border-radius: 50%;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              
+              ion-icon {
+                font-size: 1rem;
+              }
+            }
+            
+            ion-label {
+              h3 {
+                font-size: 1rem;
+                font-weight: 600;
+                margin: 0 0 4px 0;
+              }
+              
+              p {
+                font-size: 0.875rem;
+                color: var(--ion-color-medium);
+                margin: 0;
+              }
+              
+              .payment-notes {
+                font-size: 0.75rem;
+                color: var(--ion-color-medium);
+                font-style: italic;
+                margin-top: 4px;
+              }
+            }
+            
+            ion-note {
+              font-size: 0.75rem;
+            }
+          }
+        }
+      }
+      
+      .record-payment-btn {
+        margin: 16px 0;
+        --border-radius: #{$border-radius};
+      }
+    }
+  }
+}
+
+// Payment Modal
+.payment-modal {
+  --width: 100%;
+  --height: auto;
+  --max-width: 500px;
+  --border-radius: 16px;
+  
+  .payment-content {
+    .debt-summary, .payment-inputs {
+      border-radius: $border-radius;
+      box-shadow: $card-shadow;
+      margin-bottom: 16px;
+      
+      ion-card-header {
+        padding-bottom: 8px;
+        
+        ion-card-title {
+          font-size: 1.125rem;
+          font-weight: 600;
+        }
+      }
+      
+      .debt-grid {
+        .text-right {
+          text-align: right;
+        }
+        
+        ion-row {
+          padding: 8px 0;
+          border-bottom: 1px solid var(--ion-color-light);
+          
+          &:last-child {
+            border-bottom: none;
+          }
+        }
+      }
+    }
+    
+    .payment-amount-item, .payment-notes-item {
+      --padding-start: 0;
+      --inner-padding-end: 0;
+      --background: transparent;
+      
+      ion-label {
+        font-weight: 500;
+      }
+      
+      .payment-input, .payment-textarea {
+        --padding-start: 12px;
+        --padding-end: 12px;
+        --padding-top: 12px;
+        --padding-bottom: 12px;
+        background: var(--ion-color-light);
+        border-radius: 8px;
+        margin-top: 8px;
+      }
+    }
+    
+    .process-payment-btn {
+      --border-radius: #{$border-radius};
+      margin: 16px 0;
+    }
+  }
+}
+
+// Status colors
+.status-completed, .status-paid {
+  color: var(--ion-color-success);
+}
+
+.status-pending {
+  color: var(--ion-color-warning);
+}
+
+.status-overdue {
+  color: var(--ion-color-danger);
+}
+
+// Payment status colors
+.payment-paid {
+  color: var(--ion-color-success);
+}
+
+.payment-partially_paid {
+  color: var(--ion-color-warning);
+}
+
+.payment-unpaid {
+  color: var(--ion-color-danger);
+}
+
+// Responsive design
+@media (max-width: 320px) {
+  .sales-segment {
+    padding: 8px;
+    
+    ion-segment-button {
+      --padding-start: 12px;
+      --padding-end: 12px;
+      
+      ion-label {
+        font-size: 0.8rem;
+      }
+    }
+  }
+  
+  .sale-item .sale-item-content .sale-details .amounts-container {
+    flex-direction: column;
+    gap: 4px;
+  }
+}
+
+@media (min-width: 768px) {
+  .sales-list-container {
+    padding: 0 16px 16px;
+  }
+  
+  .summary-cards {
+    padding: 16px;
+    
+    .summary-card {
+      max-width: 500px;
+    }
+  }
+  
+  .sale-item {
+    margin-bottom: 12px;
+    
+    .sale-item-content {
+      --padding-start: 16px;
+      --padding-end: 16px;
+      
+      .sale-avatar {
+        width: 48px;
+        height: 48px;
+        
+        ion-icon {
+          font-size: 1.5rem;
+        }
+      }
+    }
+  }
+  
+  .receipt-modal {
+    --max-width: 600px;
+    --max-height: 85%;
+  }
+}
+
+@media (min-width: 1024px) {
+  .sales-list-container {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  
+  .summary-cards {
+    justify-content: flex-start;
+    
+    .summary-card {
+      max-width: 300px;
+    }
+  }
+}
+
+// Dark mode support
+@media (prefers-color-scheme: dark) {
+  .sale-item .sale-item-content,
+  .receipt-details,
+  .payment-history,
+  .debt-summary,
+  .payment-inputs {
+    --background: var(--ion-color-step-50);
+  }
+  
+  .search-toolbar .custom-searchbar {
+    --background: var(--ion-color-step-100);
+  }
+  
+  .status-toolbar ion-segment {
+    background: var(--ion-color-step-100);
+  }
+  
+}

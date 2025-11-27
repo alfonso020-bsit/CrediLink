@@ -28,7 +28,6 @@ export class LoginPage implements OnInit {
     this.showPassword = !this.showPassword;
   }
 
-  // Helper method to get display name for roles
   getRoleDisplayName(): string {
     switch (this.selectedRole) {
       case 'Admin': return 'Admin';
@@ -58,17 +57,18 @@ export class LoginPage implements OnInit {
       await loading.dismiss();
       await this.showToast(`Welcome back, ${user.full_name}!`, 'success');
       
-      // Navigate based on role
+      // Navigate based on role - FORCE RELOAD
       const role = user.role.toLowerCase();
 
+      // Use navigateByUrl with replaceUrl to clear history and force reload
       if (role === 'admin') {
-        this.router.navigate(['/admin/tab1']);
+        this.router.navigateByUrl('/admin/tab1', { replaceUrl: true });
       } else if (role === 'employee') {
-        this.router.navigate(['/employee/tab1']);
+        this.router.navigateByUrl('/employee/tab1', { replaceUrl: true });
       } else if (role === 'customer') {
-        this.router.navigate(['/customer/tab1']);
+        this.router.navigateByUrl('/customer/tab1', { replaceUrl: true });
       } else if (role === 'storeowner') {
-        this.router.navigate(['/storeowner/tab1']);
+        this.router.navigateByUrl('/storeowner/tab1', { replaceUrl: true });
       } else {
         await this.showToast('Unknown role', 'danger');
       }
@@ -80,11 +80,10 @@ export class LoginPage implements OnInit {
   }
 
   forgotPassword() {
-  this.router.navigate(['/forgot-password']);
+    this.router.navigate(['/forgot-password']);
   }
 
   goToRegister() {
-    // Navigate to register page - the register page will handle role selection
     this.router.navigate(['/register']);
   }
 

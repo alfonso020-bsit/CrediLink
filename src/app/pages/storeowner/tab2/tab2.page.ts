@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 
 @Component({
-  selector: 'app-storeowner-tab12',
+  selector: 'app-storeowner-tab2',
   templateUrl: './tab2.page.html',
   styleUrls: ['./tab2.page.scss'],
   standalone: false,

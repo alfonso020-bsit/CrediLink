@@ -278,73 +278,85 @@ export class RegisterPage implements OnInit {
   }
 
   async onRegister(form: NgForm) {
-    if (form.invalid) {
-      await this.showToast('Please fill in all required fields correctly', 'danger');
-      return;
-    }
-
-    // Validate location selection
-    if (!this.selectedRegion || !this.selectedProvince || !this.selectedMunicipality || !this.selectedBarangay) {
-      await this.showToast('Please complete your address information', 'danger');
-      return;
-    }
-
-    const { password, confirmPassword } = form.value;
-
-    // Check if passwords match
-    if (password !== confirmPassword) {
-      await this.showToast('Passwords do not match', 'danger');
-      return;
-    }
-
-    const loading = await this.loadingCtrl.create({
-      message: `Creating your ${this.selectedRole === 'Customer' ? 'customer' : 'store owner'} account...`,
-    });
-    await loading.present();
-
-    try {
-      const { 
-        username, 
-        fullName, 
-        email, 
-        phoneNumber,
-        sitioPurok 
-      } = form.value;
-      
-      const userData = {
-        username: username.trim(),
-        password: password,
-        full_name: fullName.trim(),
-        email: email?.trim() || '',
-        phone_number: phoneNumber?.trim() || '',
-        province: this.selectedProvince,
-        municipality: this.selectedMunicipality,
-        barangay: this.selectedBarangay,
-        sitio_purok: sitioPurok?.trim() || ''
-      };
-
-      // Register based on selected role
-      if (this.selectedRole === 'Customer') {
-        await this.authService.registerCustomer(userData);
-      } else {
-        await this.authService.registerStoreOwner(userData);
-      }
-      
-      await loading.dismiss();
-      await this.showToast(
-        `${this.selectedRole === 'Customer' ? 'Customer' : 'Store owner'} account created successfully! Please login.`, 
-        'success'
-      );
-      
-      // Navigate to login page
-      this.router.navigate(['/login']);
-      
-    } catch (error: any) {
-      await loading.dismiss();
-      await this.showToast(error.message || 'Registration failed', 'danger');
-    }
+  if (form.invalid) {
+    await this.showToast('Please fill in all required fields correctly', 'danger');
+    return;
   }
 
+  // Validate location selection
+  if (!this.selectedRegion || !this.selectedProvince || !this.selectedMunicipality || !this.selectedBarangay) {
+    await this.showToast('Please complete your address information', 'danger');
+    return;
+  }
+
+  // ✅ ADD VALIDATION FOR STORE NAME
+  if (this.selectedRole === 'StoreOwner' && !form.value.storeName) {
+    await this.showToast('Store name is required for store owners', 'danger');
+    return;
+  }
+
+  const { password, confirmPassword } = form.value;
+
+  // Check if passwords match
+  if (password !== confirmPassword) {
+    await this.showToast('Passwords do not match', 'danger');
+    return;
+  }
+
+  const loading = await this.loadingCtrl.create({
+    message: `Creating your ${this.selectedRole === 'Customer' ? 'customer' : 'store owner'} account...`,
+  });
+  await loading.present();
+
+  try {
+    const { 
+      username, 
+      fullName, 
+      email, 
+      phoneNumber,
+      sitioPurok,
+      storeName // ✅ ADD THIS
+    } = form.value;
+    
+    const userData: any = {
+      username: username.trim(),
+      password: password,
+      full_name: fullName.trim(),
+      email: email?.trim() || '',
+      phone_number: phoneNumber?.trim() || '',
+      region: this.getRegionName(this.selectedRegion),
+      province: this.selectedProvince,
+      municipality: this.selectedMunicipality,
+      barangay: this.selectedBarangay,
+      sitio_purok: sitioPurok?.trim() || ''
+    };
+
+    // ✅ ADD STORE NAME FOR STORE OWNERS
+    if (this.selectedRole === 'StoreOwner') {
+      userData.store_name = storeName.trim();
+    }
+
+    // Register based on selected role
+    if (this.selectedRole === 'Customer') {
+      await this.authService.registerCustomer(userData);
+    } else {
+      await this.authService.registerStoreOwner(userData);
+    }
+    
+    await loading.dismiss();
+    await this.showToast(
+      `${this.selectedRole === 'Customer' ? 'Customer' : 'Store owner'} account created successfully! Please login.`, 
+      'success'
+    );
+    
+    // Navigate to login page
+    this.router.navigate(['/login']);
+    
+  } catch (error: any) {
+    await loading.dismiss();
+    await this.showToast(error.message || 'Registration failed', 'danger');
+  }
+}
   goToLogin() {
     this.router.navigate(['/login']);
   }

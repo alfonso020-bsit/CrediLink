@@ -1,0 +1,725 @@
+// Enhanced Variables
+:root {
+  --card-border-radius: 16px;
+  --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  --section-spacing: 24px;
+  --item-spacing: 16px;
+}
+
+ion-content {
+  --background: #f8fafc;
+  --padding-start: 16px;
+  --padding-end: 16px;
+  --padding-top: 16px;
+  --padding-bottom: 16px;
+}
+
+// Report Period Header
+.report-period {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--section-spacing);
+  flex-wrap: wrap;
+  gap: 12px;
+
+  .active-filters {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  ion-chip {
+    ion-icon {
+      font-size: 16px;
+      margin-right: 4px;
+    }
+  }
+}
+
+// Section Styling
+.section-title {
+  font-size: 1.25em;
+  font-weight: 600;
+  color: var(--ion-color-dark);
+  margin: 0 0 16px 0;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+
+  .section-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    .transaction-count {
+      font-size: 0.875em;
+      color: var(--ion-color-medium);
+      font-weight: 500;
+    }
+  }
+}
+
+// Summary Cards - Enhanced
+.summary-section {
+  margin-bottom: var(--section-spacing);
+}
+
+.summary-cards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+
+  .summary-card {
+    margin: 0;
+    border-radius: var(--card-border-radius);
+    box-shadow: var(--card-shadow);
+    transition: all 0.3s ease;
+    cursor: pointer;
+    border: 2px solid transparent;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+
+    ion-card-content {
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: relative;
+
+      .card-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(var(--ion-color-primary-rgb), 0.1);
+
+        ion-icon {
+          font-size: 24px;
+          color: var(--ion-color-primary);
+        }
+      }
+
+      .card-content {
+        flex: 1;
+
+        h3 {
+          margin: 0 0 4px 0;
+          font-size: 1.5em;
+          font-weight: 700;
+          color: var(--ion-color-dark);
+          line-height: 1.2;
+        }
+
+        p {
+          margin: 0;
+          font-size: 0.875em;
+          color: var(--ion-color-medium);
+          font-weight: 500;
+        }
+      }
+
+      ion-badge {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        font-size: 0.7em;
+      }
+    }
+
+    // Specific card styles
+    &.cash-sales .card-icon {
+      background: rgba(var(--ion-color-success-rgb), 0.1);
+      ion-icon { color: var(--ion-color-success); }
+    }
+
+    &.debt-sales .card-icon {
+      background: rgba(var(--ion-color-warning-rgb), 0.1);
+      ion-icon { color: var(--ion-color-warning); }
+    }
+
+    &.stock-transactions .card-icon {
+      background: rgba(var(--ion-color-tertiary-rgb), 0.1);
+      ion-icon { color: var(--ion-color-tertiary); }
+    }
+  }
+}
+
+// Status Section
+.status-section {
+  margin-bottom: var(--section-spacing);
+}
+
+.status-cards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+
+  .status-card {
+    margin: 0;
+    border-radius: var(--card-border-radius);
+    box-shadow: var(--card-shadow);
+    cursor: pointer;
+    transition: all 0.3s ease;
+
+    &:hover {
+      transform: translateY(-2px);
+    }
+
+    ion-card-content {
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      position: relative;
+
+      .status-indicator {
+        width: 4px;
+        height: 40px;
+        border-radius: 2px;
+
+        &.completed {
+          background: var(--ion-color-success);
+        }
+
+        &.pending {
+          background: var(--ion-color-warning);
+        }
+      }
+
+      .status-content {
+        flex: 1;
+
+        h3 {
+          margin: 0 0 4px 0;
+          font-size: 1.75em;
+          font-weight: 700;
+          color: var(--ion-color-dark);
+        }
+
+        p {
+          margin: 0;
+          font-size: 0.875em;
+          color: var(--ion-color-medium);
+          font-weight: 500;
+        }
+      }
+
+      ion-badge {
+        font-size: 0.7em;
+      }
+    }
+  }
+}
+
+// Transactions List - Enhanced
+.transactions-section {
+  .transactions-list {
+    ion-list {
+      background: transparent;
+      padding: 0;
+    }
+
+    .transaction-item {
+      --padding-start: 0;
+      --inner-padding-end: 0;
+      --background: white;
+      --background-hover: #f8f9fa;
+      --border-radius: var(--card-border-radius);
+      margin-bottom: 8px;
+      border: 1px solid rgba(0, 0, 0, 0.05);
+      transition: all 0.3s ease;
+
+      &:hover {
+        border-color: var(--ion-color-primary);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      }
+
+      .transaction-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 12px;
+        background: rgba(var(--ion-color-primary-rgb), 0.1);
+
+        ion-icon {
+          font-size: 20px;
+          color: var(--ion-color-primary);
+        }
+      }
+
+      .transaction-content {
+        margin: 12px 0;
+
+        .transaction-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-bottom: 8px;
+
+          h3 {
+            margin: 0;
+            font-size: 1em;
+            font-weight: 600;
+            color: var(--ion-color-dark);
+            line-height: 1.3;
+            flex: 1;
+            margin-right: 12px;
+          }
+
+          .transaction-amount {
+            font-size: 1.1em;
+            font-weight: 700;
+            color: var(--ion-color-success);
+            white-space: nowrap;
+          }
+        }
+
+        .transaction-details {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-end;
+          gap: 12px;
+
+          .detail-left {
+            flex: 1;
+
+            .transaction-date {
+              display: flex;
+              align-items: center;
+              gap: 4px;
+              margin: 0 0 4px 0;
+              font-size: 0.8em;
+              color: var(--ion-color-medium);
+
+              ion-icon {
+                font-size: 14px;
+              }
+            }
+
+            .transaction-type-employee {
+              margin: 0;
+              font-size: 0.8em;
+              color: var(--ion-color-primary);
+              font-weight: 500;
+            }
+          }
+
+          .detail-right {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 4px;
+
+            .status-badge {
+              font-size: 0.75em;
+              font-weight: 600;
+              padding: 4px 8px;
+              border-radius: 6px;
+            }
+
+            .items-count {
+              margin: 0;
+              font-size: 0.75em;
+              color: var(--ion-color-medium);
+            }
+          }
+        }
+
+        .debt-details {
+          margin-top: 8px;
+          padding-top: 8px;
+          border-top: 1px solid rgba(0, 0, 0, 0.05);
+
+          .balance-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+
+            .balance-label {
+              font-size: 0.8em;
+              color: var(--ion-color-medium);
+            }
+
+            .balance-amount {
+              font-size: 0.9em;
+              font-weight: 600;
+              color: var(--ion-color-warning);
+            }
+          }
+        }
+      }
+    }
+
+    // Transaction type specific styles
+    .transaction-type-cash {
+      .transaction-icon {
+        background: rgba(var(--ion-color-success-rgb), 0.1);
+        ion-icon { color: var(--ion-color-success); }
+      }
+    }
+
+    .transaction-type-debt {
+      .transaction-icon {
+        background: rgba(var(--ion-color-warning-rgb), 0.1);
+        ion-icon { color: var(--ion-color-warning); }
+      }
+    }
+
+    .transaction-type-stock {
+      .transaction-icon {
+        background: rgba(var(--ion-color-tertiary-rgb), 0.1);
+        ion-icon { color: var(--ion-color-tertiary); }
+      }
+    }
+  }
+}
+
+// Loading State
+.loading-state {
+  text-align: center;
+  padding: 60px 20px;
+  background: white;
+  border-radius: var(--card-border-radius);
+  box-shadow: var(--card-shadow);
+
+  ion-spinner {
+    margin-bottom: 16px;
+    --color: var(--ion-color-primary);
+    width: 40px;
+    height: 40px;
+  }
+
+  p {
+    margin: 0;
+    color: var(--ion-color-medium);
+    font-size: 0.95em;
+    font-weight: 500;
+  }
+}
+
+// Empty State
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  background: white;
+  border-radius: var(--card-border-radius);
+  box-shadow: var(--card-shadow);
+
+  .empty-icon {
+    margin-bottom: 20px;
+
+    ion-icon {
+      font-size: 64px;
+      color: var(--ion-color-medium);
+      opacity: 0.5;
+    }
+  }
+
+  h3 {
+    margin: 0 0 12px 0;
+    color: var(--ion-color-dark);
+    font-weight: 600;
+    font-size: 1.2em;
+  }
+
+  p {
+    margin: 0 0 24px 0;
+    color: var(--ion-color-medium);
+    font-size: 0.95em;
+    line-height: 1.5;
+  }
+}
+
+// Filter Modal Enhancements
+ion-modal {
+  --border-radius: 20px 20px 0 0;
+  --height: 85%;
+
+  .filter-section {
+    margin-bottom: 24px;
+
+    h3 {
+      font-size: 1em;
+      font-weight: 600;
+      color: var(--ion-color-dark);
+      margin: 0 0 12px 0;
+    }
+
+    .date-inputs {
+      display: grid;
+      gap: 12px;
+    }
+
+    ion-segment {
+      border-radius: 12px;
+      background: #f8f9fa;
+
+      ion-segment-button {
+        --background-checked: var(--ion-color-primary);
+        --color-checked: white;
+        --border-radius: 8px;
+        min-height: 44px;
+
+        ion-label {
+          font-size: 0.875em;
+          font-weight: 500;
+        }
+      }
+    }
+  }
+
+  .filter-actions {
+    margin-top: 32px;
+
+    .apply-button {
+      margin-bottom: 12px;
+    }
+  }
+}
+
+// Responsive Design
+@media (min-width: 768px) {
+  :root {
+    --section-spacing: 32px;
+    --item-spacing: 24px;
+  }
+
+  ion-content {
+    --padding-start: 24px;
+    --padding-end: 24px;
+    --padding-top: 24px;
+    --padding-bottom: 24px;
+  }
+
+  .summary-cards,
+  .status-cards {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+
+  .summary-card,
+  .status-card {
+    ion-card-content {
+      padding: 24px;
+    }
+  }
+
+  ion-modal {
+    --border-radius: 16px;
+    --width: 500px;
+    --height: auto;
+  }
+}
+
+// Dark mode support
+@media (prefers-color-scheme: dark) {
+  ion-content {
+    --background: #1a1a1a;
+  }
+
+  .transaction-item {
+    --background: #2d2d2d;
+    --background-hover: #3d3d3d;
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .loading-state,
+  .empty-state {
+    background: #2d2d2d;
+  }
+
+  .section-title {
+    color: var(--ion-color-light);
+  }
+}
+
+// Animation enhancements
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.summary-cards,
+.status-cards,
+.transactions-list {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+// Add these new styles to your existing SCSS file
+
+// Stock Metrics
+.stock-metrics {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 16px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+
+  .metric-item {
+    text-align: center;
+    
+    .metric-value {
+      font-size: 1.5em;
+      font-weight: 700;
+      color: var(--ion-color-primary);
+      margin-bottom: 4px;
+    }
+    
+    .metric-label {
+      font-size: 0.8em;
+      color: var(--ion-color-medium);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+  }
+}
+
+// Stock Details in Transactions
+.stock-details {
+  margin-top: 6px;
+  
+  .stock-action {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    font-size: 0.8em;
+    font-weight: 500;
+    
+    ion-icon {
+      font-size: 14px;
+    }
+    
+    .stock-reason {
+      color: var(--ion-color-medium);
+      font-style: italic;
+    }
+  }
+}
+
+// Stock Change Visualization
+.stock-change {
+  margin-top: 8px;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 6px;
+  
+  .stock-change-bar {
+    .stock-change-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.7em;
+      color: var(--ion-color-medium);
+      margin-bottom: 4px;
+    }
+    
+    .stock-change-visual {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      
+      .stock-change-from,
+      .stock-change-to {
+        font-size: 0.8em;
+        font-weight: 600;
+        padding: 2px 6px;
+        background: rgba(var(--ion-color-primary-rgb), 0.1);
+        border-radius: 4px;
+        min-width: 30px;
+        text-align: center;
+      }
+      
+      .stock-change-arrow {
+        flex: 1;
+        display: flex;
+        justify-content: center;
+        
+        ion-icon {
+          font-size: 16px;
+        }
+      }
+    }
+  }
+}
+
+// Amount color variations
+.transaction-amount.stock-increase {
+  color: var(--ion-color-success);
+}
+
+.transaction-amount.stock-decrease {
+  color: var(--ion-color-warning);
+}
+
+// Enhanced transaction items for different types
+.transaction-type-stock {
+  border-left: 4px solid var(--ion-color-tertiary);
+  
+  .transaction-icon {
+    background: rgba(var(--ion-color-tertiary-rgb), 0.1) !important;
+    
+    ion-icon {
+      color: var(--ion-color-tertiary) !important;
+    }
+  }
+}
+
+// Responsive adjustments for stock metrics
+@media (max-width: 480px) {
+  .stock-metrics {
+    .metric-item {
+      .metric-value {
+        font-size: 1.3em;
+      }
+      
+      .metric-label {
+        font-size: 0.7em;
+      }
+    }
+  }
+  
+  .stock-change-visual {
+    .stock-change-from,
+    .stock-change-to {
+      font-size: 0.7em !important;
+    }
+  }
+}
+
+// Dark mode support for new elements
+@media (prefers-color-scheme: dark) {
+  .stock-metrics {
+    background: rgba(255, 255, 255, 0.05);
+  }
+  
+  .stock-change {
+    background: rgba(255, 255, 255, 0.05);
+  }
+}

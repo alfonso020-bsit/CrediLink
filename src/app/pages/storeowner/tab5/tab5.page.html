@@ -85,6 +85,21 @@
           </div>
         </div>
 
+        <!-- Position Field -->
+        <div class="form-group">
+          <label class="form-label">Position *</label>
+          <div class="input-field">
+            <ion-icon name="briefcase" class="field-icon"></ion-icon>
+            <input 
+              type="text" 
+              name="position" 
+              ngModel 
+              required
+              placeholder="Enter employee position"
+              class="form-input">
+          </div>
+        </div>
+
         <!-- Phone Number Field -->
         <div class="form-group">
           <label class="form-label">Phone Number <span class="optional">(Optional)</span></label>
@@ -253,85 +268,282 @@
     </ion-card-content>
   </ion-card>
 
-  <!-- Employees List -->
-  <ion-card>
-    <ion-card-header>
-      <ion-card-title>My Employees ({{ employees.length }})</ion-card-title>
-      <ion-card-subtitle>Slide left on employee to see actions</ion-card-subtitle>
-    </ion-card-header>
-    <ion-card-content>
-      
-      <!-- Loading State -->
-      <div *ngIf="isLoadingEmployees" class="loading-container">
-        <ion-spinner></ion-spinner>
-        <p>Loading employees...</p>
-      </div>
+<!-- Employees List -->
+<ion-card>
+  <ion-card-header>
+    <ion-card-title>My Employees ({{ employees.length }})</ion-card-title>
+    <ion-card-subtitle>Swipe left for more actions</ion-card-subtitle>
+  </ion-card-header>
+  <ion-card-content>
+    
+    <!-- Loading State -->
+    <div *ngIf="isLoadingEmployees" class="loading-container">
+      <ion-spinner></ion-spinner>
+      <p>Loading employees...</p>
+    </div>
 
-      <!-- Empty State -->
-      <div *ngIf="!isLoadingEmployees && employees.length === 0" class="empty-state">
-        <ion-icon name="people-outline" size="large" color="medium"></ion-icon>
-        <h3>No Employees Yet</h3>
-        <p>Add your first employee to get started</p>
-      </div>
+    <!-- Empty State -->
+    <div *ngIf="!isLoadingEmployees && employees.length === 0" class="empty-state">
+      <ion-icon name="people-outline" size="large" color="medium"></ion-icon>
+      <h3>No Employees Yet</h3>
+      <p>Add your first employee to get started</p>
+    </div>
 
-      <!-- Employees List -->
-      <ion-list lines="full" *ngIf="!isLoadingEmployees && employees.length > 0">
-        <ion-item-sliding *ngFor="let employee of employees">
-          <ion-item [class.editing]="editingEmployeeId === employee.id">
-            <ion-avatar slot="start">
-              <ion-icon name="person-circle" size="large" 
-                [color]="employee.status === 'active' ? 'primary' : 'medium'"></ion-icon>
-            </ion-avatar>
-            <ion-label>
-              <h3>
-                {{ employee.full_name }}
-                <ion-badge *ngIf="editingEmployeeId === employee.id" color="primary" size="small">
-                  Editing
-                </ion-badge>
-              </h3>
-              <p><strong>Username:</strong> {{ employee.username }}</p>
-              <p><strong>Email:</strong> {{ employee.email || 'Not provided' }}</p>
-              <p><strong>Phone:</strong> {{ employee.phone_number || 'Not provided' }}</p>
-              <p><strong>Address:</strong> {{ employee.barangay }}, {{ employee.municipality }}, {{ employee.province }}</p>
-              <p><strong>Created:</strong> {{ employee.created_at?.toDate() | date:'MMM d, y' }}</p>
-              <ion-badge [color]="employee.status === 'active' ? 'success' : 'danger'">
-                {{ employee.status | uppercase }}
+    <!-- Employees List - Clean Design -->
+    <ion-list lines="full" *ngIf="!isLoadingEmployees && employees.length > 0" class="employee-list">
+      <ion-item-sliding *ngFor="let employee of employees" class="employee-item">
+        <ion-item 
+          [class.editing]="editingEmployeeId === employee.id"
+          [class.inactive]="employee.status === 'inactive'"
+          class="employee-main-item">
+          
+          <!-- Employee Avatar with Profile Image -->
+          <ion-avatar slot="start" class="employee-avatar">
+            <div class="avatar-content" [class.active]="employee.status === 'active'">
+              <img 
+                *ngIf="employee.profile?.profile_image; else defaultAvatar"
+                [src]="employee.profile?.profile_image" 
+                alt="{{ employee.full_name }}"
+                class="profile-image"
+                (error)="employee.profileImageError = true">
+              <ng-template #defaultAvatar>
+                <div class="default-avatar" [style.background]="getAvatarColor(employee.full_name)">
+                  {{ getInitials(employee.full_name) }}
+                </div>
+              </ng-template>
+            </div>
+            <ion-badge *ngIf="employee.status === 'inactive'" color="medium" class="status-badge">
+              <ion-icon name="lock-closed" size="small"></ion-icon>
+            </ion-badge>
+          </ion-avatar>
+
+          <!-- Employee Basic Info -->
+          <ion-label class="employee-label">
+            <h2 class="employee-name">{{ employee.full_name }}</h2>
+            <p class="employee-position">{{ employee.position || 'No position specified' }}</p>
+            <div class="employee-meta">
+              <span class="employee-username">
+                <ion-icon name="person-outline" size="small"></ion-icon>
+                {{ employee.username }}
+              </span>
+              <ion-badge 
+                [color]="employee.status === 'active' ? 'success' : 'medium'" 
+                class="status-indicator">
+                {{ employee.status }}
               </ion-badge>
-            </ion-label>
-            <ion-note slot="end" class="employee-status">
-              <ion-icon 
-                [name]="employee.status === 'active' ? 'checkmark-circle' : 'close-circle'" 
-                [color]="employee.status === 'active' ? 'success' : 'danger'">
-              </ion-icon>
-            </ion-note>
-          </ion-item>
+            </div>
+          </ion-label>
 
-          <ion-item-options side="end">
-            <ion-item-option color="primary" (click)="editEmployee(employee)">
-              <ion-icon slot="icon-only" name="create"></ion-icon>
-              Edit
-            </ion-item-option>
-            <ion-item-option 
-              [color]="employee.status === 'active' ? 'warning' : 'success'" 
-              (click)="toggleEmployeeStatus(employee)">
-              <ion-icon 
-                slot="icon-only" 
-                [name]="employee.status === 'active' ? 'lock-closed' : 'lock-open'">
-              </ion-icon>
-              {{ employee.status === 'active' ? 'Deactivate' : 'Activate' }}
-            </ion-item-option>
-            <ion-item-option color="danger" (click)="deleteEmployee(employee)">
-              <ion-icon slot="icon-only" name="trash"></ion-icon>
-              Delete
-            </ion-item-option>
-          </ion-item-options>
-        </ion-item-sliding>
-      </ion-list>
+          <!-- Action Buttons (Always Visible) -->
+          <div class="action-buttons" slot="end">
+            <!-- View Button -->
+            <ion-button 
+              fill="clear" 
+              size="small" 
+              (click)="viewEmployee(employee)"
+              class="action-btn view-btn">
+              <ion-icon slot="icon-only" name="eye-outline"></ion-icon>
+            </ion-button>
+            
+            <!-- Edit Button -->
+            <ion-button 
+              fill="clear" 
+              size="small" 
+              (click)="editEmployee(employee)"
+              class="action-btn edit-btn">
+              <ion-icon slot="icon-only" name="create-outline"></ion-icon>
+            </ion-button>
+          </div>
 
-    </ion-card-content>
-  </ion-card>
+        </ion-item>
 
-</ion-content>
+        <!-- Slide Actions - ONLY ACTIVATE/DEACTIVATE AND DELETE -->
+        <ion-item-options side="end" class="slide-actions">
+          <!-- ACTIVATE/DEACTIVATE Button -->
+          <ion-item-option 
+            [color]="employee.status === 'active' ? 'warning' : 'success'" 
+            (click)="toggleEmployeeStatus(employee)"
+            class="action-btn status-btn">
+            <ion-icon 
+              slot="start" 
+              [name]="employee.status === 'active' ? 'lock-closed-outline' : 'lock-open-outline'">
+            </ion-icon>
+            {{ employee.status === 'active' ? 'Deactivate' : 'Activate' }}
+          </ion-item-option>
+          
+          <!-- DELETE Button -->
+          <ion-item-option color="danger" (click)="deleteEmployee(employee)" class="action-btn delete-btn">
+            <ion-icon slot="start" name="trash-outline"></ion-icon>
+            Delete
+          </ion-item-option>
+        </ion-item-options>
+      </ion-item-sliding>
+    </ion-list>
+
+  </ion-card-content>
+</ion-card>
+
+<!-- Employee Details Modal -->
+<ion-modal [isOpen]="showEmployeeDetails" (didDismiss)="closeEmployeeDetails()">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>Employee Details</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="closeEmployeeDetails()">
+            <ion-icon name="close"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content class="ion-padding" *ngIf="selectedEmployee">
+      <div class="employee-details">
+        
+        <!-- Profile Header - UPDATED TO SHOW PROFILE IMAGE -->
+        <div class="profile-header">
+          <ion-avatar class="profile-avatar">
+            <img 
+              *ngIf="selectedEmployeeProfile?.profile_image; else defaultProfileAvatar"
+              [src]="selectedEmployeeProfile?.profile_image" 
+              alt="{{ selectedEmployee.full_name }}"
+              class="profile-image-modal"
+              (error)="selectedEmployee.profileImageError = true">
+            <ng-template #defaultProfileAvatar>
+              <div class="default-avatar-modal" [style.background]="getAvatarColor(selectedEmployee.full_name)">
+                {{ getInitials(selectedEmployee.full_name) }}
+              </div>
+            </ng-template>
+          </ion-avatar>
+          <h2>{{ selectedEmployee.full_name }}</h2>
+          <p class="position">{{ selectedEmployee.position || 'No position specified' }}</p>
+          <ion-badge [color]="selectedEmployee.status === 'active' ? 'success' : 'danger'">
+            {{ selectedEmployee.status | uppercase }}
+          </ion-badge>
+        </div>
+
+        <!-- Rest of your modal content remains the same -->
+        <ion-card>
+          <ion-card-header>
+            <ion-card-title>Basic Information</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <ion-list lines="none">
+              <ion-item>
+                <ion-label><strong>Username:</strong></ion-label>
+                <ion-text>{{ selectedEmployee.username }}</ion-text>
+              </ion-item>
+              <ion-item>
+                <ion-label><strong>Email:</strong></ion-label>
+                <ion-text>{{ selectedEmployee.email || 'Not provided' }}</ion-text>
+              </ion-item>
+              <ion-item>
+                <ion-label><strong>Phone:</strong></ion-label>
+                <ion-text>{{ selectedEmployee.phone_number || 'Not provided' }}</ion-text>
+              </ion-item>
+              <ion-item>
+                <ion-label><strong>Position:</strong></ion-label>
+                <ion-text>{{ selectedEmployee.position || 'Not specified' }}</ion-text>
+              </ion-item>
+              <ion-item>
+                <ion-label><strong>Address:</strong></ion-label>
+                <ion-text class="address-text">
+                  {{ selectedEmployee.sitio_purok ? selectedEmployee.sitio_purok + ', ' : '' }}
+                  {{ selectedEmployee.barangay }}, 
+                  {{ selectedEmployee.municipality }}, 
+                  {{ selectedEmployee.province }}
+                </ion-text>
+              </ion-item>
+            </ion-list>
+          </ion-card-content>
+        </ion-card>
+
+        <!-- Employee Profile Information (from employee_profiles) -->
+        <ion-card *ngIf="selectedEmployeeProfile">
+          <ion-card-header>
+            <ion-card-title>Employee Profile Details</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <ion-list lines="none">
+              <ion-item *ngIf="selectedEmployeeProfile.facebook_url">
+                <ion-label><strong>Facebook:</strong></ion-label>
+                <ion-text>
+                  <a [href]="selectedEmployeeProfile.facebook_url" target="_blank">View Profile</a>
+                </ion-text>
+              </ion-item>
+              <ion-item *ngIf="selectedEmployeeProfile.instagram_url">
+                <ion-label><strong>Instagram:</strong></ion-label>
+                <ion-text>
+                  <a [href]="selectedEmployeeProfile.instagram_url" target="_blank">View Profile</a>
+                </ion-text>
+              </ion-item>
+              <ion-item *ngIf="selectedEmployeeProfile.salary">
+                <ion-label><strong>Salary:</strong></ion-label>
+                <ion-text>₱{{ selectedEmployeeProfile.salary | number }}</ion-text>
+              </ion-item>
+              <ion-item *ngIf="selectedEmployeeProfile.hire_date">
+                <ion-label><strong>Hire Date:</strong></ion-label>
+                <ion-text>{{ selectedEmployeeProfile.hire_date?.toDate() | date:'MMM d, y' }}</ion-text>
+              </ion-item>
+            </ion-list>
+          </ion-card-content>
+        </ion-card>
+
+        <!-- Emergency Contact -->
+        <ion-card *ngIf="selectedEmployeeProfile?.emergency_contact?.name">
+          <ion-card-header>
+            <ion-card-title>Emergency Contact</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <ion-list lines="none">
+              <ion-item>
+                <ion-label><strong>Name:</strong></ion-label>
+                <ion-text>{{ selectedEmployeeProfile?.emergency_contact?.name || 'Not provided' }}</ion-text>
+              </ion-item>
+              <ion-item>
+                <ion-label><strong>Relationship:</strong></ion-label>
+                <ion-text>{{ selectedEmployeeProfile?.emergency_contact?.relationship || 'Not provided' }}</ion-text>
+              </ion-item>
+              <ion-item>
+                <ion-label><strong>Phone:</strong></ion-label>
+                <ion-text>{{ selectedEmployeeProfile?.emergency_contact?.phone_number || 'Not provided' }}</ion-text>
+              </ion-item>
+            </ion-list>
+          </ion-card-content>
+        </ion-card>
+
+        <!-- Account Information -->
+        <ion-card>
+          <ion-card-header>
+            <ion-card-title>Account Information</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <ion-list lines="none">
+              <ion-item>
+                <ion-label><strong>Created:</strong></ion-label>
+                <ion-text>{{ selectedEmployee.created_at?.toDate() | date:'MMM d, y h:mm a' }}</ion-text>
+              </ion-item>
+              <ion-item>
+                <ion-label><strong>Last Updated:</strong></ion-label>
+                <ion-text>{{ selectedEmployee.updated_at?.toDate() | date:'MMM d, y h:mm a' }}</ion-text>
+              </ion-item>
+              <ion-item>
+                <ion-label><strong>Role:</strong></ion-label>
+                <ion-badge color="primary">{{ selectedEmployee.role }}</ion-badge>
+              </ion-item>
+              <ion-item>
+                <ion-label><strong>Status:</strong></ion-label>
+                <ion-badge [color]="selectedEmployee.status === 'active' ? 'success' : 'danger'">
+                  {{ selectedEmployee.status | uppercase }}
+                </ion-badge>
+              </ion-item>
+            </ion-list>
+          </ion-card-content>
+        </ion-card>
+
+      </div>
+    </ion-content>
+  </ng-template>
+</ion-modal>
 
 <!-- Selection Modals -->
 <ion-modal [isOpen]="showRegionModal" (didDismiss)="closeRegionSelection()">

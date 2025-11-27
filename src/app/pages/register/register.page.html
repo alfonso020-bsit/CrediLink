@@ -177,6 +177,24 @@
           </div>
         </div>
 
+        <!-- Add this after the role selection toggle and before the username field -->
+
+        <!-- Store Name Field (Only for Store Owners) -->
+        <div class="form-group" *ngIf="selectedRole === 'StoreOwner'">
+          <label class="form-label">Store Name *</label>
+          <div class="input-field">
+            <ion-icon name="business" class="field-icon"></ion-icon>
+            <input 
+              type="text" 
+              name="storeName" 
+              ngModel 
+              required 
+              minlength="2"
+              placeholder="Enter your store name"
+              class="form-input">
+          </div>
+        </div>
+
         <!-- Password Field -->
         <div class="form-group">
           <label class="form-label">Password *</label>

@@ -1,13 +1,318 @@
 <ion-header [translucent]="true">
-  <ion-toolbar>
-    <ion-title>STORE OWNER</ion-title>
+  <ion-toolbar color="primary">
+    <ion-title>Store Dashboard</ion-title>
+    <ion-buttons slot="end">
+      <!-- Logout Button -->
+      <ion-button (click)="logout()" fill="clear">
+        <ion-icon name="log-out" slot="icon-only"></ion-icon>
+      </ion-button>
+      <!-- Settings Button -->
+      <ion-button (click)="toggleSettings()" fill="clear">
+        <ion-icon name="settings" slot="icon-only"></ion-icon>
+      </ion-button>
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">tab1</ion-title>
-    </ion-toolbar>
-  </ion-header>
+<ion-content [fullscreen]="true" class="ion-padding">
+  <!-- Welcome Card -->
+  <ion-card class="welcome-card">
+    <ion-card-header>
+      <div class="store-header">
+        <div class="store-avatar" (click)="toggleSettings()">
+          <img 
+            *ngIf="storeProfile?.store_image; else avatarFallback" 
+            [src]="storeProfile?.store_image" 
+            alt="Store Image"
+            class="store-image">
+          <ng-template #avatarFallback>
+            <div class="avatar-fallback" [innerHTML]="storeAvatar"></div>
+          </ng-template>
+        </div>
+        <div class="store-info">
+          <h1>{{ currentUser?.store_name || 'My Store' }}</h1>
+          <p>Welcome back, {{ currentUser?.full_name }}! 👋</p>
+          <ion-text color="medium">
+            <small>
+              {{ currentUser?.phone_number }} • 
+              {{ currentUser?.barangay }}, {{ currentUser?.municipality }}, {{ currentUser?.province }}
+            </small>
+          </ion-text>
+        </div>
+      </div>
+    </ion-card-header>
+  </ion-card>
+
+  <!-- Settings Card (Visible when showSettings is true) -->
+  <ion-card *ngIf="showSettings" class="settings-card">
+    <ion-card-header>
+      <ion-card-title>Store Settings</ion-card-title>
+      <ion-card-subtitle>Manage your store profile and information</ion-card-subtitle>
+    </ion-card-header>
+    <ion-card-content>
+      <form #storeForm="ngForm" (ngSubmit)="saveStoreProfile()">
+        
+        <!-- Store Image Upload -->
+        <div class="image-upload-section">
+          <div class="image-preview">
+            <div class="store-avatar-large">
+              <img 
+                *ngIf="imagePreview || storeProfile?.store_image; else avatarFallbackLarge" 
+                [src]="imagePreview || storeProfile?.store_image" 
+                alt="Store Image"
+                class="store-image-large">
+              <ng-template #avatarFallbackLarge>
+                <div class="avatar-fallback-large" [innerHTML]="storeAvatarLarge"></div>
+              </ng-template>
+            </div>
+          </div>
+          
+          <div class="image-actions">
+            <input 
+              type="file" 
+              #fileInput 
+              (change)="onFileSelected($event)" 
+              accept="image/*" 
+              hidden>
+            <ion-button expand="block" fill="outline" (click)="fileInput.click()" size="small">
+              <ion-icon name="camera" slot="start"></ion-icon>
+              {{ storeProfile?.store_image ? 'Change' : 'Upload' }} Store Image
+            </ion-button>
+            
+            <ion-button *ngIf="imagePreview || storeProfile?.store_image" expand="block" fill="clear" color="danger" size="small" (click)="deleteStoreImage()">
+              <ion-icon name="trash" slot="start"></ion-icon>
+              Remove Image
+            </ion-button>
+          </div>
+        </div>
+
+        <!-- Store Information from all_users (Read-only) -->
+        <ion-card>
+          <ion-card-header>
+            <ion-card-title>Basic Information</ion-card-title>
+            <ion-card-subtitle>From your registration (read-only)</ion-card-subtitle>
+          </ion-card-header>
+          <ion-card-content>
+            <ion-list>
+              <ion-item>
+                <ion-label position="stacked">Store Name</ion-label>
+                <ion-input 
+                  type="text" 
+                  [value]="currentUser?.store_name" 
+                  readonly>
+                </ion-input>
+              </ion-item>
+
+              <ion-item>
+                <ion-label position="stacked">Owner Name</ion-label>
+                <ion-input 
+                  type="text" 
+                  [value]="currentUser?.full_name" 
+                  readonly>
+                </ion-input>
+              </ion-item>
+
+              <ion-item>
+                <ion-label position="stacked">Contact Number</ion-label>
+                <ion-input 
+                  type="tel" 
+                  [value]="currentUser?.phone_number" 
+                  readonly>
+                </ion-input>
+              </ion-item>
+
+              <ion-item>
+                <ion-label position="stacked">Email</ion-label>
+                <ion-input 
+                  type="email" 
+                  [value]="currentUser?.email" 
+                  readonly>
+                </ion-input>
+              </ion-item>
+            </ion-list>
+          </ion-card-content>
+        </ion-card>
+
+        <!-- Additional Store Information (Editable) -->
+        <ion-card>
+          <ion-card-header>
+            <ion-card-title>Store Details</ion-card-title>
+            <ion-card-subtitle>Additional store information</ion-card-subtitle>
+          </ion-card-header>
+          <ion-card-content>
+            <ion-list>
+              <ion-item>
+                <ion-label position="stacked">Store Description</ion-label>
+                <ion-textarea 
+                  [(ngModel)]="storeData.store_description" 
+                  name="storeDescription" 
+                  rows="3"
+                  placeholder="Describe your store, products, and services...">
+                </ion-textarea>
+              </ion-item>
+
+              <ion-item>
+                <ion-label position="stacked">Store Address</ion-label>
+                <ion-textarea 
+                  [(ngModel)]="storeData.store_address" 
+                  name="storeAddress" 
+                  rows="2"
+                  placeholder="Specific store location (if different from registered address)">
+                </ion-textarea>
+              </ion-item>
+
+              <ion-item>
+                <ion-label position="stacked">Business Permit Number</ion-label>
+                <ion-input 
+                  type="text" 
+                  [(ngModel)]="storeData.business_permit_number" 
+                  name="businessPermit"
+                  placeholder="Enter business permit number">
+                </ion-input>
+              </ion-item>
+            </ion-list>
+          </ion-card-content>
+        </ion-card>
+
+        <!-- Operating Hours -->
+        <ion-card>
+          <ion-card-header>
+            <ion-card-title>Operating Hours</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <ion-grid>
+              <ion-row>
+                <ion-col size="6">
+                  <ion-item>
+                    <ion-label position="stacked">Open Time</ion-label>
+                    <ion-input 
+                      type="time" 
+                      [(ngModel)]="storeData.operating_hours.open" 
+                      name="openTime">
+                    </ion-input>
+                  </ion-item>
+                </ion-col>
+                <ion-col size="6">
+                  <ion-item>
+                    <ion-label position="stacked">Close Time</ion-label>
+                    <ion-input 
+                      type="time" 
+                      [(ngModel)]="storeData.operating_hours.close" 
+                      name="closeTime">
+                    </ion-input>
+                  </ion-item>
+                </ion-col>
+              </ion-row>
+            </ion-grid>
+          </ion-card-content>
+        </ion-card>
+
+        <!-- Social Media -->
+        <ion-card>
+          <ion-card-header>
+            <ion-card-title>Social Media</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <ion-list>
+              <ion-item>
+                <ion-label position="stacked">Facebook Page</ion-label>
+                <ion-input 
+                  type="url" 
+                  [(ngModel)]="storeData.social_media.facebook" 
+                  name="facebook"
+                  placeholder="https://facebook.com/yourpage">
+                </ion-input>
+              </ion-item>
+
+              <ion-item>
+                <ion-label position="stacked">Instagram</ion-label>
+                <ion-input 
+                  type="url" 
+                  [(ngModel)]="storeData.social_media.instagram" 
+                  name="instagram"
+                  placeholder="https://instagram.com/yourstore">
+                </ion-input>
+              </ion-item>
+
+              <ion-item>
+                <ion-label position="stacked">Website</ion-label>
+                <ion-input 
+                  type="url" 
+                  [(ngModel)]="storeData.social_media.website" 
+                  name="website"
+                  placeholder="https://yourstore.com">
+                </ion-input>
+              </ion-item>
+            </ion-list>
+          </ion-card-content>
+        </ion-card>
+
+        <!-- Save Button -->
+        <ion-button 
+          expand="block" 
+          type="submit" 
+          class="save-btn">
+          <ion-icon name="save" slot="start"></ion-icon>
+          Save Store Profile
+        </ion-button>
+
+        <ion-button 
+          expand="block" 
+          fill="outline" 
+          color="medium" 
+          (click)="toggleSettings()"
+          class="cancel-btn">
+          <ion-icon name="close" slot="start"></ion-icon>
+          Cancel
+        </ion-button>
+
+      </form>
+    </ion-card-content>
+  </ion-card>
+
+  <!-- Simple Dashboard Content (Hidden when settings are open) -->
+  <div *ngIf="!showSettings" class="simple-dashboard">
+    <ion-card>
+      <ion-card-header>
+        <ion-card-title>Getting Started</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <p>Welcome to your store dashboard! Here's what you can do:</p>
+        <ion-list lines="none">
+          <ion-item>
+            <ion-icon name="cube" slot="start" color="primary"></ion-icon>
+            <ion-label>
+              <h3>Manage Inventory</h3>
+              <p>Add and manage your products</p>
+            </ion-label>
+          </ion-item>
+          <ion-item>
+            <ion-icon name="cart" slot="start" color="primary"></ion-icon>
+            <ion-label>
+              <h3>Point of Sale</h3>
+              <p>Process customer transactions</p>
+            </ion-label>
+          </ion-item>
+          <ion-item>
+            <ion-icon name="people" slot="start" color="primary"></ion-icon>
+            <ion-label>
+              <h3>Manage Employees</h3>
+              <p>Add staff to help manage your store</p>
+            </ion-label>
+          </ion-item>
+        </ion-list>
+        
+        <!-- Logout Button at Bottom -->
+        <ion-button 
+          expand="block" 
+          fill="outline" 
+          color="medium" 
+          (click)="logout()"
+          class="logout-btn">
+          <ion-icon name="log-out" slot="start"></ion-icon>
+          Logout
+        </ion-button>
+      </ion-card-content>
+    </ion-card>
+  </div>
 </ion-content>

@@ -1,0 +1,94 @@
+.transaction-header {
+  text-align: center;
+  margin-bottom: 24px;
+  padding: 16px;
+  background: var(--ion-color-light);
+  border-radius: 12px;
+
+  .type-badge {
+    margin-bottom: 12px;
+    font-size: 0.8em;
+    padding: 6px 12px;
+  }
+
+  h2 {
+    margin: 8px 0;
+    font-size: 1.3em;
+    font-weight: 600;
+    color: var(--ion-color-dark);
+  }
+
+  .transaction-date {
+    margin: 0;
+    font-size: 0.9em;
+    color: var(--ion-color-medium);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+  }
+}
+
+.amount {
+  font-size: 1.2em;
+  font-weight: 700;
+  color: var(--ion-color-success);
+}
+
+.balance {
+  font-size: 1.1em;
+  font-weight: 600;
+  color: var(--ion-color-warning);
+}
+
+.stock-change {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+
+  .previous-stock {
+    color: var(--ion-color-medium);
+  }
+
+  .new-stock {
+    color: var(--ion-color-primary);
+  }
+
+  ion-icon {
+    font-size: 18px;
+  }
+}
+
+ion-list {
+  background: transparent;
+
+  ion-item {
+    --background: transparent;
+    --padding-start: 0;
+    --inner-padding-end: 0;
+    margin-bottom: 8px;
+
+    h3 {
+      font-size: 0.9em;
+      font-weight: 600;
+      color: var(--ion-color-medium);
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    p {
+      margin: 0;
+      font-size: 1em;
+      color: var(--ion-color-dark);
+    }
+  }
+}
+
+// Dark mode support
+@media (prefers-color-scheme: dark) {
+  .transaction-header {
+    background: var(--ion-color-dark);
+  }
+}

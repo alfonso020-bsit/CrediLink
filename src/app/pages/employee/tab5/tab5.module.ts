@@ -7,6 +7,7 @@ import { IonicModule } from '@ionic/angular';
 import { Tab5PageRoutingModule } from './tab5-routing.module';
 
 import { Tab5Page } from './tab5.page';
+import { TransactionDetailsModal } from './transaction-details-modal.component';
 
 @NgModule({
   imports: [
@@ -15,6 +16,9 @@ import { Tab5Page } from './tab5.page';
     IonicModule,
     Tab5PageRoutingModule
   ],
-  declarations: [Tab5Page]
+  declarations: [
+    Tab5Page, // ← ADD THIS LINE
+    TransactionDetailsModal 
+  ]
 })
 export class Tab5PageModule {}
