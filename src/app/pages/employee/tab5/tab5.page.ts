@@ -6,6 +6,7 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { TransactionDetailsModal } from './transaction-details-modal.component';
 import { ModalController } from '@ionic/angular';
+import autoTable from 'jspdf-autotable';
 
 export interface ReportFilter {
   startDate: string;
@@ -46,6 +47,12 @@ export interface TransactionReport {
   previousStock?: number;
   newStock?: number;
   reason?: string;
+  
+  // NEW: Payment tracking for debt transactions
+  payments?: any[];
+  userPayments?: any[];
+  isCreatedByCurrentUser?: boolean;
+  hasRecordedPayments?: boolean;
 }
 
 @Component({
@@ -103,25 +110,78 @@ currentFilter: ReportFilter = {
   async ngOnInit() {
     await this.loadInitialData();
   }
+  // Add this helper method
+getCurrentUserName(): string {
+  const currentUser = this.authService.getCurrentUser();
+  return currentUser?.full_name || 'Current User';
+}
 
-  async loadInitialData() {
-    const loading = await this.loadingController.create({
-      message: 'Loading report data...'
-    });
-    await loading.present();
+async loadInitialData() {
+  const loading = await this.loadingController.create({
+    message: 'Loading report data...'
+  });
+  await loading.present();
 
-    try {
-      await Promise.all([
-        this.loadEmployees(),
-        this.generateReport()
-      ]);
-    } catch (error) {
-      console.error('Error loading initial data:', error);
-      this.showToast('Error loading report data', 'danger');
-    } finally {
-      await loading.dismiss();
-    }
+  try {
+    // Load employees FIRST
+    await this.loadEmployees();
+    console.log('✅ Employees loaded:', this.employees);
+    
+    // Then generate report
+    await this.generateReport();
+  } catch (error) {
+    console.error('Error loading initial data:', error);
+    this.showToast('Error loading report data', 'danger');
+  } finally {
+    await loading.dismiss();
   }
+}
+
+private async loadEmployeeName(employeeId: string): Promise<string> {
+  if (!employeeId) return 'Unknown Employee';
+  
+  try {
+    const currentUser = this.authService.getCurrentUser();
+    const storeOwnerId = currentUser?.store_owner_id || currentUser?.id;
+    
+    if (!storeOwnerId) return 'Unknown Employee';
+
+    // Try to get employee from local cache first
+    const cachedEmployee = this.employees.find(emp => emp.id === employeeId);
+    if (cachedEmployee) {
+      return cachedEmployee.full_name;
+    }
+
+    // If not found in cache, query Firestore directly
+    const usersRef = collection(this.firestore, 'users');
+    const q = query(
+      usersRef,
+      where('store_owner_id', '==', storeOwnerId),
+      where('id', '==', employeeId)
+    );
+    
+    const querySnapshot = await getDocs(q);
+    if (!querySnapshot.empty) {
+      const employeeData = querySnapshot.docs[0].data();
+      const employeeName = employeeData['full_name'] || 'Unknown Employee';
+      
+      // Cache this employee for future use
+      if (!this.employees.some(emp => emp.id === employeeId)) {
+        this.employees.push({
+          id: employeeId,
+          full_name: employeeName
+        });
+      }
+      
+      return employeeName;
+    }
+  } catch (error) {
+    console.error('Error loading employee name:', error);
+  }
+  
+  return 'Unknown Employee';
+}
+
  // NEW: Get default start date (1 year ago to show more data)
 private getDefaultStartDate(): string {
   const date = new Date();
@@ -171,7 +231,149 @@ private getDefaultEndDate(): string {
     }
   }
 
-  async generateReport() {
+//   async generateReport() {
+//   this.isLoading = true;
+  
+//   try {
+//     await Promise.all([
+//       this.loadCashTransactions(),
+//       this.loadDebtTransactions(),
+//       this.loadStockTransactions()
+//     ]);
+
+//     this.combineTransactions();
+//     this.calculateSummary();
+    
+//   } catch (error) {
+//     console.error('Error generating report:', error);
+//     this.showToast('Error generating report', 'danger');
+//   } finally {
+//     this.isLoading = false;
+//   }
+// }
+
+async loadCashTransactions() {
+  try {
+    const currentUser = this.authService.getCurrentUser();
+    const storeOwnerId = currentUser?.store_owner_id || currentUser?.id;
+    
+    if (!storeOwnerId) return;
+
+    const cashProductsRef = collection(this.firestore, 'cash_products');
+    
+    let q = query(
+      cashProductsRef,
+      where('store_owner_id', '==', storeOwnerId)
+    );
+
+    const querySnapshot = await getDocs(q);
+    
+    const allCashTransactions = await Promise.all(
+      querySnapshot.docs.map(async (doc) => {
+        const data = doc.data();
+        const transactionDate = data['created_at']?.toDate ? data['created_at'].toDate() : new Date(data['created_at']);
+        
+        const totalAmount = this.cleanAndParseNumber(data['total']);
+        
+        // Get employee information
+        const transactionEmployeeId = data['employee_id'] || '';
+        const transactionEmployeeName = await this.loadEmployeeName(transactionEmployeeId);
+        
+        const isCreatedByCurrentUser = transactionEmployeeId === currentUser?.id;
+        
+        console.log('💰 Cash Transaction Employee Info:', {
+          docId: doc.id,
+          employeeId: transactionEmployeeId,
+          employeeName: transactionEmployeeName,
+          foundInEmployees: !!this.employees.find(emp => emp.id === transactionEmployeeId)
+        });
+
+        const transaction: TransactionReport = {
+          id: data['id'] || doc.id,
+          firestoreId: doc.id,
+          type: 'cash',
+          date: transactionDate,
+          customerName: data['customerName'] || 'Walk-in Customer',
+          totalAmount: totalAmount,
+          status: 'completed',
+          paymentStatus: 'paid',
+          employeeName: transactionEmployeeName,
+          employeeId: transactionEmployeeId,
+          itemsCount: data['items']?.length || 0,
+          details: data,
+          isCreatedByCurrentUser: isCreatedByCurrentUser,
+          displayType: 'Cash Sale',
+          displayAmount: `PHP ${totalAmount.toFixed(2)}`,
+          displayStatus: this.getStatusBadge('completed', 'paid')
+        };
+        
+        return transaction;
+      })
+    );
+
+    // Apply employee filter
+    this.cashTransactions = allCashTransactions.filter(transaction => {
+      switch (this.currentFilter.employeeId) {
+        case 'current':
+          return transaction.isCreatedByCurrentUser;
+        case 'all':
+          return true;
+        default:
+          return transaction.employeeId === this.currentFilter.employeeId;
+      }
+    });
+
+    this.cashTransactions.sort((a, b) => b.date.getTime() - a.date.getTime());
+    console.log(`✅ Loaded ${this.cashTransactions.length} cash transactions`);
+
+  } catch (error) {
+    console.error('Error loading cash transactions:', error);
+    this.cashTransactions = [];
+  }
+}
+
+// Add this debug method to check employee data
+private debugEmployeeData() {
+  console.log('🔍 DEBUG: Checking employee data');
+  
+  const currentUser = this.authService.getCurrentUser();
+  console.log('Current User:', {
+    id: currentUser?.id,
+    name: currentUser?.full_name,
+    storeOwnerId: currentUser?.store_owner_id
+  });
+
+  // Check debt transactions
+  if (this.debtTransactions.length > 0) {
+    console.log('Debt Transactions Employee Data:');
+    this.debtTransactions.slice(0, 3).forEach((tx, index) => {
+      console.log(`Debt ${index + 1}:`, {
+        id: tx.id,
+        employeeId: tx.employeeId,
+        employeeName: tx.employeeName,
+        detailsEmployeeName: tx.details?.['employee_name'],
+        detailsEmployeeId: tx.details?.['employee_id']
+      });
+    });
+  }
+
+  // Check cash transactions
+  if (this.cashTransactions.length > 0) {
+    console.log('Cash Transactions Employee Data:');
+    this.cashTransactions.slice(0, 3).forEach((tx, index) => {
+      console.log(`Cash ${index + 1}:`, {
+        id: tx.id,
+        employeeId: tx.employeeId,
+        employeeName: tx.employeeName,
+        detailsEmployeeName: tx.details?.['employee_name'],
+        detailsEmployeeId: tx.details?.['employee_id']
+      });
+    });
+  }
+}
+
+// Call this in your generateReport method
+async generateReport() {
   this.isLoading = true;
   
   try {
@@ -184,68 +386,14 @@ private getDefaultEndDate(): string {
     this.combineTransactions();
     this.calculateSummary();
     
+    // DEBUG: Check employee data
+    this.debugEmployeeData();
+    
   } catch (error) {
     console.error('Error generating report:', error);
     this.showToast('Error generating report', 'danger');
   } finally {
     this.isLoading = false;
-  }
-}
-
- async loadCashTransactions() {
-  try {
-    const currentUser = this.authService.getCurrentUser();
-    const storeOwnerId = currentUser?.store_owner_id || currentUser?.id;
-    
-    if (!storeOwnerId) return;
-
-    const cashProductsRef = collection(this.firestore, 'cash_products');
-    let q = query(
-      cashProductsRef,
-      where('store_owner_id', '==', storeOwnerId)
-    );
-
-    // Apply employee filter only
-    if (this.currentFilter.employeeId === 'current') {
-      q = query(q, where('employee_id', '==', currentUser.id));
-    } else if (this.currentFilter.employeeId !== 'all') {
-      q = query(q, where('employee_id', '==', this.currentFilter.employeeId));
-    }
-
-    const querySnapshot = await getDocs(q);
-    
-    this.cashTransactions = querySnapshot.docs
-      .map(doc => {
-        const data = doc.data();
-        const transactionDate = data['created_at']?.toDate ? data['created_at'].toDate() : new Date(data['created_at']);
-        
-        const transaction: TransactionReport = {
-          id: data['id'] || doc.id,
-          firestoreId: doc.id,
-          type: 'cash',
-          date: transactionDate,
-          customerName: data['customerName'] || 'Walk-in Customer',
-          totalAmount: data['total'] || 0,
-          status: 'completed',
-          paymentStatus: 'paid',
-          employeeName: data['employee_name'] || currentUser?.full_name || 'Employee',
-          employeeId: data['employee_id'],
-          itemsCount: data['items']?.length || 0,
-          details: data
-        };
-        
-        // Add display properties
-        transaction.displayType = 'Cash Sale';
-        transaction.displayAmount = `₱${transaction.totalAmount.toFixed(2)}`;
-        transaction.displayStatus = this.getStatusBadge(transaction.status, transaction.paymentStatus);
-        
-        return transaction;
-      })
-      .sort((a, b) => b.date.getTime() - a.date.getTime()); // Remove date filtering
-
-  } catch (error) {
-    console.error('Error loading cash transactions:', error);
-    this.cashTransactions = [];
   }
 }
 
@@ -257,61 +405,275 @@ async loadDebtTransactions() {
     if (!storeOwnerId) return;
 
     const debtProductsRef = collection(this.firestore, 'debt_products');
+    
+    // First, load ALL debt transactions for the store owner
     let q = query(
       debtProductsRef,
       where('store_owner_id', '==', storeOwnerId)
     );
 
-    // Apply employee filter only
-    if (this.currentFilter.employeeId === 'current') {
-      q = query(q, where('employee_id', '==', currentUser.id));
-    } else if (this.currentFilter.employeeId !== 'all') {
-      q = query(q, where('employee_id', '==', this.currentFilter.employeeId));
-    }
-
     const querySnapshot = await getDocs(q);
     
-    this.debtTransactions = querySnapshot.docs
-      .map(doc => {
-        const data = doc.data();
-        const transactionDate = data['created_at']?.toDate ? data['created_at'].toDate() : new Date(data['created_at']);
-        
-        // Handle undefined values with defaults
-        const remainingBalance = data['remainingBalance'] || data['total'] || 0;
-        const initialPayment = data['initialPayment'] || 0;
-        
-        const transaction: TransactionReport = {
-          id: data['id'] || doc.id,
-          firestoreId: doc.id,
-          type: 'debt',
-          date: transactionDate,
-          customerName: data['customerName'] || 'Unknown Customer',
-          totalAmount: data['total'] || 0,
-          status: data['status'] || 'pending',
-          paymentStatus: data['payment_status'] || 'unpaid',
-          employeeName: data['employee_name'] || currentUser?.full_name || 'Employee',
-          employeeId: data['employee_id'],
-          itemsCount: data['items']?.length || 0,
-          remainingBalance: remainingBalance,
-          initialPayment: initialPayment,
-          dueDate: data['dueDate'],
-          details: data
-        };
-        
-        // Add display properties
-        transaction.displayType = 'Debt Sale';
-        transaction.displayAmount = `₱${transaction.totalAmount.toFixed(2)}`;
-        transaction.displayStatus = this.getStatusBadge(transaction.status, transaction.paymentStatus);
-        transaction.displayBalance = `₱${remainingBalance.toFixed(2)}`;
-        
-        return transaction;
-      })
-      .sort((a, b) => b.date.getTime() - a.date.getTime()); // Remove date filtering
+    // Process all debt transactions and filter based on employee involvement
+    const allDebtTransactions = querySnapshot.docs.map(doc => {
+      const data = doc.data();
+      const transactionDate = data['created_at']?.toDate ? data['created_at'].toDate() : new Date(data['created_at']);
+      
+      // Clean numeric fields
+      const totalAmount = this.cleanAndParseNumber(data['total']);
+      const remainingBalance = this.cleanAndParseNumber(data['remainingBalance'] || data['total'] || 0);
+      const initialPayment = this.cleanAndParseNumber(data['initialPayment'] || 0);
+      
+      // Get payments array
+      const payments = data['payments'] || [];
+      
+      // Get employee information - try multiple fields
+      const transactionEmployeeId = data['employee_id'] || data['user_id'] || data['employeeId'] || '';
+      const transactionEmployeeName = this.getEmployeeNameFromData(data, currentUser);
+      
+      // Check if current user recorded any payments
+      const userPayments = payments.filter((payment: any) => 
+        payment.paid_by === currentUser?.full_name
+      );
+      
+      const isCreatedByCurrentUser = transactionEmployeeId === currentUser?.id;
+      const hasRecordedPayments = userPayments.length > 0;
+      const isInvolved = isCreatedByCurrentUser || hasRecordedPayments;
+      
+      console.log('💳 Debt Transaction Employee Info:', {
+        docId: doc.id,
+        customer: data['customerName'],
+        employeeId: transactionEmployeeId,
+        employeeName: transactionEmployeeName,
+        dataFields: {
+          employee_id: data['employee_id'],
+          employee_name: data['employee_name'],
+          user_id: data['user_id'],
+          user_name: data['user_name']
+        }
+      });
+
+      // Create the transaction object with ALL properties
+      const transaction: TransactionReport = {
+        id: data['id'] || doc.id,
+        firestoreId: doc.id,
+        type: 'debt',
+        date: transactionDate,
+        customerName: data['customerName'] || 'Unknown Customer',
+        totalAmount: totalAmount,
+        status: data['status'] || 'pending',
+        paymentStatus: data['payment_status'] || 'unpaid',
+        employeeName: transactionEmployeeName,
+        employeeId: transactionEmployeeId,
+        itemsCount: data['items']?.length || 0,
+        remainingBalance: remainingBalance,
+        initialPayment: initialPayment,
+        dueDate: data['dueDate'],
+        details: data,
+        // Add payment information
+        payments: payments,
+        userPayments: userPayments,
+        isCreatedByCurrentUser: isCreatedByCurrentUser,
+        hasRecordedPayments: hasRecordedPayments,
+        // Display properties
+        displayType: 'Debt Sale',
+        displayAmount: `PHP ${totalAmount.toFixed(2)}`,
+        displayStatus: this.getStatusBadge(data['status'] || 'pending', data['payment_status'] || 'unpaid'),
+        displayBalance: `PHP ${remainingBalance.toFixed(2)}`
+      };
+      
+      return transaction;
+    });
+
+    // Apply employee filter after loading all transactions
+    this.debtTransactions = allDebtTransactions.filter(transaction => {
+      const currentUser = this.authService.getCurrentUser();
+      
+      switch (this.currentFilter.employeeId) {
+        case 'current':
+          // Show transactions where current user is involved (created OR recorded payments)
+          return transaction.isCreatedByCurrentUser || transaction.hasRecordedPayments;
+          
+        case 'all':
+          // Show all transactions
+          return true;
+          
+        default:
+          // Show transactions for specific employee
+          if (this.currentFilter.employeeId === transaction.employeeId) {
+            return true;
+          }
+          // Also include if specific employee recorded payments (optional)
+          const hasEmployeePayments = transaction.payments?.some((payment: any) => 
+            payment.paid_by === this.getEmployeeNameById(this.currentFilter.employeeId)
+          );
+          return hasEmployeePayments;
+      }
+    });
+
+    // Sort by date
+    this.debtTransactions.sort((a, b) => b.date.getTime() - a.date.getTime());
+
+    console.log(`✅ Loaded ${this.debtTransactions.length} debt transactions`);
+    console.log(`📊 Employee Names:`, this.debtTransactions.map(t => ({
+      customer: t.customerName,
+      employeeName: t.employeeName,
+      employeeId: t.employeeId
+    })));
 
   } catch (error) {
     console.error('Error loading debt transactions:', error);
     this.debtTransactions = [];
   }
+}
+
+private getEmployeeNameFromData(data: any, currentUser: any): string {
+  console.log('🔍 getEmployeeNameFromData - Data fields:', {
+    employee_id: data['employee_id'],
+    availableFields: Object.keys(data).filter(key => 
+      key.includes('employee') || key.includes('user') || key.includes('name')
+    )
+  });
+
+  // Method 1: Try to find employee name from employees array using employee_id
+  const employeeId = data['employee_id'];
+  if (employeeId) {
+    const employee = this.employees.find(emp => emp.id === employeeId);
+    if (employee) {
+      console.log('✅ Found employee from employees array:', employee.full_name);
+      return employee.full_name;
+    }
+    
+    // If employee ID matches current user, use current user's name
+    if (employeeId === currentUser?.id) {
+      console.log('✅ Employee ID matches current user');
+      return currentUser.full_name || 'Current Employee';
+    }
+  }
+
+  // Method 2: Check if this transaction was created by current user
+  if (data['store_owner_id'] === currentUser?.store_owner_id) {
+    // For transactions without explicit employee info, check if current user might be involved
+    const currentUserId = currentUser?.id;
+    
+    // If we have payments, check if current user recorded any payments
+    if (data['payments'] && Array.isArray(data['payments'])) {
+      const userPayments = data['payments'].filter((payment: any) => 
+        payment.paid_by === currentUser?.full_name
+      );
+      if (userPayments.length > 0) {
+        console.log('✅ Current user recorded payments for this transaction');
+        return currentUser.full_name || 'Current Employee';
+      }
+    }
+    
+    // If transaction has no specific employee but belongs to current user's store
+    // and we can't determine otherwise, assume it's the current user
+    console.log('⚠️ No specific employee data, assuming current user');
+    return currentUser.full_name || 'Current Employee';
+  }
+
+  // Final fallback
+  console.log('❌ Could not determine employee name, using fallback');
+  return 'Unknown Employee';
+}
+
+// Add helper method to get employee name by ID
+private getEmployeeNameById(employeeId: string): string {
+  if (employeeId === 'current') {
+    const currentUser = this.authService.getCurrentUser();
+    return currentUser?.full_name || '';
+  }
+  
+  const employee = this.employees.find(emp => emp.id === employeeId);
+  return employee?.full_name || '';
+}
+// ADD THIS METHOD: Clean and parse numbers from corrupted data
+private cleanAndParseNumber(value: any): number {
+  console.log('🔧 cleanAndParseNumber input:', value, 'Type:', typeof value);
+  
+  if (value === null || value === undefined) {
+    return 0;
+  }
+  
+  // If it's already a clean number, return it
+  if (typeof value === 'number' && !isNaN(value)) {
+    return value;
+  }
+  
+  const valueStr = value.toString().trim();
+  console.log('🔧 String value:', valueStr);
+  
+  // Handle the corrupted format: "±4 7 5 . 0 0" or "±&4&7&5&.&0&0"
+  if (valueStr.includes('±') || valueStr.includes('&') || /\d\s+\d/.test(valueStr)) {
+    console.log('🔄 Detected corrupted format, cleaning...');
+    
+    // Remove all special characters, spaces, and & symbols
+    let cleanedValue = valueStr
+      .replace(/[±₱&]/g, '')  // Remove special symbols
+      .replace(/\s/g, '')     // Remove all spaces
+      .replace(/[^\d.]/g, ''); // Remove any other non-numeric except decimal
+    
+    console.log('🔧 After cleaning:', cleanedValue);
+    
+    // Parse the cleaned number
+    if (cleanedValue) {
+      const numValue = parseFloat(cleanedValue);
+      if (!isNaN(numValue)) {
+        console.log('✅ Successfully parsed:', numValue);
+        return numValue;
+      }
+    }
+  }
+  
+  // For normal string numbers
+  if (typeof value === 'string') {
+    const cleaned = value.replace(/[^\d.]/g, '');
+    const numValue = parseFloat(cleaned);
+    const result = isNaN(numValue) ? 0 : numValue;
+    console.log('✅ Normal string conversion:', result);
+    return result;
+  }
+  
+  console.log('❌ Could not parse, returning 0');
+  return 0;
+}
+
+// ADD THIS DEBUG METHOD to check your data before PDF generation
+private debugDataBeforePDF(): void {
+  console.log('=== DATA DEBUG BEFORE PDF ===');
+  
+  // Check summary data
+  console.log('Report Summary:', {
+    totalCashAmount: this.reportSummary.totalCashAmount,
+    totalDebtAmount: this.reportSummary.totalDebtAmount,
+    types: {
+      cash: typeof this.reportSummary.totalCashAmount,
+      debt: typeof this.reportSummary.totalDebtAmount
+    }
+  });
+  
+  // Check first few transactions
+  if (this.cashTransactions.length > 0) {
+    console.log('First Cash Transaction:', {
+      totalAmount: this.cashTransactions[0].totalAmount,
+      displayAmount: this.cashTransactions[0].displayAmount
+    });
+  }
+  
+  if (this.debtTransactions.length > 0) {
+    console.log('First Debt Transaction:', {
+      totalAmount: this.debtTransactions[0].totalAmount,
+      remainingBalance: this.debtTransactions[0].remainingBalance,
+      initialPayment: this.debtTransactions[0].initialPayment
+    });
+  }
+  
+  // Test the cleanAndParseNumber function
+  const testCases = ['±4 7 5 . 0 0', '±&4&7&5&.&0&0', '±1 9 9 . 0 0', '175.00'];
+  testCases.forEach(test => {
+    console.log(`Test "${test}":`, this.cleanAndParseNumber(test));
+  });
 }
 
 async loadStockTransactions() {
@@ -440,32 +802,43 @@ async loadStockTransactions() {
   // Sort by date (newest first)
   this.combinedReport.sort((a, b) => b.date.getTime() - a.date.getTime());
 }
-  // UPDATED: Enhanced summary calculation with stock metrics
-  calculateSummary() {
-    const stockIn = this.stockTransactions.filter(tx => 
-      tx.details?.change_type === 'increase' || tx.details?.type === 'stock_in'
-    ).length;
-    
-    const stockOut = this.stockTransactions.filter(tx => 
-      tx.details?.change_type === 'decrease' || tx.details?.type === 'stock_out'
-    ).length;
+// UPDATED: Summary calculation with clean numbers
+calculateSummary() {
+  const stockIn = this.stockTransactions.filter(tx => 
+    tx.details?.change_type === 'increase' || tx.details?.type === 'stock_in'
+  ).length;
+  
+  const stockOut = this.stockTransactions.filter(tx => 
+    tx.details?.change_type === 'decrease' || tx.details?.type === 'stock_out'
+  ).length;
 
-    this.reportSummary = {
-      totalTransactions: this.combinedReport.length,
-      totalCashAmount: this.cashTransactions.reduce((sum, tx) => sum + tx.totalAmount, 0),
-      totalDebtAmount: this.debtTransactions.reduce((sum, tx) => sum + tx.totalAmount, 0),
-      totalStockTransactions: this.stockTransactions.length,
-      stockAdjustments: this.stockTransactions.length,
-      stockIn: stockIn,
-      stockOut: stockOut,
-      completedTransactions: this.combinedReport.filter(tx => 
-        tx.status === 'completed' || tx.paymentStatus === 'paid'
-      ).length,
-      pendingTransactions: this.combinedReport.filter(tx => 
-        tx.status === 'pending' || tx.paymentStatus === 'partially_paid' || tx.paymentStatus === 'unpaid'
-      ).length
-    };
-  }
+  // Ensure we're using clean numbers for calculations
+  const totalCashAmount = this.cashTransactions.reduce((sum, tx) => {
+    const cleanAmount = this.cleanAndParseNumber(tx.totalAmount);
+    return sum + cleanAmount;
+  }, 0);
+
+  const totalDebtAmount = this.debtTransactions.reduce((sum, tx) => {
+    const cleanAmount = this.cleanAndParseNumber(tx.totalAmount);
+    return sum + cleanAmount;
+  }, 0);
+
+  this.reportSummary = {
+    totalTransactions: this.combinedReport.length,
+    totalCashAmount: totalCashAmount,
+    totalDebtAmount: totalDebtAmount,
+    totalStockTransactions: this.stockTransactions.length,
+    stockAdjustments: this.stockTransactions.length,
+    stockIn: stockIn,
+    stockOut: stockOut,
+    completedTransactions: this.combinedReport.filter(tx => 
+      tx.status === 'completed' || tx.paymentStatus === 'paid'
+    ).length,
+    pendingTransactions: this.combinedReport.filter(tx => 
+      tx.status === 'pending' || tx.paymentStatus === 'partially_paid' || tx.paymentStatus === 'unpaid'
+    ).length
+  };
+}
 
   // NEW: Helper method for stock action display
   getStockActionDisplay(type: string, changeType: string): string {
@@ -491,98 +864,55 @@ async loadStockTransactions() {
     return `${action}: ${quantity} ${productName}`;
   }
 
-  // // UPDATED: Enhanced transaction details for stock transactions
-  // getTransactionDetailsMessage(transaction: TransactionReport): string {
-  //   let message = '';
-
-  //   // Basic transaction info
-  //   message += `<div class="detail-item"><strong>Type:</strong> ${transaction.displayType || transaction.type}</div>`;
-  //   message += `<div class="detail-item"><strong>Date:</strong> ${this.formatDate(transaction.date)}</div>`;
-  //   message += `<div class="detail-item"><strong>Employee:</strong> ${transaction.employeeName}</div>`;
-  //   message += `<div class="detail-item"><strong>Status:</strong> ${transaction.displayStatus || transaction.status}</div>`;
-
-  //   if (transaction.type === 'cash' || transaction.type === 'debt') {
-  //     message += `<div class="detail-item"><strong>Customer:</strong> ${transaction.customerName}</div>`;
-  //     message += `<div class="detail-item"><strong>Amount:</strong> ${transaction.displayAmount || `₱${transaction.totalAmount.toFixed(2)}`}</div>`;
-  //     message += `<div class="detail-item"><strong>Items:</strong> ${transaction.itemsCount}</div>`;
-      
-  //     if (transaction.type === 'debt') {
-  //       const remainingBalance = transaction.remainingBalance || 0;
-  //       const initialPayment = transaction.initialPayment || 0;
-        
-  //       message += `<div class="detail-item"><strong>Remaining Balance:</strong> ₱${remainingBalance.toFixed(2)}</div>`;
-  //       message += `<div class="detail-item"><strong>Initial Payment:</strong> ₱${initialPayment.toFixed(2)}</div>`;
-        
-  //       if (transaction.dueDate) {
-  //         const dueDate = transaction.dueDate.toDate ? transaction.dueDate.toDate() : new Date(transaction.dueDate);
-  //         message += `<div class="detail-item"><strong>Due Date:</strong> ${dueDate.toLocaleDateString()}</div>`;
-  //       }
-  //     }
-  //   } else if (transaction.type === 'stock') {
-  //     message += `<div class="detail-item"><strong>Product:</strong> ${transaction.productName}</div>`;
-  //     message += `<div class="detail-item"><strong>Action:</strong> ${transaction.stockAction}</div>`;
-  //     message += `<div class="detail-item"><strong>Quantity:</strong> ${transaction.quantity} units</div>`;
-      
-  //     if (transaction.reason) {
-  //       message += `<div class="detail-item"><strong>Reason:</strong> ${transaction.reason}</div>`;
-  //     }
-      
-  //     if (transaction.previousStock !== undefined && transaction.newStock !== undefined) {
-  //       message += `<div class="detail-item"><strong>Stock Change:</strong> ${transaction.previousStock} → ${transaction.newStock}</div>`;
-  //     }
-  //   }
-
-  //   return message;
-  // }
-
-  // UPDATED: Enhanced export methods to include stock details
   async exportToCSV() {
-    try {
-      const headers = ['Date', 'Type', 'Customer/Product', 'Amount/Details', 'Status', 'Employee', 'Items/Quantity', 'Additional Info'];
-      const csvData = this.combinedReport.map(tx => {
-        let additionalInfo = '';
-        
-        if (tx.type === 'debt' && tx.remainingBalance) {
-          additionalInfo = `Balance: ₱${tx.remainingBalance.toFixed(2)}`;
-        } else if (tx.type === 'stock') {
-          additionalInfo = `${tx.stockAction} | Reason: ${tx.reason}`;
-        }
-        
-        return [
-          this.formatDate(tx.date),
-          tx.displayType || tx.type,
-          tx.customerName,
-          tx.displayAmount || this.getStockTransactionDescription(tx),
-          tx.displayStatus || tx.status,
-          tx.employeeName,
-          tx.type === 'stock' ? `${tx.quantity} units` : `${tx.itemsCount} items`,
-          additionalInfo
-        ];
-      });
+  try {
+    const headers = ['Date', 'Type', 'Customer/Product', 'Amount/Details', 'Status', 'Employee', 'Items/Quantity', 'Additional Info'];
+    const csvData = this.combinedReport.map(tx => {
+      let additionalInfo = '';
+      let amountDisplay = '';
+      
+      if (tx.type === 'debt') {
+        const cleanBalance = this.cleanAndParseNumber(tx.remainingBalance);
+        additionalInfo = `Balance: PHP ${cleanBalance.toFixed(2)}`;
+        amountDisplay = `PHP ${this.cleanAndParseNumber(tx.totalAmount).toFixed(2)}`;
+      } else if (tx.type === 'stock') {
+        additionalInfo = `${tx.stockAction} | Reason: ${tx.reason}`;
+        amountDisplay = this.getStockTransactionDescription(tx);
+      } else {
+        amountDisplay = `PHP ${this.cleanAndParseNumber(tx.totalAmount).toFixed(2)}`;
+      }
+      
+      return [
+        this.formatDate(tx.date),
+        tx.displayType || tx.type,
+        tx.customerName,
+        amountDisplay,
+        tx.displayStatus || tx.status,
+        tx.employeeName,
+        tx.type === 'stock' ? `${tx.quantity} units` : `${tx.itemsCount} items`,
+        additionalInfo
+      ];
+    });
 
-      const csvContent = [headers, ...csvData]
-        .map(row => row.map(field => `"${field}"`).join(','))
-        .join('\n');
+    const csvContent = [headers, ...csvData]
+      .map(row => row.map(field => `"${field}"`).join(','))
+      .join('\n');
 
-      const blob = new Blob([csvContent], { type: 'text/csv' });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `employee-report-${new Date().toISOString().split('T')[0]}.csv`;
-      link.click();
-      window.URL.revokeObjectURL(url);
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `employee-report-${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    window.URL.revokeObjectURL(url);
 
-      this.showToast('CSV report downloaded successfully', 'success');
-    } catch (error) {
-      console.error('Error generating CSV:', error);
-      this.showToast('Error generating CSV report', 'danger');
-    }
+    this.showToast('CSV report downloaded successfully', 'success');
+  } catch (error) {
+    console.error('Error generating CSV:', error);
+    this.showToast('Error generating CSV report', 'danger');
   }
+}
   
-
-  // Keep all other existing methods the same...
-  // [All your existing methods remain unchanged below this point]
-  // Only the methods above have been updated
 
   // Filter helpers
   filterByDate(transactionDate: Date): boolean {
@@ -694,7 +1024,6 @@ openFilterModal() {
     await this.generateReport();
   }
 
-// SIMPLER PDF Version - More reliable
 async exportToPDF() {
   const loading = await this.loadingController.create({
     message: 'Generating PDF report...'
@@ -702,111 +1031,206 @@ async exportToPDF() {
   await loading.present();
 
   try {
-    const pdf = new jsPDF();
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const margin = 20;
-    let yPosition = 20;
+    console.log('=== PDF GENERATION STARTED ===');
+    
+    // IMPORTANT: Call debug before generating PDF
+    this.debugDataBeforePDF();
+    
+    const doc = new jsPDF();
+    const currentUser = this.authService.getCurrentUser();
+    const employeeName = currentUser?.full_name || 'Unknown Employee';
+    const currentDate = new Date().toLocaleDateString('en-PH');
+    const currentTime = new Date().toLocaleTimeString();
 
-    // Title
-    pdf.setFontSize(16);
-    pdf.text('Employee Transaction Report', pageWidth / 2, yPosition, { align: 'center' });
-    yPosition += 15;
+    // Title Section
+    doc.setFontSize(20);
+    doc.setTextColor(41, 128, 185);
+    doc.text('EMPLOYEE TRANSACTION REPORT', 105, 20, { align: 'center' });
+    
+    doc.setFontSize(12);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Generated by: ${employeeName}`, 105, 30, { align: 'center' });
+    doc.text(`Date: ${currentDate} at ${currentTime}`, 105, 36, { align: 'center' });
+    
+    const dateRangeText = `Period: ${this.formatFilterDate(this.currentFilter.startDate)} - ${this.formatFilterDate(this.currentFilter.endDate)}`;
+    doc.text(dateRangeText, 105, 42, { align: 'center' });
 
-    // Date Range
-    pdf.setFontSize(10);
-    const dateRange = `${this.formatFilterDate(this.currentFilter.startDate)} - ${this.formatFilterDate(this.currentFilter.endDate)}`;
-    pdf.text(`Date Range: ${dateRange}`, pageWidth / 2, yPosition, { align: 'center' });
-    yPosition += 20;
+    let finalY = 50;
 
-    // Summary Section
-    pdf.setFontSize(12);
-    pdf.text('Summary', margin, yPosition);
-    yPosition += 10;
+    // ===== SUMMARY SECTION ===== (FIXED: Use cleanAndParseNumber)
+    doc.setFontSize(14);
+    doc.setTextColor(40, 40, 40);
+    doc.text('SUMMARY OVERVIEW', 20, finalY);
+    finalY += 10;
 
-    pdf.setFontSize(10);
-    const summaries = [
-      `Total Transactions: ${this.reportSummary.totalTransactions}`,
-      `Cash Sales Total: ₱${this.reportSummary.totalCashAmount.toFixed(2)}`,
-      `Debt Sales Total: ₱${this.reportSummary.totalDebtAmount.toFixed(2)}`,
-      `Stock Transactions: ${this.reportSummary.totalStockTransactions}`,
-      `Stock In: ${this.reportSummary.stockIn} | Stock Out: ${this.reportSummary.stockOut}`,
-      `Completed: ${this.reportSummary.completedTransactions} | Pending: ${this.reportSummary.pendingTransactions}`
+    const summaryData = [
+      ['Total Transactions', this.reportSummary.totalTransactions.toString()],
+      ['Cash Sales Total', `PHP ${this.cleanAndParseNumber(this.reportSummary.totalCashAmount).toFixed(2)}`],
+      ['Debt Sales Total', `PHP ${this.cleanAndParseNumber(this.reportSummary.totalDebtAmount).toFixed(2)}`],
+      ['Stock Transactions', this.reportSummary.totalStockTransactions.toString()],
+      ['Stock In', this.reportSummary.stockIn.toString()],
+      ['Stock Out', this.reportSummary.stockOut.toString()],
+      ['Completed', this.reportSummary.completedTransactions.toString()],
+      ['Pending', this.reportSummary.pendingTransactions.toString()]
     ];
 
-    summaries.forEach(summary => {
-      if (yPosition > 270) {
-        pdf.addPage();
-        yPosition = 20;
-      }
-      pdf.text(summary, margin, yPosition);
-      yPosition += 7;
+    autoTable(doc, {
+      startY: finalY,
+      head: [['Metric', 'Value']],
+      body: summaryData,
+      theme: 'grid',
+      headStyles: { fillColor: [66, 139, 202] },
+      styles: { fontSize: 11, cellPadding: 3 }
     });
 
-    yPosition += 10;
+    finalY = (doc as any).lastAutoTable.finalY + 15;
 
-    // Transactions Section
-    if (this.combinedReport.length > 0) {
-      pdf.setFontSize(12);
-      pdf.text('Transaction Details', margin, yPosition);
-      yPosition += 10;
+    // ===== CASH SALES SECTION ===== (FIXED: Use cleanAndParseNumber)
+    const cashTransactions = this.combinedReport.filter(tx => tx.type === 'cash');
+    if (cashTransactions.length > 0) {
+      if (finalY > 250) {
+        doc.addPage();
+        finalY = 20;
+      }
 
-      this.combinedReport.forEach((transaction, index) => {
-        if (yPosition > 270) {
-          pdf.addPage();
-          yPosition = 20;
-        }
+      doc.setFontSize(14);
+      doc.setTextColor(34, 139, 34);
+      doc.text(`CASH SALES (${cashTransactions.length})`, 20, finalY);
+      finalY += 10;
 
-        // Transaction Header
-        pdf.setFontSize(10);
-        pdf.setFont('helvetica', 'bold');
-        const header = `${this.formatDateForPDF(transaction.date)} - ${transaction.displayType}`;
-        pdf.text(header, margin, yPosition);
-        pdf.setFont('helvetica', 'normal');
-        yPosition += 7;
+      const cashData = cashTransactions.map(tx => [
+        this.formatDateShort(tx.date),
+        this.truncateText(tx.customerName, 20),
+        `PHP ${this.cleanAndParseNumber(tx.totalAmount).toFixed(2)}`, // FIXED
+        tx.displayStatus || 'Completed',
+        `${tx.itemsCount || 0} items`
+      ]);
 
-        // Transaction Details
-        pdf.setFontSize(9);
-        pdf.text(`Customer: ${transaction.customerName}`, margin + 5, yPosition);
-        yPosition += 5;
-        
-        const details = transaction.displayAmount || this.getStockTransactionDescription(transaction);
-        pdf.text(`Details: ${details}`, margin + 5, yPosition);
-        yPosition += 5;
-        
-        pdf.text(`Status: ${transaction.displayStatus} | Employee: ${transaction.employeeName}`, margin + 5, yPosition);
-        yPosition += 5;
-
-        // Additional Info
-        if (transaction.type === 'debt' && transaction.remainingBalance) {
-          pdf.text(`Balance: ₱${transaction.remainingBalance.toFixed(2)}`, margin + 5, yPosition);
-          yPosition += 5;
-        } else if (transaction.type === 'stock' && transaction.reason) {
-          pdf.text(`Reason: ${transaction.reason}`, margin + 5, yPosition);
-          yPosition += 5;
-        }
-
-        // Separator
-        if (index < this.combinedReport.length - 1) {
-          yPosition += 3;
-          pdf.setDrawColor(200, 200, 200);
-          pdf.line(margin, yPosition, pageWidth - margin, yPosition);
-          yPosition += 5;
-        }
+      autoTable(doc, {
+        startY: finalY,
+        head: [['Date', 'Customer', 'Amount', 'Status', 'Items']],
+        body: cashData,
+        theme: 'grid',
+        headStyles: { fillColor: [34, 139, 34] },
+        styles: { fontSize: 9, cellPadding: 2 }
       });
-    } else {
-      pdf.text('No transactions found for the selected filters.', margin, yPosition);
+
+      finalY = (doc as any).lastAutoTable.finalY + 15;
     }
 
+    // ===== DEBT SALES SECTION ===== (FIXED: Use cleanAndParseNumber)
+    const debtTransactions = this.combinedReport.filter(tx => tx.type === 'debt');
+    if (debtTransactions.length > 0) {
+      if (finalY > 250) {
+        doc.addPage();
+        finalY = 20;
+      }
+
+      doc.setFontSize(14);
+      doc.setTextColor(255, 165, 0);
+      doc.text(`DEBT SALES (${debtTransactions.length})`, 20, finalY);
+      finalY += 10;
+
+      const debtData = debtTransactions.map(tx => [
+        this.formatDateShort(tx.date),
+        this.truncateText(tx.customerName, 18),
+        `PHP ${this.cleanAndParseNumber(tx.totalAmount).toFixed(2)}`, // FIXED
+        `PHP ${this.cleanAndParseNumber(tx.initialPayment).toFixed(2)}`, // FIXED
+        `PHP ${this.cleanAndParseNumber(tx.remainingBalance).toFixed(2)}`, // FIXED
+        tx.displayStatus || 'Pending'
+      ]);
+
+      autoTable(doc, {
+        startY: finalY,
+        head: [['Date', 'Customer', 'Total', 'Paid', 'Balance', 'Status']],
+        body: debtData,
+        theme: 'grid',
+        headStyles: { fillColor: [255, 165, 0] },
+        styles: { fontSize: 9, cellPadding: 2 }
+      });
+
+      finalY = (doc as any).lastAutoTable.finalY + 15;
+    }
+
+    // ===== STOCK TRANSACTIONS SECTION =====
+    const stockTransactions = this.combinedReport.filter(tx => tx.type === 'stock');
+    if (stockTransactions.length > 0) {
+      if (finalY > 250) {
+        doc.addPage();
+        finalY = 20;
+      }
+
+      doc.setFontSize(14);
+      doc.setTextColor(155, 89, 182);
+      doc.text(`STOCK TRANSACTIONS (${stockTransactions.length})`, 20, finalY);
+      finalY += 10;
+
+      const stockData = stockTransactions.map(tx => [
+        this.formatDateShort(tx.date),
+        this.truncateText(tx.productName || tx.customerName, 15),
+        tx.stockAction || 'Adjustment',
+        (tx.quantity || 0).toString(),
+        (tx.previousStock || 0).toString(),
+        (tx.newStock || 0).toString(),
+        this.truncateText(tx.reason || 'N/A', 15)
+      ]);
+
+      autoTable(doc, {
+        startY: finalY,
+        head: [['Date', 'Product', 'Action', 'Qty', 'Prev', 'New', 'Reason']],
+        body: stockData,
+        theme: 'grid',
+        headStyles: { fillColor: [155, 89, 182] },
+        styles: { fontSize: 9, cellPadding: 2 }
+      });
+
+      finalY = (doc as any).lastAutoTable.finalY + 15;
+    }
+
+    // ===== FILTER INFORMATION SECTION =====
+    if (finalY > 250) {
+      doc.addPage();
+      finalY = 20;
+    }
+
+    doc.setFontSize(14);
+    doc.setTextColor(40, 40, 40);
+    doc.text('FILTER INFORMATION', 20, finalY);
+    finalY += 10;
+
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    
+    const filterInfo = [
+      `Transaction Type: ${this.getTransactionTypeLabel()}`,
+      `Status: ${this.getStatusLabel()}`,
+      `Employee: ${this.getEmployeeFilterLabel()}`,
+      `Date Range: ${this.formatFilterDate(this.currentFilter.startDate)} - ${this.formatFilterDate(this.currentFilter.endDate)}`,
+      `Total Records: ${this.combinedReport.length} transactions`
+    ];
+
+    filterInfo.forEach(info => {
+      if (finalY > 270) {
+        doc.addPage();
+        finalY = 20;
+      }
+      doc.text(info, 20, finalY);
+      finalY += 6;
+    });
+
     // Footer
-    pdf.setFontSize(8);
-    pdf.setTextColor(150, 150, 150);
-    pdf.text(`Generated on ${new Date().toLocaleDateString()}`, pageWidth / 2, pdf.internal.pageSize.getHeight() - 10, { align: 'center' });
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    const footerText = `Report generated by ${employeeName} on ${currentDate} at ${currentTime}`;
+    doc.text(footerText, 105, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
 
     // Save PDF
     const fileName = `employee-report-${new Date().toISOString().split('T')[0]}.pdf`;
-    pdf.save(fileName);
+    doc.save(fileName);
 
-    this.showToast('PDF report downloaded successfully', 'success');
+    this.showToast('PDF report downloaded successfully!', 'success');
+    console.log('=== PDF GENERATION COMPLETED ===');
+
   } catch (error) {
     console.error('Error generating PDF:', error);
     this.showToast('Error generating PDF report', 'danger');
@@ -815,21 +1239,127 @@ async exportToPDF() {
   }
 }
 
-// NEW: Helper method for PDF date formatting
-private formatDateForPDF(date: Date): string {
-  return date.toLocaleDateString('en-PH', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
+// Keep these helper methods:
+private formatDateShort(date: Date): string {
+  try {
+    if (!date) return 'N/A';
+    return date.toLocaleDateString('en-PH', {
+      month: 'short',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    }).replace(',', '');
+  } catch (error) {
+    return 'Invalid Date';
+  }
 }
 
-// NEW: Helper method to truncate long text for PDF
 private truncateText(text: string, maxLength: number): string {
-  if (text.length <= maxLength) return text;
-  return text.substring(0, maxLength - 3) + '...';
+  if (!text || text === 'undefined' || text === 'null') return 'N/A';
+  const cleanText = String(text).trim();
+  if (cleanText.length <= maxLength) return cleanText;
+  return cleanText.substring(0, maxLength - 2) + '..';
+}
+
+
+// NEW: Calculate column widths based on content
+private calculateColumnWidths(headers: string[], data: string[][], totalWidth: number): number[] {
+  const numColumns = headers.length;
+  const baseWidth = totalWidth / numColumns;
+  
+  // Define relative widths based on column type
+  const relativeWidths = headers.map((header, index) => {
+    const headerLower = header.toLowerCase();
+    if (headerLower.includes('date')) return 0.8;
+    if (headerLower.includes('customer') || headerLower.includes('product') || headerLower.includes('reason')) return 1.2;
+    if (headerLower.includes('amount') || headerLower.includes('price') || headerLower.includes('total') || headerLower.includes('balance')) return 0.9;
+    if (headerLower.includes('status') || headerLower.includes('action')) return 0.8;
+    if (headerLower.includes('items') || headerLower.includes('qty')) return 0.6;
+    return 1.0;
+  });
+
+  const totalRelative = relativeWidths.reduce((sum, width) => sum + width, 0);
+  
+  return relativeWidths.map(width => (width / totalRelative) * totalWidth);
+}
+
+// ADD THIS METHOD: Use the same formatPrice from your working inventory
+private formatPrice(price: any): string {
+  console.log('🔧 formatPrice called with:', price, 'Type:', typeof price);
+  
+  if (price === null || price === undefined) {
+    return '0.00';
+  }
+  
+  // If it's already a number, just format it
+  if (typeof price === 'number') {
+    console.log('✅ Already a number, formatting:', price.toFixed(2));
+    return price.toFixed(2);
+  }
+  
+  const priceStr = price.toString().trim();
+  console.log('🔧 Price string:', priceStr);
+  
+  // Handle the specific problematic format: "±4 5 . 0 0"
+  if (priceStr.includes('±') || /\d\s+\d/.test(priceStr)) {
+    console.log('🔄 Detected problematic format, cleaning...');
+    
+    // Remove all special characters and spaces
+    let cleanedPrice = priceStr
+      .replace(/[±₱&]/g, '')  // Remove special symbols
+      .replace(/\s/g, '')     // Remove all spaces
+      .replace(/[^\d.]/g, ''); // Remove any other non-numeric except decimal
+    
+    console.log('🔧 After cleaning:', cleanedPrice);
+    
+    // If we have something like "45.00", parse it
+    if (cleanedPrice) {
+      const numPrice = parseFloat(cleanedPrice);
+      if (!isNaN(numPrice)) {
+        console.log('✅ Successfully parsed:', numPrice.toFixed(2));
+        return numPrice.toFixed(2);
+      }
+    }
+  }
+  
+  // For normal string numbers
+  if (typeof price === 'string') {
+    const cleaned = price.replace(/[^\d.]/g, '');
+    const numPrice = parseFloat(cleaned);
+    const result = isNaN(numPrice) ? '0.00' : numPrice.toFixed(2);
+    console.log('✅ Normal string conversion:', result);
+    return result;
+  }
+  
+  console.log('❌ Could not parse, returning 0.00');
+  return '0.00';
+}
+
+// NEW: Section header with underline
+private drawSectionHeader(pdf: jsPDF, title: string, x: number, y: number): number {
+  pdf.setFontSize(14);
+  pdf.setFont('helvetica', 'bold');
+  pdf.setTextColor(52, 73, 94);
+  pdf.text(title, x, y);
+  
+  // Underline
+  pdf.setDrawColor(52, 152, 219);
+  pdf.setLineWidth(0.5);
+  pdf.line(x, y + 1, x + pdf.getTextWidth(title), y + 1);
+  
+  return y + 10;
+}
+// NEW: Helper method to get employee filter label
+private getEmployeeFilterLabel(): string {
+  if (this.currentFilter.employeeId === 'all') return 'All Employees';
+  if (this.currentFilter.employeeId === 'current') {
+    const currentUser = this.authService.getCurrentUser();
+    return currentUser?.full_name || 'Current Employee';
+  }
+  
+  const employee = this.employees.find(emp => emp.id === this.currentFilter.employeeId);
+  return employee?.full_name || 'Selected Employee';
 }
 
   // Utility methods

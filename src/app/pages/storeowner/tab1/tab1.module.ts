@@ -7,7 +7,8 @@ import { IonicModule } from '@ionic/angular';
 import { Tab1PageRoutingModule } from './tab1-routing.module';
 
 import { Tab1Page } from './tab1.page';
-
+import { CalendarViewComponent } from './calendar-view.component';
+import { DebtViewComponent } from './debt-view.component';
 @NgModule({
   imports: [
     CommonModule,
@@ -15,6 +16,10 @@ import { Tab1Page } from './tab1.page';
     IonicModule,
     Tab1PageRoutingModule
   ],
-  declarations: [Tab1Page]
+     declarations: [
+      Tab1Page,
+      CalendarViewComponent,
+      DebtViewComponent // Add the modal component here
+    ],
 })
 export class Tab1PageModule {}

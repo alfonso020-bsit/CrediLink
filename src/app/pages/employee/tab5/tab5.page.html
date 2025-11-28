@@ -201,9 +201,44 @@
                   {{ formatDate(transaction.date) }}
                 </p>
                 <p class="transaction-type-employee">
-                  {{ transaction.displayType }} • {{ transaction.employeeName }}
+                  {{ transaction.displayType }} • 
+                  
+                  <!-- Enhanced employee display for debt transactions -->
+                  <span *ngIf="transaction.type === 'debt' && transaction.hasRecordedPayments && !transaction.isCreatedByCurrentUser">
+                    <ion-icon name="card" color="success"></ion-icon>
+                    Payments by {{ getCurrentUserName() }}
+                  </span>
+                  
+                  <span *ngIf="transaction.type === 'debt' && transaction.isCreatedByCurrentUser && transaction.hasRecordedPayments">
+                    <ion-icon name="create" color="primary"></ion-icon>
+                    Created & Payments by {{ transaction.employeeName }}
+                  </span>
+                  
+                  <span *ngIf="transaction.type === 'debt' && transaction.isCreatedByCurrentUser && !transaction.hasRecordedPayments">
+                    <ion-icon name="create" color="primary"></ion-icon>
+                    Created by {{ transaction.employeeName }}
+                  </span>
+                  
+                  <span *ngIf="transaction.type === 'debt' && !transaction.isCreatedByCurrentUser && !transaction.hasRecordedPayments">
+                    <ion-icon name="person" color="medium"></ion-icon>
+                    {{ transaction.employeeName }}
+                  </span>
+                  
+                  <span *ngIf="transaction.type !== 'debt'">
+                    <ion-icon name="person" color="medium"></ion-icon>
+                    {{ transaction.employeeName }}
+                  </span>
                 </p>
                 
+                <!-- Payment count badge -->
+                <div *ngIf="transaction.type === 'debt' && transaction.userPayments && transaction.userPayments.length > 0" 
+                    class="payment-badge">
+                  <ion-badge color="success" class="payment-count">
+                    <ion-icon name="card" slot="start"></ion-icon>
+                    {{ transaction.userPayments.length }} payment{{ transaction.userPayments.length > 1 ? 's' : '' }} recorded
+                  </ion-badge>
+                </div>
+
                 <!-- Stock specific details -->
                 <div *ngIf="transaction.type === 'stock'" class="stock-details">
                   <p class="stock-action">

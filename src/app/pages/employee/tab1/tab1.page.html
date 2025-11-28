@@ -21,7 +21,7 @@
 <ion-content [fullscreen]="true" class="ion-padding">
   
   <!-- Employee Profile Card -->
-  <ion-card class="profile-card" *ngIf="currentUser">
+  <ion-card class="profile-card" *ngIf="currentUser && !showSettings && !showStoreInfo">
     <ion-card-header>
       <div class="profile-header">
         <div class="employee-avatar" (click)="toggleSettings()">
@@ -49,6 +49,158 @@
       </div>
     </ion-card-header>
   </ion-card>
+
+  <!-- Dashboard Metrics (Visible when not in settings/store info) -->
+  <div *ngIf="!showSettings && !showStoreInfo" class="dashboard-section">
+    
+    <!-- Loading State -->
+    <div *ngIf="isLoadingDashboard" class="loading-state">
+      <ion-card>
+        <ion-card-content class="ion-text-center">
+          <ion-spinner></ion-spinner>
+          <p>Loading dashboard data...</p>
+        </ion-card-content>
+      </ion-card>
+    </div>
+
+    <!-- Performance Metrics Grid -->
+    <div *ngIf="!isLoadingDashboard" class="metrics-grid">
+      <!-- Today's Sales -->
+      <ion-card class="metric-card sales-card">
+        <ion-card-content>
+          <div class="metric-icon">
+            <ion-icon name="cash" color="success"></ion-icon>
+          </div>
+          <div class="metric-content">
+            <h3>Today's Sales</h3>
+            <p class="metric-value">₱{{ dashboardMetrics.todaySales | number:'1.2-2' }}</p>
+            <p class="metric-subtitle">{{ dashboardMetrics.todayTransactions }} transactions</p>
+          </div>
+        </ion-card-content>
+      </ion-card>
+
+      <!-- Pending Debts -->
+      <ion-card class="metric-card debts-card" (click)="openDebtCalendar()">
+        <ion-card-content>
+          <div class="metric-icon">
+            <ion-icon name="calendar" color="warning"></ion-icon>
+          </div>
+          <div class="metric-content">
+            <h3>Pending Debts</h3>
+            <p class="metric-value">{{ dashboardMetrics.pendingDebts }}</p>
+            <p class="metric-subtitle">₱{{ dashboardMetrics.totalDebtAmount | number:'1.2-2' }} total</p>
+          </div>
+        </ion-card-content>
+      </ion-card>
+
+      <!-- Monthly Performance -->
+      <ion-card class="metric-card performance-card">
+        <ion-card-content>
+          <div class="metric-icon">
+            <ion-icon name="trending-up" color="primary"></ion-icon>
+          </div>
+          <div class="metric-content">
+            <h3>Monthly Performance</h3>
+            <p class="metric-value">{{ dashboardMetrics.monthlyPerformance | number:'1.0-0' }}%</p>
+            <p class="metric-subtitle">vs target</p>
+          </div>
+        </ion-card-content>
+      </ion-card>
+    </div>
+
+    <!-- Debt Calendar Section -->
+    <div *ngIf="!isLoadingDashboard" class="calendar-section">
+      <ion-card>
+        <ion-card-header>
+          <ion-card-title>
+            <ion-icon name="calendar" slot="start"></ion-icon>
+            Debt Calendar
+          </ion-card-title>
+          <ion-button fill="clear" size="small" (click)="openDebtCalendar()">
+            View All
+            <ion-icon name="arrow-forward" slot="end"></ion-icon>
+          </ion-button>
+        </ion-card-header>
+        <ion-card-content>
+          <!-- Upcoming Events -->
+          <div class="upcoming-events" *ngIf="getUpcomingEvents().length > 0; else noEvents">
+            <div class="event-item" 
+                 *ngFor="let event of getUpcomingEvents()" 
+                 [class.overdue]="event.isOverdue"
+                 (click)="openDateDetails(event.date)">
+              <div class="event-date">
+                <span class="event-day">{{ event.date.getDate() }}</span>
+                <span class="event-month">{{ event.date | date:'MMM' }}</span>
+              </div>
+              <div class="event-details">
+                <h4>{{ event.customerName }}</h4>
+                <p>
+                  <ion-badge [color]="event.isOverdue ? 'danger' : 'warning'">
+                    {{ event.type === 'due_date' ? 'Due' : 'Transaction' }}
+                  </ion-badge>
+                  <span class="event-amount">₱{{ event.amount | number:'1.2-2' }}</span>
+                </p>
+              </div>
+              <div class="event-status">
+                <ion-icon 
+                  [name]="event.isOverdue ? 'warning' : 'notifications'" 
+                  [color]="event.isOverdue ? 'danger' : 'medium'">
+                </ion-icon>
+              </div>
+            </div>
+          </div>
+          <ng-template #noEvents>
+            <div class="no-events">
+              <ion-icon name="checkmark-circle" color="success"></ion-icon>
+              <p>No upcoming debt events</p>
+            </div>
+          </ng-template>
+        </ion-card-content>
+      </ion-card>
+    </div>
+
+    <!-- Recent Transactions -->
+    <div *ngIf="!isLoadingDashboard" class="transactions-section">
+      <ion-card>
+        <ion-card-header>
+          <ion-card-title>
+            <ion-icon name="receipt" slot="start"></ion-icon>
+            Recent Transactions
+          </ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          <div class="transactions-list" *ngIf="recentTransactions.length > 0; else noTransactions">
+            <div class="transaction-item" *ngFor="let transaction of recentTransactions">
+              <div class="transaction-info">
+                <h4>{{ transaction.customerName || 'Walk-in Customer' }}</h4>
+                <p class="transaction-meta">
+                  <ion-badge [color]="transaction.type === 'cash' ? 'success' : 'warning'">
+                    {{ transaction.type === 'cash' ? 'Cash' : 'Debt' }}
+                  </ion-badge>
+                  <span class="transaction-date">{{ transaction.date | date:'MMM d, h:mm a' }}</span>
+                </p>
+              </div>
+              <div class="transaction-amount">
+                <strong>₱{{ transaction.total | number:'1.2-2' }}</strong>
+                <p *ngIf="transaction.type === 'debt'" 
+                   class="debt-status" 
+                   [class.paid]="transaction.payment_status === 'paid'"
+                   [class.partial]="transaction.payment_status === 'partially_paid'">
+                  {{ transaction.payment_status || 'unpaid' }}
+                </p>
+              </div>
+            </div>
+          </div>
+          <ng-template #noTransactions>
+            <div class="no-transactions">
+              <ion-icon name="document-text" color="medium"></ion-icon>
+              <p>No recent transactions</p>
+            </div>
+          </ng-template>
+        </ion-card-content>
+      </ion-card>
+    </div>
+  </div>
 
   <!-- Employee Settings (Visible when showSettings is true) -->
   <div *ngIf="showSettings" class="settings-section">
@@ -98,7 +250,6 @@
 
           <!-- Professional Information -->
           <ion-list>
-            <!-- REMOVED POSITION FIELD - it's managed by store owner -->
             <ion-item>
               <ion-label position="stacked">Contact Number</ion-label>
               <ion-input 
@@ -243,16 +394,6 @@
           <ion-icon name="arrow-back" slot="start"></ion-icon>
           Back to Dashboard
         </ion-button>
-      </ion-card-content>
-    </ion-card>
-  </div>
-
-  <!-- Loading State -->
-  <div *ngIf="!storeInfo" class="loading-state">
-    <ion-card>
-      <ion-card-content class="ion-text-center">
-        <ion-spinner></ion-spinner>
-        <p>Loading...</p>
       </ion-card-content>
     </ion-card>
   </div>

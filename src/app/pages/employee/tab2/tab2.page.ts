@@ -199,6 +199,11 @@ async loadDebtProducts() {
       .map(doc => {
         const data = doc.data();
         
+        // FIX: Check if remainingBalance exists, don't use || with data['total']
+        const remainingBalance = data['remainingBalance'] !== undefined 
+          ? data['remainingBalance'] 
+          : data['total'] || 0;
+
         // Create complete DebtProduct object with all required properties
         const debtProduct: DebtProduct = {
           // Required properties from Firestore data
@@ -219,20 +224,23 @@ async loadDebtProducts() {
           id: data['id'], // Custom receipt ID from document data
           firestoreId: doc.id, // Firestore document ID
           initialPayment: data['initialPayment'] || 0,
-          remainingBalance: data['remainingBalance'] || data['total'] || 0,
+          remainingBalance: remainingBalance, // Use the fixed calculation
           originalTotal: data['originalTotal'] || data['total'] || 0,
           payments: data['payments'] || []
         };
 
-        // DEBUG LOG
+        // DEBUG LOG - Enhanced to show the actual values
         console.log('📋 Loaded Debt Product:', {
           customId: debtProduct.id,
           firestoreId: debtProduct.firestoreId,
           customer: debtProduct.customerName,
+          total: debtProduct.total,
           initialPayment: debtProduct.initialPayment,
           remainingBalance: debtProduct.remainingBalance,
           payment_status: debtProduct.payment_status,
-          status: debtProduct.status
+          status: debtProduct.status,
+          firestoreRemainingBalance: data['remainingBalance'], // Actual value from Firestore
+          firestorePaymentStatus: data['payment_status'] // Actual value from Firestore
         });
         
         return debtProduct;
@@ -243,7 +251,6 @@ async loadDebtProducts() {
         return dateB.getTime() - dateA.getTime();
       });
 
-    this.updateDebtStatuses();
     console.log(`Loaded ${this.debtProducts.length} debt products`);
   } catch (error) {
     console.error('Error loading debt products:', error);
@@ -264,7 +271,11 @@ async loadDebtProductsFallback() {
       .map(doc => {
         const data = doc.data();
         
-        // Create complete DebtProduct object
+        // FIX: Same fix for fallback method
+        const remainingBalance = data['remainingBalance'] !== undefined 
+          ? data['remainingBalance'] 
+          : data['total'] || 0;
+
         const debtProduct: DebtProduct = {
           items: data['items'] || [],
           total: data['total'] || 0,
@@ -278,13 +289,22 @@ async loadDebtProductsFallback() {
           store_owner_id: data['store_owner_id'] || '',
           employee_id: data['employee_id'] || '',
           payment_status: data['payment_status'] || 'unpaid',
-          id: data['id'], // Use custom receipt ID
-          firestoreId: doc.id, // Firestore document ID
+          id: data['id'],
+          firestoreId: doc.id,
           initialPayment: data['initialPayment'] || 0,
-          remainingBalance: data['remainingBalance'] || data['total'] || 0,
+          remainingBalance: remainingBalance, // Use the fixed calculation
           originalTotal: data['originalTotal'] || data['total'] || 0,
           payments: data['payments'] || []
         };
+
+        console.log('📋 Fallback Loaded Debt Product:', {
+          customId: debtProduct.id,
+          customer: debtProduct.customerName,
+          total: debtProduct.total,
+          remainingBalance: debtProduct.remainingBalance,
+          payment_status: debtProduct.payment_status,
+          firestoreRemainingBalance: data['remainingBalance']
+        });
         
         return debtProduct;
       })
@@ -295,7 +315,6 @@ async loadDebtProductsFallback() {
         return dateB.getTime() - dateA.getTime();
       });
 
-    this.updateDebtStatuses();
     console.log(`Loaded ${this.debtProducts.length} debt products (fallback)`);
   } catch (error) {
     console.error('Error in debt products fallback:', error);
@@ -303,55 +322,55 @@ async loadDebtProductsFallback() {
   }
 }
 
- updateDebtStatuses() {
-  const now = new Date();
+//  updateDebtStatuses() {
+//   const now = new Date();
   
-  console.log('🔄 updateDebtStatuses - Checking all debts:');
+//   console.log('🔄 updateDebtStatuses - Checking all debts:');
   
-  this.debtProducts.forEach(debt => {
-    console.log('🔍 Checking debt:', {
-      customer: debt.customerName,
-      initialPayment: debt.initialPayment,
-      remainingBalance: debt.remainingBalance,
-      currentPaymentStatus: debt.payment_status
-    });
+//   this.debtProducts.forEach(debt => {
+//     console.log('🔍 Checking debt:', {
+//       customer: debt.customerName,
+//       initialPayment: debt.initialPayment,
+//       remainingBalance: debt.remainingBalance,
+//       currentPaymentStatus: debt.payment_status
+//     });
 
-    // Update payment_status based on remaining balance
-    if (debt.remainingBalance !== undefined) {
-      if (debt.remainingBalance <= 0) {
-        debt.payment_status = 'paid';
-        console.log('✅ Setting to PAID - no balance remaining');
-      } else if (debt.initialPayment && debt.initialPayment > 0) {
-        debt.payment_status = 'partially_paid';
-        console.log('🟡 Setting to PARTIALLY_PAID - has initial payment');
-      } else {
-        debt.payment_status = 'unpaid';
-        console.log('🔴 Setting to UNPAID - no payments made');
-      }
-    }
+//     // Update payment_status based on remaining balance
+//     if (debt.remainingBalance !== undefined) {
+//       if (debt.remainingBalance <= 0) {
+//         debt.payment_status = 'paid';
+//         console.log('✅ Setting to PAID - no balance remaining');
+//       } else if (debt.initialPayment && debt.initialPayment > 0) {
+//         debt.payment_status = 'partially_paid';
+//         console.log('🟡 Setting to PARTIALLY_PAID - has initial payment');
+//       } else {
+//         debt.payment_status = 'unpaid';
+//         console.log('🔴 Setting to UNPAID - no payments made');
+//       }
+//     }
     
-    // Update status based on due date
-    if (debt.dueDate) {
-      const dueDate = debt.dueDate.toDate ? debt.dueDate.toDate() : new Date(debt.dueDate);
-      if (dueDate < now && debt.payment_status !== 'paid') {
-        debt.status = 'overdue';
-        console.log('⏰ Setting to OVERDUE - past due date');
-      } else if (debt.payment_status === 'paid') {
-        debt.status = 'paid';
-        console.log('✅ Setting status to PAID - fully paid');
-      } else {
-        debt.status = 'pending';
-        console.log('⏳ Setting status to PENDING - not due yet');
-      }
-    }
+//     // Update status based on due date
+//     if (debt.dueDate) {
+//       const dueDate = debt.dueDate.toDate ? debt.dueDate.toDate() : new Date(debt.dueDate);
+//       if (dueDate < now && debt.payment_status !== 'paid') {
+//         debt.status = 'overdue';
+//         console.log('⏰ Setting to OVERDUE - past due date');
+//       } else if (debt.payment_status === 'paid') {
+//         debt.status = 'paid';
+//         console.log('✅ Setting status to PAID - fully paid');
+//       } else {
+//         debt.status = 'pending';
+//         console.log('⏳ Setting status to PENDING - not due yet');
+//       }
+//     }
 
-    console.log('📊 Final status:', {
-      payment_status: debt.payment_status,
-      status: debt.status
-    });
-    console.log('---');
-  });
-}
+//     console.log('📊 Final status:', {
+//       payment_status: debt.payment_status,
+//       status: debt.status
+//     });
+//     console.log('---');
+//   });
+// }
 
   // Cash Products Methods
   viewCashReceipt(cashProduct: CashProduct) {
@@ -375,20 +394,167 @@ async loadDebtProductsFallback() {
     this.selectedDebtProduct = null;
   }
 
-  // Payment Methods
-  openPaymentModal(debtProduct: DebtProduct) {
-    this.selectedDebtForPayment = debtProduct;
-    this.paymentAmount = debtProduct.remainingBalance || debtProduct.total;
+// Enhanced openPaymentModal with explicit modal state management
+openPaymentModal(debtProduct: DebtProduct): void {
+  console.log('💳 Opening payment modal for:', debtProduct.customerName);
+  
+  // CRITICAL: Ensure all other modals are closed first
+  this.showCashReceiptModal = false;
+  this.showDebtReceiptModal = false;
+  
+  try {
+    // Create a deep copy to avoid reference issues
+    this.selectedDebtForPayment = JSON.parse(JSON.stringify(debtProduct));
+    
+    // Ensure selectedDebtForPayment is not null before accessing properties
+    if (!this.selectedDebtForPayment) {
+      throw new Error('Failed to create debt copy');
+    }
+    
+    // Ensure all required fields exist
+    if (this.selectedDebtForPayment.remainingBalance === undefined || 
+        this.selectedDebtForPayment.remainingBalance === null) {
+      this.selectedDebtForPayment.remainingBalance = this.selectedDebtForPayment.total;
+    }
+    
+    if (!this.selectedDebtForPayment.originalTotal) {
+      this.selectedDebtForPayment.originalTotal = this.selectedDebtForPayment.total;
+    }
+    
+    // Set payment amount to remaining balance
+    const remainingBalance = this.selectedDebtForPayment.remainingBalance ?? this.selectedDebtForPayment.total;
+    this.paymentAmount = remainingBalance > 0 ? remainingBalance : 0;
     this.paymentNotes = '';
-    this.showPaymentModal = true;
+    
+    // Small delay to ensure other modals are dismissed
+    setTimeout(() => {
+      this.showPaymentModal = true;
+      console.log('✅ Payment modal state set to true');
+    }, 100);
+    
+    console.log('📊 Payment modal data prepared:', {
+      customer: this.selectedDebtForPayment.customerName,
+      remainingBalance: this.selectedDebtForPayment.remainingBalance,
+      paymentAmount: this.paymentAmount,
+      modalState: this.showPaymentModal
+    });
+    
+  } catch (error) {
+    console.error('❌ Error in openPaymentModal:', error);
+    this.showToast('Error opening payment modal', 'danger');
   }
+}
 
-  closePaymentModal() {
-    this.showPaymentModal = false;
+// Enhanced openPaymentModalFromDebtReceipt
+async openPaymentModalFromDebtReceipt(debtProduct: DebtProduct): Promise<void> {
+  console.log('💳 Opening payment modal from debt receipt for:', debtProduct.customerName);
+  
+  try {
+    // Store the debt product data FIRST (before closing anything)
+    const debtCopy: DebtProduct = JSON.parse(JSON.stringify(debtProduct));
+    
+    // Ensure all required fields exist
+    if (debtCopy.remainingBalance === undefined || debtCopy.remainingBalance === null) {
+      debtCopy.remainingBalance = debtCopy.total;
+    }
+    
+    if (!debtCopy.originalTotal) {
+      debtCopy.originalTotal = debtCopy.total;
+    }
+    
+    // Prepare the payment data
+    this.selectedDebtForPayment = debtCopy;
+    this.paymentAmount = debtCopy.remainingBalance > 0 ? debtCopy.remainingBalance : 0;
+    this.paymentNotes = '';
+    
+    console.log('📋 Payment data prepared, closing debt modal...');
+    
+    // Close the debt receipt modal
+    this.showDebtReceiptModal = false;
+    this.selectedDebtProduct = null;
+    
+    // Wait longer for modal animation to complete
+    await new Promise(resolve => setTimeout(resolve, 400));
+    
+    console.log('🔄 Opening payment modal...');
+    
+    // Now open the payment modal
+    this.showPaymentModal = true;
+    
+    // Verify modal opened
+    setTimeout(() => {
+      console.log('🔍 Modal verification:', {
+        showPaymentModal: this.showPaymentModal,
+        selectedDebtForPayment: !!this.selectedDebtForPayment,
+        customerName: this.selectedDebtForPayment?.customerName
+      });
+    }, 100);
+    
+    console.log('✅ Payment modal opened successfully');
+    
+  } catch (error) {
+    console.error('❌ Error in openPaymentModalFromDebtReceipt:', error);
+    this.showToast('Error opening payment modal', 'danger');
+  }
+}
+
+// Enhanced closePaymentModal
+closePaymentModal(): void {
+  console.log('🔒 Closing payment modal');
+  this.showPaymentModal = false;
+  
+  // Delay clearing data to allow modal animation
+  setTimeout(() => {
     this.selectedDebtForPayment = null;
     this.paymentAmount = 0;
     this.paymentNotes = '';
+    console.log('✅ Payment modal data cleared');
+  }, 300);
+}
+
+// Enhanced debug method
+debugPaymentModal(): void {
+  const debugInfo = {
+    'Modal State': this.showPaymentModal,
+    'Has Debt Selected': !!this.selectedDebtForPayment,
+    'Customer Name': this.selectedDebtForPayment?.customerName || 'N/A',
+    'Payment Amount': this.paymentAmount,
+    'Max Payment': this.maxPaymentAmount,
+    'Remaining Balance': this.selectedDebtForPayment?.remainingBalance || 0,
+    'Total Debt': this.selectedDebtForPayment?.total || 0,
+    'Firestore ID': this.selectedDebtForPayment?.firestoreId || 'N/A'
+  };
+  
+  console.log('🔍 ===== PAYMENT MODAL DEBUG INFO =====');
+  console.table(debugInfo);
+  console.log('Full Debt Object:', this.selectedDebtForPayment);
+  console.log('=====================================');
+  
+  // Also show in alert for easier viewing
+  this.alertController.create({
+    header: 'Payment Modal Debug',
+    message: Object.entries(debugInfo)
+      .map(([key, value]) => `${key}: ${value}`)
+      .join('<br>'),
+    buttons: ['Close']
+  }).then(alert => alert.present());
+}
+
+// Updated getter with proper null safety
+get maxPaymentAmount(): number {
+  if (!this.selectedDebtForPayment) {
+    console.log('❌ maxPaymentAmount: No debt selected');
+    return 0;
   }
+  
+  // Store in local variable after null check
+  const debt = this.selectedDebtForPayment;
+  const remaining = debt.remainingBalance ?? debt.total ?? 0;
+  const max = remaining > 0 ? remaining : debt.total ?? 0;
+  
+  console.log('📊 maxPaymentAmount calculated:', max);
+  return max;
+}
 
   async processPayment() {
     if (!this.selectedDebtForPayment) return;
@@ -600,11 +766,6 @@ async recordDebtPayment(debtProduct: DebtProduct, amount: number, notes?: string
     }
 
     return filtered;
-  }
-
-  get maxPaymentAmount(): number {
-    if (!this.selectedDebtForPayment) return 0;
-    return this.selectedDebtForPayment.remainingBalance || this.selectedDebtForPayment.total;
   }
 
   async doRefresh(event: any) {

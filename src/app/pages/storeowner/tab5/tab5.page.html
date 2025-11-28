@@ -5,6 +5,21 @@
     </ion-buttons>
     <ion-title>Manage Employees</ion-title>
     <ion-buttons slot="end">
+      <!-- Report Button -->
+      <ion-button (click)="openReportModal()" fill="clear">
+        <ion-icon slot="icon-only" name="document-text"></ion-icon>
+      </ion-button>
+      
+      <!-- Salary Management Button -->
+      <ion-button (click)="openSalaryModal()" fill="clear">
+        <ion-icon slot="icon-only" name="cash"></ion-icon>
+      </ion-button>
+      
+      <!-- Generate PDF Report Button -->
+      <ion-button (click)="generateEmployeeReport()" fill="clear">
+        <ion-icon slot="icon-only" name="download"></ion-icon>
+      </ion-button>
+      
       <ion-button (click)="refreshEmployees()">
         <ion-icon slot="icon-only" name="refresh"></ion-icon>
       </ion-button>
@@ -14,264 +29,536 @@
 
 <ion-content [fullscreen]="true" class="ion-padding">
   
-  <!-- Add/Edit Employee Section -->
-  <ion-card>
-    <ion-card-header>
-      <ion-card-title>
-        {{ formMode === 'create' ? 'Add New Employee' : 'Edit Employee' }}
-        <ion-badge *ngIf="formMode === 'edit'" color="primary">Editing</ion-badge>
-      </ion-card-title>
-      <ion-card-subtitle>
-        {{ formMode === 'create' ? 'Create account for your store employee' : 'Update employee information' }}
-      </ion-card-subtitle>
-      <ion-buttons slot="end" *ngIf="formMode === 'edit'">
-        <ion-button fill="clear" color="medium" (click)="resetForm()">
-          <ion-icon slot="icon-only" name="close"></ion-icon>
-          Cancel Edit
-        </ion-button>
-      </ion-buttons>
-    </ion-card-header>
-    <ion-card-content>
+<!-- Add Employee Button (Visible when form is hidden) -->
+<ion-card *ngIf="!showEmployeeForm && formMode !== 'edit'">
+  <ion-card-header>
+    <ion-card-title>Employee Management</ion-card-title>
+    <ion-card-subtitle>Add new employees to your store</ion-card-subtitle>
+  </ion-card-header>
+  <ion-card-content class="add-employee-prompt">
+    <div class="prompt-content">
+      <ion-icon name="person-add-outline" size="large" color="primary"></ion-icon>
+      <h3>Ready to Add an Employee?</h3>
+      <p>Click the button below to start adding a new employee to your store.</p>
+      <ion-button 
+        expand="block" 
+        color="primary" 
+        (click)="openEmployeeForm()"
+        class="add-employee-btn">
+        <ion-icon slot="start" name="person-add"></ion-icon>
+        Add New Employee
+      </ion-button>
+    </div>
+  </ion-card-content>
+</ion-card>
+
+<!-- Add/Edit Employee Section (Visible when form is shown or in edit mode) -->
+<ion-card *ngIf="showEmployeeForm || formMode === 'edit'">
+  <ion-card-header>
+    <ion-card-title>
+      {{ formMode === 'create' ? 'Add New Employee' : 'Edit Employee' }}
+      <ion-badge *ngIf="formMode === 'edit'" color="primary">Editing</ion-badge>
+    </ion-card-title>
+    <ion-card-subtitle>
+      {{ formMode === 'create' ? 'Create account for your store employee' : 'Update employee information' }}
+    </ion-card-subtitle>
+    <ion-buttons slot="end">
+      <!-- Close button for create mode -->
+      <ion-button 
+        *ngIf="formMode === 'create'" 
+        fill="clear" 
+        color="medium" 
+        (click)="closeEmployeeForm()">
+        <ion-icon slot="icon-only" name="close"></ion-icon>
+        Cancel
+      </ion-button>
+      <!-- Cancel button for edit mode -->
+      <ion-button 
+        *ngIf="formMode === 'edit'" 
+        fill="clear" 
+        color="medium" 
+        (click)="resetForm()">
+        <ion-icon slot="icon-only" name="close"></ion-icon>
+        Cancel Edit
+      </ion-button>
+    </ion-buttons>
+  </ion-card-header>
+  <ion-card-content>
+    
+    <form #employeeForm="ngForm" (ngSubmit)="onSubmit(employeeForm)">
       
-      <form #employeeForm="ngForm" (ngSubmit)="onSubmit(employeeForm)">
+      <!-- Username Field -->
+      <div class="form-group">
+        <label class="form-label">Username *</label>
+        <div class="input-field">
+          <ion-icon name="person-circle" class="field-icon"></ion-icon>
+          <input 
+            type="text" 
+            name="username" 
+            ngModel 
+            required 
+            minlength="3"
+            placeholder="Enter username"
+            class="form-input"
+            [disabled]="formMode === 'edit'">
+          <ion-note *ngIf="formMode === 'edit'" color="medium">
+            Username cannot be changed
+          </ion-note>
+        </div>
+      </div>
+
+      <!-- Full Name Field -->
+      <div class="form-group">
+        <label class="form-label">Full Name *</label>
+        <div class="input-field">
+          <ion-icon name="person" class="field-icon"></ion-icon>
+          <input 
+            type="text" 
+            name="full_name" 
+            ngModel 
+            required 
+            minlength="3"
+            placeholder="Enter full name"
+            class="form-input">
+        </div>
+      </div>
+
+      <!-- Email Field -->
+      <div class="form-group">
+        <label class="form-label">Email <span class="optional">(Optional)</span></label>
+        <div class="input-field">
+          <ion-icon name="mail" class="field-icon"></ion-icon>
+          <input 
+            type="email" 
+            name="email" 
+            ngModel
+            placeholder="Enter email address"
+            class="form-input">
+        </div>
+      </div>
+
+      <!-- Position Field -->
+      <div class="form-group">
+        <label class="form-label">Position *</label>
+        <div class="input-field">
+          <ion-icon name="briefcase" class="field-icon"></ion-icon>
+          <input 
+            type="text" 
+            name="position" 
+            ngModel 
+            required
+            placeholder="Enter employee position"
+            class="form-input">
+        </div>
+      </div>
+
+      <!-- Phone Number Field -->
+      <div class="form-group">
+        <label class="form-label">Phone Number <span class="optional">(Optional)</span></label>
+        <div class="input-field">
+          <ion-icon name="call" class="field-icon"></ion-icon>
+          <input 
+            type="tel" 
+            name="phone_number" 
+            ngModel
+            placeholder="Enter phone number"
+            class="form-input">
+        </div>
+      </div>
+
+      <!-- Address Fields -->
+      <div class="form-group">
+        <label class="form-label">Region *</label>
+        <div class="input-field" [class.loading]="isLoadingLocations">
+          <ion-icon name="location" class="field-icon"></ion-icon>
+          <input 
+            type="text" 
+            [value]="getRegionName(selectedRegion)"
+            (click)="openRegionSelection()"
+            readonly
+            placeholder="Select Region"
+            class="form-input clickable-input">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Province *</label>
+        <div class="input-field">
+          <ion-icon name="location" class="field-icon"></ion-icon>
+          <input 
+            type="text" 
+            [value]="selectedProvince"
+            (click)="openProvinceSelection()"
+            [disabled]="!selectedRegion"
+            readonly
+            placeholder="{{ !selectedRegion ? 'Select region first' : 'Select Province' }}"
+            class="form-input clickable-input">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Municipality/City *</label>
+        <div class="input-field">
+          <ion-icon name="business" class="field-icon"></ion-icon>
+          <input 
+            type="text" 
+            [value]="selectedMunicipality"
+            (click)="openMunicipalitySelection()"
+            [disabled]="!selectedProvince"
+            readonly
+            placeholder="{{ !selectedProvince ? 'Select province first' : 'Select Municipality/City' }}"
+            class="form-input clickable-input">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Barangay *</label>
+        <div class="input-field">
+          <ion-icon name="home" class="field-icon"></ion-icon>
+          <input 
+            type="text" 
+            [value]="selectedBarangay"
+            (click)="openBarangaySelection()"
+            [disabled]="!selectedMunicipality"
+            readonly
+            placeholder="{{ !selectedMunicipality ? 'Select municipality first' : 'Select Barangay' }}"
+            class="form-input clickable-input">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Sitio/Purok <span class="optional">(Optional)</span></label>
+        <div class="input-field">
+          <ion-icon name="navigate" class="field-icon"></ion-icon>
+          <input 
+            type="text" 
+            name="sitio_purok" 
+            ngModel 
+            placeholder="Enter sitio/purok"
+            class="form-input">
+        </div>
+      </div>
+
+      <!-- Password Fields (Only for Create Mode) -->
+      <div *ngIf="formMode === 'create'">
+        <!-- Password Field -->
+        <div class="form-group">
+          <label class="form-label">Password *</label>
+          <div class="input-field">
+            <ion-icon name="lock-closed" class="field-icon"></ion-icon>
+            <input 
+              [type]="showPassword ? 'text' : 'password'" 
+              name="password" 
+              ngModel 
+              required 
+              minlength="6"
+              placeholder="Enter password"
+              class="form-input">
+            <button 
+              type="button"
+              class="toggle-btn"
+              (click)="togglePassword()">
+              <ion-icon [name]="showPassword ? 'eye-off' : 'eye'"></ion-icon>
+            </button>
+          </div>
+        </div>
+
+        <!-- Confirm Password Field -->
+        <div class="form-group">
+          <label class="form-label">Confirm Password *</label>
+          <div class="input-field">
+            <ion-icon name="lock-closed" class="field-icon"></ion-icon>
+            <input 
+              [type]="showPassword ? 'text' : 'password'" 
+              name="confirmPassword" 
+              ngModel 
+              required 
+              minlength="6"
+              placeholder="Re-enter password"
+              class="form-input">
+          </div>
+        </div>
+      </div>
+
+      <!-- Password Note for Edit Mode -->
+      <div *ngIf="formMode === 'edit'" class="info-note">
+        <ion-icon name="information-circle" color="primary"></ion-icon>
+        <span>Password cannot be changed here. Use password reset feature if needed.</span>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="action-buttons">
+        <ion-button 
+          expand="block" 
+          type="submit" 
+          [disabled]="!isFormValid() || isLoading"
+          class="submit-btn"
+          [color]="formMode === 'create' ? 'primary' : 'success'">
+          <ion-spinner *ngIf="isLoading" slot="start"></ion-spinner>
+          <ion-icon *ngIf="!isLoading" 
+            [name]="formMode === 'create' ? 'person-add' : 'checkmark'" 
+            slot="start"></ion-icon>
+          {{ isLoading ? 
+            (formMode === 'create' ? 'Creating Employee...' : 'Updating Employee...') : 
+            (formMode === 'create' ? 'Create Employee Account' : 'Update Employee Account') }}
+        </ion-button>
+
+        <ion-button 
+          *ngIf="formMode === 'edit'"
+          expand="block" 
+          fill="outline" 
+          color="medium"
+          (click)="resetForm()"
+          class="cancel-btn">
+          <ion-icon name="close" slot="start"></ion-icon>
+          Cancel
+        </ion-button>
+      </div>
+
+    </form>
+
+  </ion-card-content>
+</ion-card>
+
+  <!-- Simplified Employee Report Modal -->
+  <ion-modal [isOpen]="showReportModal" (didDismiss)="closeReportModal()">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>Employee Analytics</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="closeReportModal()">
+              <ion-icon name="close"></ion-icon>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content class="ion-padding">
         
-        <!-- Username Field -->
-        <div class="form-group">
-          <label class="form-label">Username *</label>
-          <div class="input-field">
-            <ion-icon name="person-circle" class="field-icon"></ion-icon>
-            <input 
-              type="text" 
-              name="username" 
-              ngModel 
-              required 
-              minlength="3"
-              placeholder="Enter username"
-              class="form-input"
-              [disabled]="formMode === 'edit'">
-            <ion-note *ngIf="formMode === 'edit'" color="medium">
-              Username cannot be changed
-            </ion-note>
+        <!-- Analytics View Only -->
+        <div class="analytics-container">
+          <ion-grid>
+            <ion-row>
+              <ion-col size="6">
+                <ion-card color="primary">
+                  <ion-card-header>
+                    <ion-card-title>Total Employees</ion-card-title>
+                  </ion-card-header>
+                  <ion-card-content>
+                    <h1 class="analytics-number">{{ totalEmployees }}</h1>
+                  </ion-card-content>
+                </ion-card>
+              </ion-col>
+              <ion-col size="6">
+                <ion-card color="success">
+                  <ion-card-header>
+                    <ion-card-title>Active Employees</ion-card-title>
+                  </ion-card-header>
+                  <ion-card-content>
+                    <h1 class="analytics-number">{{ activeEmployees }}</h1>
+                  </ion-card-content>
+                </ion-card>
+              </ion-col>
+            </ion-row>
+            <ion-row>
+              <ion-col size="6">
+                <ion-card color="warning">
+                  <ion-card-header>
+                    <ion-card-title>Inactive Employees</ion-card-title>
+                  </ion-card-header>
+                  <ion-card-content>
+                    <h1 class="analytics-number">{{ inactiveEmployees }}</h1>
+                  </ion-card-content>
+                </ion-card>
+              </ion-col>
+              <ion-col size="6">
+                <ion-card color="danger">
+                  <ion-card-header>
+                    <ion-card-title>Total Monthly Salary</ion-card-title>
+                  </ion-card-header>
+                  <ion-card-content>
+                    <h1 class="analytics-number">₱{{ totalMonthlySalary.toLocaleString() }}</h1>
+                  </ion-card-content>
+                </ion-card>
+              </ion-col>
+            </ion-row>
+          </ion-grid>
+
+          <!-- Salary Records Summary -->
+          <ion-card>
+            <ion-card-header>
+              <ion-card-title>Recent Salary Payments</ion-card-title>
+            </ion-card-header>
+            <ion-card-content>
+              <ion-list>
+                <ion-item *ngFor="let record of salaryRecords.slice(0, 5)">
+                  <ion-label>
+                    <h3>{{ record.employee_name }}</h3>
+                    <p>₱{{ record.amount.toLocaleString() }}</p>
+                    <p>{{ record.period_start | date:'MMM d, y' }} - {{ record.period_end | date:'MMM d, y' }}</p>
+                  </ion-label>
+                  <ion-badge color="success" slot="end">
+                    {{ record.status }}
+                  </ion-badge>
+                </ion-item>
+              </ion-list>
+            </ion-card-content>
+          </ion-card>
+        </div>
+
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+
+  <!-- Updated Salary Management Modal -->
+  <ion-modal [isOpen]="showSalaryModal" (didDismiss)="closeSalaryModal()">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>Salary Management</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="closeSalaryModal()">
+              <ion-icon name="close"></ion-icon>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content class="ion-padding">
+        
+        <!-- Add Salary Record Form -->
+        <ion-card>
+          <ion-card-header>
+            <ion-card-title>Record Salary Payment</ion-card-title>
+            <ion-card-subtitle>All salary records are marked as paid</ion-card-subtitle>
+          </ion-card-header>
+          <ion-card-content>
+            <ion-item>
+              <ion-label position="stacked">Employee *</ion-label>
+              <ion-select [(ngModel)]="newSalaryRecord.employee_id" placeholder="Select Employee">
+                <ion-select-option *ngFor="let emp of employees" [value]="emp.id">
+                  {{ emp.full_name }} - {{ emp.position }}
+                </ion-select-option>
+              </ion-select>
+            </ion-item>
+
+            <ion-item>
+              <ion-label position="stacked">Amount *</ion-label>
+              <ion-input type="number" [(ngModel)]="newSalaryRecord.amount" placeholder="Enter amount"></ion-input>
+            </ion-item>
+
+            <ion-item>
+              <ion-label position="stacked">Period Start *</ion-label>
+              <ion-input type="date" [(ngModel)]="newSalaryRecord.period_start"></ion-input>
+            </ion-item>
+
+            <ion-item>
+              <ion-label position="stacked">Period End *</ion-label>
+              <ion-input type="date" [(ngModel)]="newSalaryRecord.period_end"></ion-input>
+            </ion-item>
+
+            <ion-item>
+              <ion-label position="stacked">Notes (Optional)</ion-label>
+              <ion-textarea [(ngModel)]="newSalaryRecord.notes" placeholder="Add any notes..."></ion-textarea>
+            </ion-item>
+
+            <ion-button expand="block" (click)="addSalaryRecord()" color="primary">
+              Record Salary Payment
+            </ion-button>
+          </ion-card-content>
+        </ion-card>
+
+        <!-- Salary Records List -->
+        <ion-card>
+          <ion-card-header>
+            <ion-card-title>Salary History</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <ion-list>
+              <ion-item *ngFor="let record of salaryRecords">
+                <ion-label>
+                  <h3>{{ record.employee_name }}</h3>
+                  <p>₱{{ record.amount.toLocaleString() }}</p>
+                  <p>{{ record.period_start | date:'MMM d, y' }} - {{ record.period_end | date:'MMM d, y' }}</p>
+                  <p *ngIf="record.notes" class="notes">{{ record.notes }}</p>
+                </ion-label>
+                <ion-badge color="success" slot="end">
+                  {{ record.status }}
+                </ion-badge>
+              </ion-item>
+            </ion-list>
+          </ion-card-content>
+        </ion-card>
+
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+  <!-- Search and Filter Section -->
+<ion-card>
+  <ion-card-header>
+    <ion-card-title>Search & Filter Employees</ion-card-title>
+  </ion-card-header>
+  <ion-card-content>
+    <ion-grid>
+      <ion-row>
+        <ion-col size="12" size-md="6">
+          <!-- Search Input -->
+          <ion-item>
+            <ion-icon name="search" slot="start"></ion-icon>
+            <ion-input
+              [(ngModel)]="searchTerm"
+              (ionInput)="onSearchInput()"
+              placeholder="Search by name, position, username..."
+              clearInput>
+            </ion-input>
+          </ion-item>
+        </ion-col>
+        <ion-col size="12" size-md="6">
+          <!-- Status Filter -->
+          <ion-item>
+            <ion-icon name="filter" slot="start"></ion-icon>
+            <ion-select 
+              [(ngModel)]="statusFilter" 
+              (ionChange)="onFilterChange()"
+              placeholder="Filter by status">
+              <ion-select-option value="all">All Employees</ion-select-option>
+              <ion-select-option value="active">Active Only</ion-select-option>
+              <ion-select-option value="inactive">Inactive Only</ion-select-option>
+            </ion-select>
+          </ion-item>
+        </ion-col>
+      </ion-row>
+      <ion-row>
+        <ion-col size="12">
+          <!-- Active Filters Display -->
+          <div class="active-filters" *ngIf="hasActiveFilters()">
+            <ion-chip *ngIf="searchTerm" color="primary" (click)="clearSearch()">
+              <ion-label>Search: "{{searchTerm}}"</ion-label>
+              <ion-icon name="close-circle"></ion-icon>
+            </ion-chip>
+            <ion-chip *ngIf="statusFilter !== 'all'" color="secondary" (click)="clearStatusFilter()">
+              <ion-label>Status: {{statusFilter === 'active' ? 'Active' : 'Inactive'}}</ion-label>
+              <ion-icon name="close-circle"></ion-icon>
+            </ion-chip>
+            <ion-button size="small" fill="clear" color="medium" (click)="clearAllFilters()">
+              Clear All
+            </ion-button>
           </div>
-        </div>
-
-        <!-- Full Name Field -->
-        <div class="form-group">
-          <label class="form-label">Full Name *</label>
-          <div class="input-field">
-            <ion-icon name="person" class="field-icon"></ion-icon>
-            <input 
-              type="text" 
-              name="full_name" 
-              ngModel 
-              required 
-              minlength="3"
-              placeholder="Enter full name"
-              class="form-input">
-          </div>
-        </div>
-
-        <!-- Email Field -->
-        <div class="form-group">
-          <label class="form-label">Email <span class="optional">(Optional)</span></label>
-          <div class="input-field">
-            <ion-icon name="mail" class="field-icon"></ion-icon>
-            <input 
-              type="email" 
-              name="email" 
-              ngModel
-              placeholder="Enter email address"
-              class="form-input">
-          </div>
-        </div>
-
-        <!-- Position Field -->
-        <div class="form-group">
-          <label class="form-label">Position *</label>
-          <div class="input-field">
-            <ion-icon name="briefcase" class="field-icon"></ion-icon>
-            <input 
-              type="text" 
-              name="position" 
-              ngModel 
-              required
-              placeholder="Enter employee position"
-              class="form-input">
-          </div>
-        </div>
-
-        <!-- Phone Number Field -->
-        <div class="form-group">
-          <label class="form-label">Phone Number <span class="optional">(Optional)</span></label>
-          <div class="input-field">
-            <ion-icon name="call" class="field-icon"></ion-icon>
-            <input 
-              type="tel" 
-              name="phone_number" 
-              ngModel
-              placeholder="Enter phone number"
-              class="form-input">
-          </div>
-        </div>
-
-        <!-- Address Fields -->
-        <div class="form-group">
-          <label class="form-label">Region *</label>
-          <div class="input-field" [class.loading]="isLoadingLocations">
-            <ion-icon name="location" class="field-icon"></ion-icon>
-            <input 
-              type="text" 
-              [value]="getRegionName(selectedRegion)"
-              (click)="openRegionSelection()"
-              readonly
-              placeholder="Select Region"
-              class="form-input clickable-input">
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Province *</label>
-          <div class="input-field">
-            <ion-icon name="location" class="field-icon"></ion-icon>
-            <input 
-              type="text" 
-              [value]="selectedProvince"
-              (click)="openProvinceSelection()"
-              [disabled]="!selectedRegion"
-              readonly
-              placeholder="{{ !selectedRegion ? 'Select region first' : 'Select Province' }}"
-              class="form-input clickable-input">
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Municipality/City *</label>
-          <div class="input-field">
-            <ion-icon name="business" class="field-icon"></ion-icon>
-            <input 
-              type="text" 
-              [value]="selectedMunicipality"
-              (click)="openMunicipalitySelection()"
-              [disabled]="!selectedProvince"
-              readonly
-              placeholder="{{ !selectedProvince ? 'Select province first' : 'Select Municipality/City' }}"
-              class="form-input clickable-input">
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Barangay *</label>
-          <div class="input-field">
-            <ion-icon name="home" class="field-icon"></ion-icon>
-            <input 
-              type="text" 
-              [value]="selectedBarangay"
-              (click)="openBarangaySelection()"
-              [disabled]="!selectedMunicipality"
-              readonly
-              placeholder="{{ !selectedMunicipality ? 'Select municipality first' : 'Select Barangay' }}"
-              class="form-input clickable-input">
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Sitio/Purok <span class="optional">(Optional)</span></label>
-          <div class="input-field">
-            <ion-icon name="navigate" class="field-icon"></ion-icon>
-            <input 
-              type="text" 
-              name="sitio_purok" 
-              ngModel 
-              placeholder="Enter sitio/purok"
-              class="form-input">
-          </div>
-        </div>
-
-        <!-- Password Fields (Only for Create Mode) -->
-        <div *ngIf="formMode === 'create'">
-          <!-- Password Field -->
-          <div class="form-group">
-            <label class="form-label">Password *</label>
-            <div class="input-field">
-              <ion-icon name="lock-closed" class="field-icon"></ion-icon>
-              <input 
-                [type]="showPassword ? 'text' : 'password'" 
-                name="password" 
-                ngModel 
-                required 
-                minlength="6"
-                placeholder="Enter password"
-                class="form-input">
-              <button 
-                type="button"
-                class="toggle-btn"
-                (click)="togglePassword()">
-                <ion-icon [name]="showPassword ? 'eye-off' : 'eye'"></ion-icon>
-              </button>
-            </div>
-          </div>
-
-          <!-- Confirm Password Field -->
-          <div class="form-group">
-            <label class="form-label">Confirm Password *</label>
-            <div class="input-field">
-              <ion-icon name="lock-closed" class="field-icon"></ion-icon>
-              <input 
-                [type]="showPassword ? 'text' : 'password'" 
-                name="confirmPassword" 
-                ngModel 
-                required 
-                minlength="6"
-                placeholder="Re-enter password"
-                class="form-input">
-            </div>
-          </div>
-        </div>
-
-        <!-- Password Note for Edit Mode -->
-        <div *ngIf="formMode === 'edit'" class="info-note">
-          <ion-icon name="information-circle" color="primary"></ion-icon>
-          <span>Password cannot be changed here. Use password reset feature if needed.</span>
-        </div>
-
-        <!-- Action Buttons -->
-        <div class="action-buttons">
-          <ion-button 
-            expand="block" 
-            type="submit" 
-            [disabled]="!isFormValid() || isLoading"
-            class="submit-btn"
-            [color]="formMode === 'create' ? 'primary' : 'success'">
-            <ion-spinner *ngIf="isLoading" slot="start"></ion-spinner>
-            <ion-icon *ngIf="!isLoading" 
-              [name]="formMode === 'create' ? 'person-add' : 'checkmark'" 
-              slot="start"></ion-icon>
-            {{ isLoading ? 
-              (formMode === 'create' ? 'Creating Employee...' : 'Updating Employee...') : 
-              (formMode === 'create' ? 'Create Employee Account' : 'Update Employee Account') }}
-          </ion-button>
-
-          <ion-button 
-            *ngIf="formMode === 'edit'"
-            expand="block" 
-            fill="outline" 
-            color="medium"
-            (click)="resetForm()"
-            class="cancel-btn">
-            <ion-icon name="close" slot="start"></ion-icon>
-            Cancel
-          </ion-button>
-        </div>
-
-      </form>
-
-    </ion-card-content>
-  </ion-card>
+        </ion-col>
+      </ion-row>
+    </ion-grid>
+  </ion-card-content>
+</ion-card>
 
 <!-- Employees List -->
 <ion-card>
   <ion-card-header>
-    <ion-card-title>My Employees ({{ employees.length }})</ion-card-title>
+    <ion-card-title>
+      My Employees 
+      <ion-badge color="primary">{{ filteredEmployees.length }}</ion-badge>
+      <span *ngIf="hasActiveFilters()" class="filtered-count">
+        (of {{ employees.length }} total)
+      </span>
+    </ion-card-title>
     <ion-card-subtitle>Swipe left for more actions</ion-card-subtitle>
   </ion-card-header>
   <ion-card-content>
@@ -282,21 +569,31 @@
       <p>Loading employees...</p>
     </div>
 
-    <!-- Empty State -->
-    <div *ngIf="!isLoadingEmployees && employees.length === 0" class="empty-state">
+    <!-- No Results State -->
+    <div *ngIf="!isLoadingEmployees && hasActiveFilters() && filteredEmployees.length === 0" class="empty-state">
+      <ion-icon name="search-outline" size="large" color="medium"></ion-icon>
+      <h3>No Employees Found</h3>
+      <p>No employees match your search criteria</p>
+      <ion-button fill="outline" (click)="clearAllFilters()">
+        Clear Filters
+      </ion-button>
+    </div>
+
+    <!-- Empty State (No filters) -->
+    <div *ngIf="!isLoadingEmployees && !hasActiveFilters() && employees.length === 0" class="empty-state">
       <ion-icon name="people-outline" size="large" color="medium"></ion-icon>
       <h3>No Employees Yet</h3>
       <p>Add your first employee to get started</p>
     </div>
 
     <!-- Employees List - Clean Design -->
-    <ion-list lines="full" *ngIf="!isLoadingEmployees && employees.length > 0" class="employee-list">
-      <ion-item-sliding *ngFor="let employee of employees" class="employee-item">
+    <ion-list lines="full" *ngIf="!isLoadingEmployees && filteredEmployees.length > 0" class="employee-list">
+      <ion-item-sliding *ngFor="let employee of filteredEmployees" class="employee-item">
         <ion-item 
           [class.editing]="editingEmployeeId === employee.id"
           [class.inactive]="employee.status === 'inactive'"
           class="employee-main-item">
-          
+            
           <!-- Employee Avatar with Profile Image -->
           <ion-avatar slot="start" class="employee-avatar">
             <div class="avatar-content" [class.active]="employee.status === 'active'">
@@ -325,6 +622,10 @@
               <span class="employee-username">
                 <ion-icon name="person-outline" size="small"></ion-icon>
                 {{ employee.username }}
+              </span>
+              <span class="employee-salary">
+                <ion-icon name="cash-outline" size="small"></ion-icon>
+                ₱{{ (employee.latestSalary || 0).toLocaleString() }}
               </span>
               <ion-badge 
                 [color]="employee.status === 'active' ? 'success' : 'medium'" 
@@ -383,301 +684,303 @@
   </ion-card-content>
 </ion-card>
 
-<!-- Employee Details Modal -->
-<ion-modal [isOpen]="showEmployeeDetails" (didDismiss)="closeEmployeeDetails()">
-  <ng-template>
-    <ion-header>
-      <ion-toolbar>
-        <ion-title>Employee Details</ion-title>
-        <ion-buttons slot="end">
-          <ion-button (click)="closeEmployeeDetails()">
-            <ion-icon name="close"></ion-icon>
-          </ion-button>
-        </ion-buttons>
-      </ion-toolbar>
-    </ion-header>
-    <ion-content class="ion-padding" *ngIf="selectedEmployee">
-      <div class="employee-details">
-        
-        <!-- Profile Header - UPDATED TO SHOW PROFILE IMAGE -->
-        <div class="profile-header">
-          <ion-avatar class="profile-avatar">
-            <img 
-              *ngIf="selectedEmployeeProfile?.profile_image; else defaultProfileAvatar"
-              [src]="selectedEmployeeProfile?.profile_image" 
-              alt="{{ selectedEmployee.full_name }}"
-              class="profile-image-modal"
-              (error)="selectedEmployee.profileImageError = true">
-            <ng-template #defaultProfileAvatar>
-              <div class="default-avatar-modal" [style.background]="getAvatarColor(selectedEmployee.full_name)">
-                {{ getInitials(selectedEmployee.full_name) }}
-              </div>
-            </ng-template>
-          </ion-avatar>
-          <h2>{{ selectedEmployee.full_name }}</h2>
-          <p class="position">{{ selectedEmployee.position || 'No position specified' }}</p>
-          <ion-badge [color]="selectedEmployee.status === 'active' ? 'success' : 'danger'">
-            {{ selectedEmployee.status | uppercase }}
-          </ion-badge>
+  <!-- Employee Details Modal -->
+  <ion-modal [isOpen]="showEmployeeDetails" (didDismiss)="closeEmployeeDetails()">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>Employee Details</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="closeEmployeeDetails()">
+              <ion-icon name="close"></ion-icon>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content class="ion-padding" *ngIf="selectedEmployee">
+        <div class="employee-details">
+          
+          <!-- Profile Header - UPDATED TO SHOW PROFILE IMAGE -->
+          <div class="profile-header">
+            <ion-avatar class="profile-avatar">
+              <img 
+                *ngIf="selectedEmployeeProfile?.profile_image; else defaultProfileAvatar"
+                [src]="selectedEmployeeProfile?.profile_image" 
+                alt="{{ selectedEmployee.full_name }}"
+                class="profile-image-modal"
+                (error)="selectedEmployee.profileImageError = true">
+              <ng-template #defaultProfileAvatar>
+                <div class="default-avatar-modal" [style.background]="getAvatarColor(selectedEmployee.full_name)">
+                  {{ getInitials(selectedEmployee.full_name) }}
+                </div>
+              </ng-template>
+            </ion-avatar>
+            <h2>{{ selectedEmployee.full_name }}</h2>
+            <p class="position">{{ selectedEmployee.position || 'No position specified' }}</p>
+            <ion-badge [color]="selectedEmployee.status === 'active' ? 'success' : 'danger'">
+              {{ selectedEmployee.status | uppercase }}
+            </ion-badge>
+          </div>
+
+          <!-- Basic Information -->
+          <ion-card>
+            <ion-card-header>
+              <ion-card-title>Basic Information</ion-card-title>
+            </ion-card-header>
+            <ion-card-content>
+              <ion-list lines="none">
+                <ion-item>
+                  <ion-label><strong>Username:</strong></ion-label>
+                  <ion-text>{{ selectedEmployee.username }}</ion-text>
+                </ion-item>
+                <ion-item>
+                  <ion-label><strong>Email:</strong></ion-label>
+                  <ion-text>{{ selectedEmployee.email || 'Not provided' }}</ion-text>
+                </ion-item>
+                <ion-item>
+                  <ion-label><strong>Phone:</strong></ion-label>
+                  <ion-text>{{ selectedEmployee.phone_number || 'Not provided' }}</ion-text>
+                </ion-item>
+                <ion-item>
+                  <ion-label><strong>Position:</strong></ion-label>
+                  <ion-text>{{ selectedEmployee.position || 'Not specified' }}</ion-text>
+                </ion-item>
+                <ion-item>
+                  <ion-label><strong>Latest Salary:</strong></ion-label>
+                  <ion-text>₱{{ (selectedEmployee.latestSalary || 0).toLocaleString() }}</ion-text>
+                </ion-item>
+                <ion-item>
+                  <ion-label><strong>Address:</strong></ion-label>
+                  <ion-text class="address-text">
+                    {{ selectedEmployee.sitio_purok ? selectedEmployee.sitio_purok + ', ' : '' }}
+                    {{ selectedEmployee.barangay }}, 
+                    {{ selectedEmployee.municipality }}, 
+                    {{ selectedEmployee.province }}
+                  </ion-text>
+                </ion-item>
+              </ion-list>
+            </ion-card-content>
+          </ion-card>
+
+          <!-- Employee Profile Information (from employee_profiles) -->
+          <ion-card *ngIf="selectedEmployeeProfile">
+            <ion-card-header>
+              <ion-card-title>Employee Profile Details</ion-card-title>
+            </ion-card-header>
+            <ion-card-content>
+              <ion-list lines="none">
+                <ion-item *ngIf="selectedEmployeeProfile.facebook_url">
+                  <ion-label><strong>Facebook:</strong></ion-label>
+                  <ion-text>
+                    <a [href]="selectedEmployeeProfile.facebook_url" target="_blank">View Profile</a>
+                  </ion-text>
+                </ion-item>
+                <ion-item *ngIf="selectedEmployeeProfile.instagram_url">
+                  <ion-label><strong>Instagram:</strong></ion-label>
+                  <ion-text>
+                    <a [href]="selectedEmployeeProfile.instagram_url" target="_blank">View Profile</a>
+                  </ion-text>
+                </ion-item>
+                <ion-item *ngIf="selectedEmployeeProfile.hire_date">
+                  <ion-label><strong>Hire Date:</strong></ion-label>
+                  <ion-text>{{ selectedEmployeeProfile.hire_date?.toDate() | date:'MMM d, y' }}</ion-text>
+                </ion-item>
+              </ion-list>
+            </ion-card-content>
+          </ion-card>
+
+          <!-- Emergency Contact -->
+          <ion-card *ngIf="selectedEmployeeProfile?.emergency_contact?.name">
+            <ion-card-header>
+              <ion-card-title>Emergency Contact</ion-card-title>
+            </ion-card-header>
+            <ion-card-content>
+              <ion-list lines="none">
+                <ion-item>
+                  <ion-label><strong>Name:</strong></ion-label>
+                  <ion-text>{{ selectedEmployeeProfile?.emergency_contact?.name || 'Not provided' }}</ion-text>
+                </ion-item>
+                <ion-item>
+                  <ion-label><strong>Relationship:</strong></ion-label>
+                  <ion-text>{{ selectedEmployeeProfile?.emergency_contact?.relationship || 'Not provided' }}</ion-text>
+                </ion-item>
+                <ion-item>
+                  <ion-label><strong>Phone:</strong></ion-label>
+                  <ion-text>{{ selectedEmployeeProfile?.emergency_contact?.phone_number || 'Not provided' }}</ion-text>
+                </ion-item>
+              </ion-list>
+            </ion-card-content>
+          </ion-card>
+
+          <!-- Account Information -->
+          <ion-card>
+            <ion-card-header>
+              <ion-card-title>Account Information</ion-card-title>
+            </ion-card-header>
+            <ion-card-content>
+              <ion-list lines="none">
+                <ion-item>
+                  <ion-label><strong>Created:</strong></ion-label>
+                  <ion-text>{{ selectedEmployee.created_at?.toDate() | date:'MMM d, y h:mm a' }}</ion-text>
+                </ion-item>
+                <ion-item>
+                  <ion-label><strong>Last Updated:</strong></ion-label>
+                  <ion-text>{{ selectedEmployee.updated_at?.toDate() | date:'MMM d, y h:mm a' }}</ion-text>
+                </ion-item>
+                <ion-item>
+                  <ion-label><strong>Role:</strong></ion-label>
+                  <ion-badge color="primary">{{ selectedEmployee.role }}</ion-badge>
+                </ion-item>
+                <ion-item>
+                  <ion-label><strong>Status:</strong></ion-label>
+                  <ion-badge [color]="selectedEmployee.status === 'active' ? 'success' : 'danger'">
+                    {{ selectedEmployee.status | uppercase }}
+                  </ion-badge>
+                </ion-item>
+              </ion-list>
+            </ion-card-content>
+          </ion-card>
+
         </div>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
 
-        <!-- Rest of your modal content remains the same -->
-        <ion-card>
-          <ion-card-header>
-            <ion-card-title>Basic Information</ion-card-title>
-          </ion-card-header>
-          <ion-card-content>
-            <ion-list lines="none">
-              <ion-item>
-                <ion-label><strong>Username:</strong></ion-label>
-                <ion-text>{{ selectedEmployee.username }}</ion-text>
-              </ion-item>
-              <ion-item>
-                <ion-label><strong>Email:</strong></ion-label>
-                <ion-text>{{ selectedEmployee.email || 'Not provided' }}</ion-text>
-              </ion-item>
-              <ion-item>
-                <ion-label><strong>Phone:</strong></ion-label>
-                <ion-text>{{ selectedEmployee.phone_number || 'Not provided' }}</ion-text>
-              </ion-item>
-              <ion-item>
-                <ion-label><strong>Position:</strong></ion-label>
-                <ion-text>{{ selectedEmployee.position || 'Not specified' }}</ion-text>
-              </ion-item>
-              <ion-item>
-                <ion-label><strong>Address:</strong></ion-label>
-                <ion-text class="address-text">
-                  {{ selectedEmployee.sitio_purok ? selectedEmployee.sitio_purok + ', ' : '' }}
-                  {{ selectedEmployee.barangay }}, 
-                  {{ selectedEmployee.municipality }}, 
-                  {{ selectedEmployee.province }}
-                </ion-text>
-              </ion-item>
-            </ion-list>
-          </ion-card-content>
-        </ion-card>
+  <!-- Selection Modals -->
+  <ion-modal [isOpen]="showRegionModal" (didDismiss)="closeRegionSelection()">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>Select Region</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="closeRegionSelection()">
+              <ion-icon name="close"></ion-icon>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+        <ion-toolbar>
+          <ion-searchbar 
+            [(ngModel)]="searchRegion"
+            (ionInput)="onRegionSearch()"
+            placeholder="Search region..."
+            animated>
+          </ion-searchbar>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content>
+        <ion-list>
+          <ion-item 
+            *ngFor="let region of filteredRegions" 
+            (click)="selectRegion(region.code)"
+            [class.selected]="selectedRegion === region.code">
+            <ion-label>{{ region.name }}</ion-label>
+            <ion-icon *ngIf="selectedRegion === region.code" name="checkmark" slot="end" color="primary"></ion-icon>
+          </ion-item>
+        </ion-list>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
 
-        <!-- Employee Profile Information (from employee_profiles) -->
-        <ion-card *ngIf="selectedEmployeeProfile">
-          <ion-card-header>
-            <ion-card-title>Employee Profile Details</ion-card-title>
-          </ion-card-header>
-          <ion-card-content>
-            <ion-list lines="none">
-              <ion-item *ngIf="selectedEmployeeProfile.facebook_url">
-                <ion-label><strong>Facebook:</strong></ion-label>
-                <ion-text>
-                  <a [href]="selectedEmployeeProfile.facebook_url" target="_blank">View Profile</a>
-                </ion-text>
-              </ion-item>
-              <ion-item *ngIf="selectedEmployeeProfile.instagram_url">
-                <ion-label><strong>Instagram:</strong></ion-label>
-                <ion-text>
-                  <a [href]="selectedEmployeeProfile.instagram_url" target="_blank">View Profile</a>
-                </ion-text>
-              </ion-item>
-              <ion-item *ngIf="selectedEmployeeProfile.salary">
-                <ion-label><strong>Salary:</strong></ion-label>
-                <ion-text>₱{{ selectedEmployeeProfile.salary | number }}</ion-text>
-              </ion-item>
-              <ion-item *ngIf="selectedEmployeeProfile.hire_date">
-                <ion-label><strong>Hire Date:</strong></ion-label>
-                <ion-text>{{ selectedEmployeeProfile.hire_date?.toDate() | date:'MMM d, y' }}</ion-text>
-              </ion-item>
-            </ion-list>
-          </ion-card-content>
-        </ion-card>
+  <ion-modal [isOpen]="showProvinceModal" (didDismiss)="closeProvinceSelection()">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>Select Province</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="closeProvinceSelection()">
+              <ion-icon name="close"></ion-icon>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+        <ion-toolbar>
+          <ion-searchbar 
+            [(ngModel)]="searchProvince"
+            (ionInput)="onProvinceSearch()"
+            placeholder="Search province..."
+            animated>
+          </ion-searchbar>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content>
+        <ion-list>
+          <ion-item 
+            *ngFor="let province of filteredProvinces" 
+            (click)="selectProvince(province)"
+            [class.selected]="selectedProvince === province">
+            <ion-label>{{ province }}</ion-label>
+            <ion-icon *ngIf="selectedProvince === province" name="checkmark" slot="end" color="primary"></ion-icon>
+          </ion-item>
+        </ion-list>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
 
-        <!-- Emergency Contact -->
-        <ion-card *ngIf="selectedEmployeeProfile?.emergency_contact?.name">
-          <ion-card-header>
-            <ion-card-title>Emergency Contact</ion-card-title>
-          </ion-card-header>
-          <ion-card-content>
-            <ion-list lines="none">
-              <ion-item>
-                <ion-label><strong>Name:</strong></ion-label>
-                <ion-text>{{ selectedEmployeeProfile?.emergency_contact?.name || 'Not provided' }}</ion-text>
-              </ion-item>
-              <ion-item>
-                <ion-label><strong>Relationship:</strong></ion-label>
-                <ion-text>{{ selectedEmployeeProfile?.emergency_contact?.relationship || 'Not provided' }}</ion-text>
-              </ion-item>
-              <ion-item>
-                <ion-label><strong>Phone:</strong></ion-label>
-                <ion-text>{{ selectedEmployeeProfile?.emergency_contact?.phone_number || 'Not provided' }}</ion-text>
-              </ion-item>
-            </ion-list>
-          </ion-card-content>
-        </ion-card>
+  <ion-modal [isOpen]="showMunicipalityModal" (didDismiss)="closeMunicipalitySelection()">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>Select Municipality/City</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="closeMunicipalitySelection()">
+              <ion-icon name="close"></ion-icon>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+        <ion-toolbar>
+          <ion-searchbar 
+            [(ngModel)]="searchMunicipality"
+            (ionInput)="onMunicipalitySearch()"
+            placeholder="Search municipality/city..."
+            animated>
+          </ion-searchbar>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content>
+        <ion-list>
+          <ion-item 
+            *ngFor="let municipality of filteredMunicipalities" 
+            (click)="selectMunicipality(municipality)"
+            [class.selected]="selectedMunicipality === municipality">
+            <ion-label>{{ municipality }}</ion-label>
+            <ion-icon *ngIf="selectedMunicipality === municipality" name="checkmark" slot="end" color="primary"></ion-icon>
+          </ion-item>
+        </ion-list>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
 
-        <!-- Account Information -->
-        <ion-card>
-          <ion-card-header>
-            <ion-card-title>Account Information</ion-card-title>
-          </ion-card-header>
-          <ion-card-content>
-            <ion-list lines="none">
-              <ion-item>
-                <ion-label><strong>Created:</strong></ion-label>
-                <ion-text>{{ selectedEmployee.created_at?.toDate() | date:'MMM d, y h:mm a' }}</ion-text>
-              </ion-item>
-              <ion-item>
-                <ion-label><strong>Last Updated:</strong></ion-label>
-                <ion-text>{{ selectedEmployee.updated_at?.toDate() | date:'MMM d, y h:mm a' }}</ion-text>
-              </ion-item>
-              <ion-item>
-                <ion-label><strong>Role:</strong></ion-label>
-                <ion-badge color="primary">{{ selectedEmployee.role }}</ion-badge>
-              </ion-item>
-              <ion-item>
-                <ion-label><strong>Status:</strong></ion-label>
-                <ion-badge [color]="selectedEmployee.status === 'active' ? 'success' : 'danger'">
-                  {{ selectedEmployee.status | uppercase }}
-                </ion-badge>
-              </ion-item>
-            </ion-list>
-          </ion-card-content>
-        </ion-card>
+  <ion-modal [isOpen]="showBarangayModal" (didDismiss)="closeBarangaySelection()">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>Select Barangay</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="closeBarangaySelection()">
+              <ion-icon name="close"></ion-icon>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+        <ion-toolbar>
+          <ion-searchbar 
+            [(ngModel)]="searchBarangay"
+            (ionInput)="onBarangaySearch()"
+            placeholder="Search barangay..."
+            animated>
+          </ion-searchbar>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content>
+        <ion-list>
+          <ion-item 
+            *ngFor="let barangay of filteredBarangays" 
+            (click)="selectBarangay(barangay)"
+            [class.selected]="selectedBarangay === barangay">
+            <ion-label>{{ barangay }}</ion-label>
+            <ion-icon *ngIf="selectedBarangay === barangay" name="checkmark" slot="end" color="primary"></ion-icon>
+          </ion-item>
+        </ion-list>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
 
-      </div>
-    </ion-content>
-  </ng-template>
-</ion-modal>
-
-<!-- Selection Modals -->
-<ion-modal [isOpen]="showRegionModal" (didDismiss)="closeRegionSelection()">
-  <ng-template>
-    <ion-header>
-      <ion-toolbar>
-        <ion-title>Select Region</ion-title>
-        <ion-buttons slot="end">
-          <ion-button (click)="closeRegionSelection()">
-            <ion-icon name="close"></ion-icon>
-          </ion-button>
-        </ion-buttons>
-      </ion-toolbar>
-      <ion-toolbar>
-        <ion-searchbar 
-          [(ngModel)]="searchRegion"
-          (ionInput)="onRegionSearch()"
-          placeholder="Search region..."
-          animated>
-        </ion-searchbar>
-      </ion-toolbar>
-    </ion-header>
-    <ion-content>
-      <ion-list>
-        <ion-item 
-          *ngFor="let region of filteredRegions" 
-          (click)="selectRegion(region.code)"
-          [class.selected]="selectedRegion === region.code">
-          <ion-label>{{ region.name }}</ion-label>
-          <ion-icon *ngIf="selectedRegion === region.code" name="checkmark" slot="end" color="primary"></ion-icon>
-        </ion-item>
-      </ion-list>
-    </ion-content>
-  </ng-template>
-</ion-modal>
-
-<ion-modal [isOpen]="showProvinceModal" (didDismiss)="closeProvinceSelection()">
-  <ng-template>
-    <ion-header>
-      <ion-toolbar>
-        <ion-title>Select Province</ion-title>
-        <ion-buttons slot="end">
-          <ion-button (click)="closeProvinceSelection()">
-            <ion-icon name="close"></ion-icon>
-          </ion-button>
-        </ion-buttons>
-      </ion-toolbar>
-      <ion-toolbar>
-        <ion-searchbar 
-          [(ngModel)]="searchProvince"
-          (ionInput)="onProvinceSearch()"
-          placeholder="Search province..."
-          animated>
-        </ion-searchbar>
-      </ion-toolbar>
-    </ion-header>
-    <ion-content>
-      <ion-list>
-        <ion-item 
-          *ngFor="let province of filteredProvinces" 
-          (click)="selectProvince(province)"
-          [class.selected]="selectedProvince === province">
-          <ion-label>{{ province }}</ion-label>
-          <ion-icon *ngIf="selectedProvince === province" name="checkmark" slot="end" color="primary"></ion-icon>
-        </ion-item>
-      </ion-list>
-    </ion-content>
-  </ng-template>
-</ion-modal>
-
-<ion-modal [isOpen]="showMunicipalityModal" (didDismiss)="closeMunicipalitySelection()">
-  <ng-template>
-    <ion-header>
-      <ion-toolbar>
-        <ion-title>Select Municipality/City</ion-title>
-        <ion-buttons slot="end">
-          <ion-button (click)="closeMunicipalitySelection()">
-            <ion-icon name="close"></ion-icon>
-          </ion-button>
-        </ion-buttons>
-      </ion-toolbar>
-      <ion-toolbar>
-        <ion-searchbar 
-          [(ngModel)]="searchMunicipality"
-          (ionInput)="onMunicipalitySearch()"
-          placeholder="Search municipality/city..."
-          animated>
-        </ion-searchbar>
-      </ion-toolbar>
-    </ion-header>
-    <ion-content>
-      <ion-list>
-        <ion-item 
-          *ngFor="let municipality of filteredMunicipalities" 
-          (click)="selectMunicipality(municipality)"
-          [class.selected]="selectedMunicipality === municipality">
-          <ion-label>{{ municipality }}</ion-label>
-          <ion-icon *ngIf="selectedMunicipality === municipality" name="checkmark" slot="end" color="primary"></ion-icon>
-        </ion-item>
-      </ion-list>
-    </ion-content>
-  </ng-template>
-</ion-modal>
-
-<ion-modal [isOpen]="showBarangayModal" (didDismiss)="closeBarangaySelection()">
-  <ng-template>
-    <ion-header>
-      <ion-toolbar>
-        <ion-title>Select Barangay</ion-title>
-        <ion-buttons slot="end">
-          <ion-button (click)="closeBarangaySelection()">
-            <ion-icon name="close"></ion-icon>
-          </ion-button>
-        </ion-buttons>
-      </ion-toolbar>
-      <ion-toolbar>
-        <ion-searchbar 
-          [(ngModel)]="searchBarangay"
-          (ionInput)="onBarangaySearch()"
-          placeholder="Search barangay..."
-          animated>
-        </ion-searchbar>
-      </ion-toolbar>
-    </ion-header>
-    <ion-content>
-      <ion-list>
-        <ion-item 
-          *ngFor="let barangay of filteredBarangays" 
-          (click)="selectBarangay(barangay)"
-          [class.selected]="selectedBarangay === barangay">
-          <ion-label>{{ barangay }}</ion-label>
-          <ion-icon *ngIf="selectedBarangay === barangay" name="checkmark" slot="end" color="primary"></ion-icon>
-        </ion-item>
-      </ion-list>
-    </ion-content>
-  </ng-template>
-</ion-modal>
+</ion-content>

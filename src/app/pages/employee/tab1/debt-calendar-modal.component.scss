@@ -1,0 +1,338 @@
+.employee-info-card {
+  margin-bottom: 16px;
+  
+  .employee-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    
+    ion-icon {
+      font-size: 24px;
+    }
+    
+    h3 {
+      margin: 0 0 4px 0;
+      font-size: 1em;
+      font-weight: 600;
+    }
+    
+    p {
+      margin: 0;
+      color: var(--ion-color-medium);
+      font-size: 0.85em;
+    }
+  }
+}
+
+.calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 20px 0;
+  
+  .month-title {
+    margin: 0;
+    font-size: 1.2em;
+    font-weight: 600;
+    color: var(--ion-color-dark);
+  }
+}
+
+.calendar-grid {
+  background: var(--ion-color-light);
+  border-radius: 12px;
+  padding: 8px;
+  margin-bottom: 20px;
+  
+  .weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    margin-bottom: 8px;
+    
+    .weekday {
+      text-align: center;
+      font-size: 0.8em;
+      font-weight: 600;
+      color: var(--ion-color-medium);
+      padding: 8px 4px;
+    }
+  }
+  
+  .week {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    margin-bottom: 4px;
+    
+    .day {
+      aspect-ratio: 1;
+      background: white;
+      border-radius: 8px;
+      padding: 6px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: 2px solid transparent;
+      
+      &:active {
+        transform: scale(0.95);
+      }
+      
+      &.current-month {
+        .day-number {
+          color: var(--ion-color-dark);
+        }
+      }
+      
+      &:not(.current-month) {
+        .day-number {
+          color: var(--ion-color-medium);
+          opacity: 0.5;
+        }
+      }
+      
+      &.today {
+        border-color: var(--ion-color-primary);
+        background: rgba(var(--ion-color-primary-rgb), 0.1);
+      }
+      
+      &.has-events {
+        background: rgba(var(--ion-color-warning-rgb), 0.05);
+      }
+      
+      .day-number {
+        font-size: 0.9em;
+        font-weight: 600;
+        margin-bottom: 4px;
+      }
+      
+      .event-indicators {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 2px;
+        justify-content: center;
+        
+        .event-indicator {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          
+          &.primary { background: var(--ion-color-primary); }
+          &.warning { background: var(--ion-color-warning); }
+          &.danger { background: var(--ion-color-danger); }
+        }
+        
+        .event-count {
+          font-size: 0.6em;
+          color: var(--ion-color-medium);
+          margin-left: 2px;
+        }
+      }
+    }
+  }
+}
+
+.events-list-card {
+  .event-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--ion-color-light-shade);
+    
+    &:last-child {
+      border-bottom: none;
+    }
+    
+    .event-date {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 50px;
+      
+      .event-day {
+        font-size: 1.4em;
+        font-weight: 700;
+        color: var(--ion-color-primary);
+        line-height: 1;
+      }
+      
+      .event-month {
+        font-size: 0.8em;
+        color: var(--ion-color-medium);
+        text-transform: uppercase;
+      }
+    }
+    
+    .event-details {
+      flex: 1;
+      
+      h4 {
+        margin: 0 0 6px 0;
+        font-size: 0.95em;
+        font-weight: 600;
+      }
+      
+      .event-type {
+        margin: 0 0 4px 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.85em;
+        
+        .event-amount {
+          color: var(--ion-color-dark);
+          font-weight: 500;
+        }
+      }
+      
+      .event-status {
+        margin: 0;
+        font-size: 0.8em;
+        color: var(--ion-color-medium);
+        
+        &.overdue {
+          color: var(--ion-color-danger);
+          font-weight: 500;
+        }
+      }
+    }
+    
+    .event-status-icon {
+      ion-icon {
+        font-size: 20px;
+      }
+    }
+  }
+}
+
+.date-events {
+  .event-item.detailed {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 16px;
+    margin-bottom: 12px;
+    background: white;
+    border-radius: 12px;
+    border-left: 4px solid var(--ion-color-primary);
+    
+    .event-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      
+      ion-icon {
+        font-size: 20px;
+      }
+      
+      &.primary { background: var(--ion-color-primary); }
+      &.warning { background: var(--ion-color-warning); }
+      &.danger { background: var(--ion-color-danger); }
+    }
+    
+    .event-content {
+      flex: 1;
+      
+      h3 {
+        margin: 0 0 8px 0;
+        font-size: 1em;
+        font-weight: 600;
+      }
+      
+      .event-meta {
+        margin: 0 0 8px 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.85em;
+        
+        .event-time {
+          color: var(--ion-color-medium);
+        }
+      }
+      
+      .event-amount-large {
+        margin: 0 0 8px 0;
+        font-size: 1.2em;
+        font-weight: 700;
+        color: var(--ion-color-dark);
+      }
+      
+      .event-status {
+        margin: 0 0 4px 0;
+        font-size: 0.85em;
+        color: var(--ion-color-medium);
+        
+        .overdue-badge {
+          background: var(--ion-color-danger);
+          color: white;
+          padding: 2px 6px;
+          border-radius: 4px;
+          font-size: 0.7em;
+          margin-left: 8px;
+        }
+        
+        &.overdue {
+          color: var(--ion-color-danger);
+          font-weight: 500;
+        }
+      }
+      
+      .event-id {
+        margin: 0;
+        font-size: 0.75em;
+        color: var(--ion-color-medium);
+        font-family: monospace;
+      }
+    }
+  }
+}
+
+.no-events {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--ion-color-medium);
+  
+  ion-icon {
+    font-size: 64px;
+    margin-bottom: 16px;
+  }
+  
+  h3 {
+    margin: 0 0 8px 0;
+    font-size: 1.1em;
+  }
+  
+  p {
+    margin: 0;
+    font-size: 0.9em;
+  }
+}
+
+.back-button {
+  margin-top: 20px;
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .calendar-grid {
+    .week {
+      .day {
+        padding: 4px;
+        
+        .day-number {
+          font-size: 0.8em;
+        }
+      }
+    }
+  }
+}

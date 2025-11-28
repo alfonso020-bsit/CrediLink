@@ -1,0 +1,592 @@
+// tab3.page.scss
+
+// Blue Header Styles
+ion-toolbar {
+  --background: #3880ff; // Ionic primary blue
+  --color: white;
+  
+  ion-title {
+    color: white;
+    font-weight: 600;
+  }
+  
+  ion-button {
+    --color: white;
+    --background: transparent;
+    --background-hover: rgba(255, 255, 255, 0.1);
+    --background-activated: rgba(255, 255, 255, 0.2);
+    
+    ion-icon {
+      color: white;
+    }
+  }
+  
+  ion-badge {
+    --background: #eb445a; // Ionic danger red for contrast
+    --color: white;
+  }
+}
+
+// Notifications Panel in Header
+.notifications-panel {
+  --background: #4d8cff; // Lighter blue for notification panel
+  --color: white;
+  
+  ion-title {
+    color: white;
+  }
+  
+  ion-button {
+    --color: white;
+  }
+}
+
+// Notification Styles
+.notification-btn {
+  position: relative;
+}
+
+.notification-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  font-size: 10px;
+  min-width: 18px;
+  height: 18px;
+  --background: #eb445a; // Red badge for notifications
+  --color: white;
+}
+
+.notifications-list {
+  background: var(--ion-color-light);
+  max-height: 300px;
+  overflow-y: auto;
+  border-bottom: 1px solid var(--ion-color-medium-shade);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.empty-notifications {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--ion-color-medium);
+  
+  ion-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.6;
+  }
+  
+  p {
+    margin: 0;
+    font-size: 14px;
+  }
+}
+
+.notification-time {
+  font-size: 12px;
+  color: var(--ion-color-medium);
+  margin-top: 4px;
+  opacity: 0.8;
+}
+
+// View and Navigation Styles
+.view-segment {
+  margin: 16px;
+  --background: var(--ion-color-light);
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.filters-toolbar {
+  --background: transparent;
+  padding: 8px 16px;
+  
+  ion-searchbar {
+    --background: var(--ion-color-light);
+    --border-radius: 8px;
+    --box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  
+  ion-segment {
+    --background: transparent;
+    margin-top: 8px;
+  }
+}
+
+// Overview View Styles
+.overview-container {
+  padding-bottom: 20px;
+}
+
+.summary-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  padding: 16px;
+  
+  ion-card {
+    margin: 0;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    ion-card-content {
+      text-align: center;
+      padding: 20px;
+      
+      h2 {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--ion-color-medium);
+        margin: 0 0 12px 0;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      
+      h1 {
+        font-size: 24px;
+        font-weight: 700;
+        margin: 0 0 8px 0;
+        color: var(--ion-color-dark);
+      }
+      
+      p {
+        font-size: 12px;
+        color: var(--ion-color-medium);
+        margin: 0;
+        opacity: 0.8;
+      }
+    }
+  }
+}
+
+// Debt Aging Analysis Styles
+.aging-chart {
+  padding: 8px 0;
+  
+  .aging-item {
+    margin-bottom: 20px;
+    
+    .aging-bar-container {
+      background: var(--ion-color-light);
+      border-radius: 12px;
+      height: 24px;
+      overflow: hidden;
+      margin-bottom: 8px;
+      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+      
+      .aging-bar {
+        height: 100%;
+        transition: width 0.5s ease;
+        border-radius: 12px;
+        
+        // Different colors for different aging periods
+        &:nth-child(1) { background: var(--ion-color-success); }
+        &:nth-child(2) { background: var(--ion-color-warning); }
+        &:nth-child(3) { background: var(--ion-color-danger); }
+        &:nth-child(4) { background: var(--ion-color-dark); }
+        &:nth-child(5) { background: #8B0000; } // Dark red for 90+ days
+      }
+    }
+    
+    .aging-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 4px;
+      
+      .aging-label {
+        font-weight: 600;
+        color: var(--ion-color-dark);
+        font-size: 14px;
+      }
+      
+      .aging-amount {
+        color: var(--ion-color-dark);
+        font-weight: 700;
+        font-size: 14px;
+      }
+    }
+  }
+}
+
+// List Container Styles
+.debts-container,
+.customers-container,
+.employees-container {
+  padding-bottom: 20px;
+}
+
+// Debt Item Styles
+.debt-item {
+  margin-bottom: 8px;
+  border-radius: 8px;
+  
+  ion-item {
+    --border-radius: 8px;
+    --padding-start: 12px;
+    --padding-end: 12px;
+    --inner-padding-end: 12px;
+    margin: 4px 16px;
+    border: 1px solid var(--ion-color-light-shade);
+    transition: all 0.2s ease;
+    
+    &:hover {
+      --background: var(--ion-color-light);
+      border-color: var(--ion-color-medium);
+    }
+    
+    ion-avatar {
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--ion-color-light);
+      border-radius: 50%;
+      
+      ion-icon {
+        font-size: 20px;
+      }
+    }
+    
+    ion-label {
+      h3 {
+        font-weight: 600;
+        color: var(--ion-color-dark);
+        margin-bottom: 4px;
+        font-size: 16px;
+      }
+      
+      p {
+        font-size: 14px;
+        color: var(--ion-color-medium);
+        margin: 2px 0;
+        line-height: 1.4;
+      }
+      
+      .due-date {
+        font-size: 12px;
+        color: var(--ion-color-medium);
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        margin-top: 4px;
+        
+        ion-icon {
+          font-size: 14px;
+        }
+      }
+    }
+  }
+}
+
+.debt-status {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-end;
+  
+  .payment-badge,
+  .status-badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 4px 8px;
+    border-radius: 12px;
+    text-transform: capitalize;
+  }
+}
+
+// Customer and Employee Item Styles
+.customers-container,
+.employees-container {
+  ion-item {
+    --border-radius: 8px;
+    --padding-start: 16px;
+    --padding-end: 16px;
+    --inner-padding-end: 16px;
+    margin: 4px 16px;
+    border: 1px solid var(--ion-color-light-shade);
+    transition: all 0.2s ease;
+    
+    &:hover {
+      --background: var(--ion-color-light);
+      border-color: var(--ion-color-medium);
+    }
+    
+    ion-avatar {
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--ion-color-primary-tint);
+      border-radius: 50%;
+      
+      ion-icon {
+        font-size: 24px;
+        color: var(--ion-color-primary);
+      }
+    }
+    
+    ion-label {
+      h3 {
+        font-weight: 600;
+        color: var(--ion-color-dark);
+        margin-bottom: 4px;
+        font-size: 16px;
+      }
+      
+      p {
+        font-size: 14px;
+        color: var(--ion-color-medium);
+        margin: 2px 0;
+        line-height: 1.4;
+      }
+    }
+    
+    ion-note {
+      font-weight: 700;
+      font-size: 16px;
+    }
+    
+    ion-badge {
+      font-weight: 600;
+      padding: 6px 10px;
+      border-radius: 16px;
+      font-size: 12px;
+    }
+  }
+}
+
+// Empty State Styles
+.empty-state {
+  text-align: center;
+  --background: transparent;
+  
+  .empty-content {
+    width: 100%;
+    padding: 60px 20px;
+    
+    ion-icon {
+      font-size: 64px;
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+    
+    ion-label {
+      h2 {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--ion-color-medium);
+        margin-bottom: 8px;
+      }
+      
+      p {
+        font-size: 14px;
+        color: var(--ion-color-medium);
+        margin: 0;
+        opacity: 0.8;
+      }
+    }
+  }
+}
+
+// List Header Styles
+ion-list-header {
+  --background: var(--ion-color-light);
+  border-bottom: 1px solid var(--ion-color-medium-shade);
+  margin-bottom: 8px;
+  
+  ion-label {
+    h2 {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--ion-color-dark);
+      margin-bottom: 4px;
+    }
+    
+    p {
+      font-size: 14px;
+      color: var(--ion-color-medium);
+      margin: 0;
+    }
+  }
+}
+
+// Card Styles
+ion-card {
+  margin: 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  }
+  
+  ion-card-header {
+    padding: 20px 20px 12px 20px;
+    
+    ion-card-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--ion-color-dark);
+    }
+    
+    ion-card-subtitle {
+      font-size: 14px;
+      color: var(--ion-color-medium);
+    }
+  }
+  
+  ion-card-content {
+    padding: 12px 20px 20px 20px;
+  }
+}
+
+// Priority Styling for Overdue Debts
+.priority-debt {
+  --background: var(--ion-color-danger-tint);
+  border-left: 4px solid var(--ion-color-danger);
+}
+
+.overdue-text {
+  color: var(--ion-color-danger);
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.amount-text {
+  font-size: 14px;
+  color: var(--ion-color-dark);
+  font-weight: 600;
+}
+
+.debt-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+// Animation for loading states
+.loading-skeleton {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+// Responsive Adjustments
+@media (max-width: 768px) {
+  .summary-cards {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 12px;
+  }
+  
+  .debt-status {
+    flex-direction: row;
+    gap: 4px;
+  }
+  
+  .view-segment {
+    margin: 12px;
+  }
+  
+  .filters-toolbar {
+    padding: 8px 12px;
+  }
+  
+  .debt-item ion-item {
+    margin: 4px 12px;
+  }
+  
+  .customers-container ion-item,
+  .employees-container ion-item {
+    margin: 4px 12px;
+  }
+  
+  ion-card {
+    margin: 12px;
+  }
+  
+  .notifications-list {
+    max-height: 250px;
+  }
+}
+
+@media (max-width: 480px) {
+  .summary-cards ion-card-content {
+    padding: 16px;
+    
+    h1 {
+      font-size: 20px;
+    }
+  }
+  
+  .debt-item ion-item {
+    --padding-start: 8px;
+    --padding-end: 8px;
+    
+    ion-label h3 {
+      font-size: 14px;
+    }
+    
+    ion-label p {
+      font-size: 12px;
+    }
+  }
+  
+  .debt-status {
+    .payment-badge,
+    .status-badge {
+      font-size: 9px;
+      padding: 3px 6px;
+    }
+  }
+}
+
+// Dark mode support
+@media (prefers-color-scheme: dark) {
+  .notifications-panel,
+  .notifications-list {
+    --background: var(--ion-color-dark);
+  }
+  
+  .filters-toolbar ion-searchbar {
+    --background: var(--ion-color-dark);
+  }
+  
+  .aging-chart .aging-bar-container {
+    background: var(--ion-color-dark);
+  }
+  
+  .debt-item ion-item,
+  .customers-container ion-item,
+  .employees-container ion-item {
+    border-color: var(--ion-color-dark-shade);
+    
+    &:hover {
+      --background: var(--ion-color-dark);
+      border-color: var(--ion-color-medium);
+    }
+  }
+  
+  ion-list-header {
+    --background: var(--ion-color-dark);
+  }
+}

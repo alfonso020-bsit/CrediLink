@@ -1,0 +1,190 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-button (click)="dismiss()">
+        <ion-icon name="close" slot="icon-only"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>
+      <span *ngIf="!selectedDate">Debt Calendar</span>
+      <span *ngIf="selectedDate">
+        Events for {{ selectedDate | date:'MMM d, yyyy' }}
+      </span>
+    </ion-title>
+    <ion-buttons slot="end" *ngIf="!selectedDate">
+      <ion-button (click)="backToCalendar()" fill="clear">
+        <ion-icon name="refresh" slot="icon-only"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <!-- Employee Info -->
+  <ion-card *ngIf="employeeName" class="employee-info-card">
+    <ion-card-content>
+      <div class="employee-info">
+        <ion-icon name="person" color="primary"></ion-icon>
+        <div>
+          <h3>{{ employeeName }}</h3>
+          <p>Debt Calendar Overview</p>
+        </div>
+      </div>
+    </ion-card-content>
+  </ion-card>
+
+  <!-- Calendar View -->
+  <div *ngIf="!selectedDate">
+    <!-- View Mode Filters -->
+    <ion-segment [value]="viewMode" (ionChange)="onSegmentChange($event)">
+      <ion-segment-button value="all">
+        <ion-label>All</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="upcoming">
+        <ion-label>Upcoming</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="overdue">
+        <ion-label>Overdue</ion-label>
+      </ion-segment-button>
+    </ion-segment>
+
+    <!-- Calendar Navigation -->
+    <div class="calendar-header">
+      <ion-button fill="clear" (click)="previousMonth()">
+        <ion-icon name="chevron-back" slot="icon-only"></ion-icon>
+      </ion-button>
+      
+      <h2 class="month-title">{{ getMonthName() }}</h2>
+      
+      <ion-button fill="clear" (click)="nextMonth()">
+        <ion-icon name="chevron-forward" slot="icon-only"></ion-icon>
+      </ion-button>
+    </div>
+
+    <!-- Calendar Grid -->
+    <div class="calendar-grid">
+      <!-- Weekday Headers -->
+      <div class="weekdays">
+        <div class="weekday" *ngFor="let day of ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']">
+          {{ day }}
+        </div>
+      </div>
+
+      <!-- Calendar Days -->
+      <div class="week" *ngFor="let week of weeks">
+        <div 
+          class="day" 
+          *ngFor="let day of week"
+          [class.current-month]="day.isCurrentMonth"
+          [class.today]="isToday(day.date)"
+          [class.has-events]="hasEvents(day.date)"
+          (click)="viewDateEvents(day.date)">
+          
+          <span class="day-number">{{ day.date.getDate() }}</span>
+          
+          <!-- Event Indicators -->
+          <div class="event-indicators" *ngIf="hasEvents(day.date)">
+            <div 
+              *ngFor="let event of day.events.slice(0, 3)" 
+              class="event-indicator"
+              [class]="getEventColor(event)">
+            </div>
+            <span class="event-count" *ngIf="getEventsCount(day.date) > 3">
+              +{{ getEventsCount(day.date) - 3 }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Event List -->
+    <ion-card *ngIf="filteredEvents.length > 0" class="events-list-card">
+      <ion-card-header>
+        <ion-card-title>
+          {{ viewMode === 'all' ? 'All Events' : viewMode === 'upcoming' ? 'Upcoming Events' : 'Overdue Events' }}
+          ({{ filteredEvents.length }})
+        </ion-card-title>
+      </ion-card-header>
+      
+      <ion-card-content>
+        <div class="event-item" *ngFor="let event of filteredEvents">
+          <div class="event-date">
+            <span class="event-day">{{ event.date.getDate() }}</span>
+            <span class="event-month">{{ event.date | date:'MMM' }}</span>
+          </div>
+          
+          <div class="event-details">
+            <h4>{{ event.customerName }}</h4>
+            <p class="event-type">
+              <ion-badge [color]="getEventColor(event)">
+                <ion-icon [name]="getEventIcon(event)" slot="start"></ion-icon>
+                {{ event.type === 'due_date' ? 'Due Date' : 'Transaction' }}
+              </ion-badge>
+              <span class="event-amount">₱{{ event.amount | number:'1.2-2' }}</span>
+            </p>
+            <p class="event-status" [class.overdue]="event.isOverdue">
+              {{ event.status }} • {{ event.date | date:'MMM d, yyyy' }}
+            </p>
+          </div>
+          
+          <div class="event-status-icon">
+            <ion-icon 
+              [name]="event.isOverdue ? 'warning' : 'notifications'" 
+              [color]="getEventColor(event)">
+            </ion-icon>
+          </div>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- No Events Message -->
+    <div *ngIf="filteredEvents.length === 0" class="no-events">
+      <ion-icon name="checkmark-circle" color="success" size="large"></ion-icon>
+      <h3>No events found</h3>
+      <p>There are no {{ viewMode }} debt events in your calendar.</p>
+    </div>
+  </div>
+
+  <!-- Date Details View -->
+  <div *ngIf="selectedDate">
+    <ion-card>
+      <ion-card-header>
+        <ion-card-title>
+          {{ selectedDate | date:'fullDate' }}
+        </ion-card-title>
+        <ion-card-subtitle>
+          {{ filteredEvents.length }} event(s)
+        </ion-card-subtitle>
+      </ion-card-header>
+    </ion-card>
+
+    <div class="date-events">
+      <div class="event-item detailed" *ngFor="let event of filteredEvents">
+        <div class="event-icon" [class]="getEventColor(event)">
+          <ion-icon [name]="getEventIcon(event)"></ion-icon>
+        </div>
+        
+        <div class="event-content">
+          <h3>{{ event.customerName }}</h3>
+          <p class="event-meta">
+            <ion-badge [color]="getEventColor(event)">
+              {{ event.type === 'due_date' ? 'Due Date' : 'Transaction' }}
+            </ion-badge>
+            <span class="event-time">{{ event.date | date:'shortTime' }}</span>
+          </p>
+          <p class="event-amount-large">₱{{ event.amount | number:'1.2-2' }}</p>
+          <p class="event-status" [class.overdue]="event.isOverdue">
+            Status: {{ event.status }}
+            <span *ngIf="event.isOverdue" class="overdue-badge">OVERDUE</span>
+          </p>
+          <p class="event-id">Transaction ID: {{ event.transactionId }}</p>
+        </div>
+      </div>
+    </div>
+
+    <ion-button expand="block" fill="outline" (click)="backToCalendar()" class="back-button">
+      <ion-icon name="arrow-back" slot="start"></ion-icon>
+      Back to Calendar
+    </ion-button>
+  </div>
+</ion-content>

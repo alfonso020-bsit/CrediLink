@@ -549,4 +549,168 @@ ion-modal {
   img, .default-avatar-modal {
     border-radius: 50%;
   }
+  // Add these to your tab5.page.scss
+
+.table-container {
+  overflow-x: auto;
+}
+
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  
+  th, td {
+    padding: 8px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--ion-color-light);
+  }
+  
+  th {
+    background-color: var(--ion-color-light);
+    font-weight: 600;
+  }
+  
+  tr:hover {
+    background-color: var(--ion-color-light-shade);
+  }
+}
+
+.hire-date-info {
+  margin-top: 20px;
+  padding: 15px;
+  background-color: var(--ion-color-light);
+  border-radius: 8px;
+}
+
+// Salary status colors
+.salary-status-paid {
+  --ion-color-base: var(--ion-color-success);
+}
+
+.salary-status-pending {
+  --ion-color-base: var(--ion-color-warning);
+}
+
+.salary-status-overdue {
+  --ion-color-base: var(--ion-color-danger);
+}
+
+// Action buttons grid
+.action-grid {
+  ion-col {
+    text-align: center;
+  }
+  
+  ion-button {
+    --padding-start: 8px;
+    --padding-end: 8px;
+  }
+}
+
+// Analytics charts
+canvas {
+  width: 100% !important;
+  height: 200px !important;
+}
+// Search and Filter Styles
+.active-filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+  
+  ion-chip {
+    cursor: pointer;
+    transition: opacity 0.2s;
+    
+    &:hover {
+      opacity: 0.8;
+    }
+  }
+}
+
+.filtered-count {
+  font-size: 0.8em;
+  color: var(--ion-color-medium);
+  margin-left: 8px;
+}
+
+// Ensure the search input looks good
+ion-item {
+  --padding-start: 0;
+}
+
+// Loading and empty states
+.loading-container, .empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  
+  ion-spinner {
+    margin-bottom: 16px;
+  }
+  
+  ion-icon {
+    margin-bottom: 16px;
+    opacity: 0.5;
+  }
+  
+  h3 {
+    margin: 0 0 8px 0;
+    color: var(--ion-color-medium);
+  }
+  
+  p {
+    margin: 0 0 16px 0;
+    color: var(--ion-color-medium-shade);
+  }
+}
+
+.add-employee-prompt {
+  text-align: center;
+  padding: 40px 20px;
+  
+  .prompt-content {
+    ion-icon {
+      margin-bottom: 16px;
+      opacity: 0.8;
+    }
+    
+    h3 {
+      margin: 0 0 8px 0;
+      color: var(--ion-color-dark);
+      font-size: 18px;
+      font-weight: 600;
+    }
+    
+    p {
+      margin: 0 0 20px 0;
+      color: var(--ion-color-medium);
+      font-size: 14px;
+      line-height: 1.4;
+    }
+    
+    .add-employee-btn {
+      --border-radius: 8px;
+      font-weight: 600;
+      height: 48px;
+      text-transform: none;
+      
+      ion-icon {
+        margin: 0;
+        opacity: 1;
+      }
+    }
+  }
+}
+
+// Ensure proper spacing
+ion-card {
+  margin-bottom: 16px;
+}
+
+// Smooth transitions
+ion-card {
+  transition: all 0.3s ease;
+}
 }

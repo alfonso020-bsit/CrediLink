@@ -1,13 +1,289 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
-    <ion-title>tab3</ion-title>
+    <ion-buttons slot="start">
+      <ion-button (click)="loadDebtData()" fill="clear">
+        <ion-icon slot="icon-only" name="refresh"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    
+    <ion-title>Debt Management</ion-title>
+    
+    <ion-buttons slot="end">
+      <!-- Notifications -->
+      <ion-button (click)="toggleNotifications()" fill="clear" class="notification-btn">
+        <ion-icon slot="icon-only" name="notifications"></ion-icon>
+        <ion-badge color="danger" *ngIf="unreadNotifications > 0" class="notification-badge">
+          {{ unreadNotifications }}
+        </ion-badge>
+      </ion-button>
+      
+      <!-- Report Generation -->
+      <ion-button (click)="generateDebtReport()" fill="clear">
+        <ion-icon slot="icon-only" name="document"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+
+  <!-- Notifications Panel -->
+  <ion-toolbar *ngIf="showNotifications" class="notifications-panel">
+    <ion-title size="small">Notifications</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="markAllNotificationsAsRead()" size="small" fill="clear">
+        Mark All Read
+      </ion-button>
+      <ion-button (click)="toggleNotifications()" size="small" fill="clear">
+        <ion-icon name="close"></ion-icon>
+      </ion-button>
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
 <ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">tab3</ion-title>
-    </ion-toolbar>
-  </ion-header>
+  <!-- Notifications List -->
+<div *ngIf="showNotifications" class="notifications-list">
+  <ion-list *ngIf="notifications.length > 0">
+    <ion-item-sliding *ngFor="let notification of notifications">
+      <!-- Apply color to ion-item instead of ion-item-sliding -->
+      <ion-item (click)="markNotificationAsRead(notification.id)" 
+                [color]="getNotificationColor(notification.priority)">
+        <ion-avatar slot="start">
+          <ion-icon [name]="getNotificationIcon(notification.type)"></ion-icon>
+        </ion-avatar>
+        <ion-label>
+          <h3>{{ notification.title }}</h3>
+          <p>{{ notification.message }}</p>
+          <p class="notification-time">{{ formatDate(notification.timestamp) }}</p>
+        </ion-label>
+        <ion-badge slot="end" [color]="getNotificationColor(notification.priority)">
+          {{ notification.priority }}
+        </ion-badge>
+      </ion-item>
+      
+      <ion-item-options side="end">
+        <ion-item-option (click)="markNotificationAsRead(notification.id)" color="success">
+          <ion-icon slot="top" name="checkmark"></ion-icon>
+          Read
+        </ion-item-option>
+      </ion-item-options>
+    </ion-item-sliding>
+  </ion-list>
+  
+  <div *ngIf="notifications.length === 0" class="empty-notifications">
+    <ion-icon name="notifications-off" color="medium"></ion-icon>
+    <p>No new notifications</p>
+  </div>
+</div>
+
+  <!-- Navigation Segment -->
+  <ion-segment [(ngModel)]="activeView" (ionChange)="applyFilters()" class="view-segment">
+    <ion-segment-button value="overview">
+      <ion-label>Overview</ion-label>
+    </ion-segment-button>
+    <ion-segment-button value="debts">
+      <ion-label>All Debts</ion-label>
+    </ion-segment-button>
+    <ion-segment-button value="customers">
+      <ion-label>Customers</ion-label>
+    </ion-segment-button>
+    <ion-segment-button value="employees">
+      <ion-label>Employees</ion-label>
+    </ion-segment-button>
+  </ion-segment>
+
+  <!-- Search and Filters -->
+  <ion-toolbar class="filters-toolbar" *ngIf="activeView !== 'overview'">
+    <ion-searchbar 
+      [(ngModel)]="searchTerm" 
+      placeholder="Search debts..."
+      (ionInput)="applyFilters()"
+      animated="true"
+      clearIcon="close-circle">
+    </ion-searchbar>
+    
+    <ion-segment [(ngModel)]="statusFilter" (ionChange)="applyFilters()" scrollable="true" *ngIf="activeView === 'debts'">
+      <ion-segment-button value="all">
+        <ion-label>All</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="unpaid">
+        <ion-label>Unpaid</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="partially_paid">
+        <ion-label>Partial</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="paid">
+        <ion-label>Paid</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="overdue">
+        <ion-label>Overdue</ion-label>
+      </ion-segment-button>
+    </ion-segment>
+  </ion-toolbar>
+
+  <!-- OVERVIEW VIEW -->
+  <div *ngIf="activeView === 'overview'" class="overview-container">
+    <!-- Summary Cards -->
+    <div class="summary-cards">
+      <ion-card color="warning">
+        <ion-card-content>
+          <h2>Total Outstanding</h2>
+          <h1>{{ formatCurrency(totalOutstanding) }}</h1>
+          <p>{{ totalDebtCustomers }} customers</p>
+        </ion-card-content>
+      </ion-card>
+      
+      <ion-card color="danger" *ngIf="overdueAmount > 0">
+        <ion-card-content>
+          <h2>Overdue</h2>
+          <h1>{{ formatCurrency(overdueAmount) }}</h1>
+          <p>Requires attention</p>
+        </ion-card-content>
+      </ion-card>
+      
+      <ion-card color="success">
+        <ion-card-content>
+          <h2>Collection Rate</h2>
+          <h1>{{ collectionRate.toFixed(1) }}%</h1>
+          <p>Of total debt collected</p>
+        </ion-card-content>
+      </ion-card>
+    </div>
+
+    <!-- Debt Aging Analysis -->
+    <ion-card>
+      <ion-card-header>
+        <ion-card-title>Debt Aging Analysis</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <div class="aging-chart">
+          <div *ngFor="let aging of getAgingBreakdown()" class="aging-item">
+            <div class="aging-bar-container">
+              <div class="aging-bar" [style.width.%]="getAgingPercentage(aging.amount)"></div>
+            </div>
+            <div class="aging-info">
+              <span class="aging-label">{{ aging.label }}</span>
+              <span class="aging-amount">{{ formatCurrency(aging.amount) }}</span>
+            </div>
+          </div>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Top Debtors -->
+    <ion-card>
+      <ion-card-header>
+        <ion-card-title>Top Debtors</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <ion-list>
+          <ion-item *ngFor="let debtor of getTopDebtors(5)">
+            <ion-avatar slot="start">
+              <ion-icon name="person"></ion-icon>
+            </ion-avatar>
+            <ion-label>
+              <h3>{{ debtor.name }}</h3>
+              <p>{{ debtor.phone }}</p>
+              <p>{{ debtor.debtCount }} active debts</p>
+            </ion-label>
+            <ion-note slot="end" color="danger">
+              {{ formatCurrency(debtor.totalOwed) }}
+            </ion-note>
+          </ion-item>
+        </ion-list>
+      </ion-card-content>
+    </ion-card>
+  </div>
+
+  <!-- ALL DEBTS VIEW -->
+  <div *ngIf="activeView === 'debts'" class="debts-container">
+    <ion-list>
+      <ion-list-header>
+        <ion-label>
+          <h2>All Debt Transactions</h2>
+          <p>{{ filteredDebts.length }} records</p>
+        </ion-label>
+      </ion-list-header>
+
+      <ion-item-sliding *ngFor="let debt of filteredDebts" class="debt-item">
+        <ion-item (click)="viewDebtDetails(debt)" detail="true">
+          <ion-avatar slot="start">
+            <ion-icon [name]="getDebtIcon(debt.payment_status)" 
+                     [color]="getPaymentStatusColor(debt.payment_status)"></ion-icon>
+          </ion-avatar>
+          <ion-label>
+            <h3>{{ debt.customerName }}</h3>
+            <p>By: {{ debt.employeeName }}</p>
+            <p>Balance: {{ formatCurrency(debt.remainingBalance || debt.total) }}</p>
+            <p class="due-date">
+              <ion-icon name="calendar" size="small"></ion-icon>
+              Due: {{ formatDate(debt.dueDate) }}
+            </p>
+          </ion-label>
+          <div slot="end" class="debt-status">
+            <ion-badge [color]="getPaymentStatusColor(debt.payment_status)" class="payment-badge">
+              {{ debt.payment_status }}
+            </ion-badge>
+            <ion-badge [color]="getStatusColor(debt.status)" class="status-badge">
+              {{ debt.status }}
+            </ion-badge>
+          </div>
+        </ion-item>
+      </ion-item-sliding>
+
+      <ion-item *ngIf="filteredDebts.length === 0" class="empty-state">
+        <div class="empty-content">
+          <ion-icon name="document-text-outline" color="medium"></ion-icon>
+          <ion-label>
+            <h2>No debt transactions found</h2>
+            <p>Adjust your filters or check back later</p>
+          </ion-label>
+        </div>
+      </ion-item>
+    </ion-list>
+  </div>
+
+  <!-- CUSTOMERS VIEW -->
+  <div *ngIf="activeView === 'customers'" class="customers-container">
+    <ion-list>
+      <ion-list-header>
+        <ion-label>Customers with Active Debts</ion-label>
+      </ion-list-header>
+
+      <ion-item *ngFor="let customer of getCustomersWithDebt()" (click)="viewCustomerDetails(customer)">
+        <ion-avatar slot="start">
+          <ion-icon name="person-circle"></ion-icon>
+        </ion-avatar>
+        <ion-label>
+          <h3>{{ customer.name }}</h3>
+          <p>{{ customer.phone }}</p>
+          <p>{{ customer.debtCount }} active debts</p>
+        </ion-label>
+        <ion-note slot="end" color="warning">
+          {{ formatCurrency(customer.totalOwed) }}
+        </ion-note>
+      </ion-item>
+    </ion-list>
+  </div>
+
+  <!-- EMPLOYEES VIEW -->
+  <div *ngIf="activeView === 'employees'" class="employees-container">
+    <ion-list>
+      <ion-list-header>
+        <ion-label>Employee Debt Performance</ion-label>
+      </ion-list-header>
+
+      <ion-item *ngFor="let employee of employeeDebtSummary">
+        <ion-avatar slot="start">
+          <ion-icon name="person-circle"></ion-icon>
+        </ion-avatar>
+        <ion-label>
+          <h3>{{ employee.employeeName }}</h3>
+          <p>{{ employee.totalDebts }} debt sales</p>
+          <p>Outstanding: {{ formatCurrency(employee.outstandingBalance) }}</p>
+        </ion-label>
+        <ion-badge slot="end" [color]="getEmployeePerformanceColor(employee)">
+          {{ employee.collectionRate.toFixed(1) }}%
+        </ion-badge>
+      </ion-item>
+    </ion-list>
+  </div>
 </ion-content>

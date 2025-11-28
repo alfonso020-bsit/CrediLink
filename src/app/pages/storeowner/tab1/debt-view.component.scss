@@ -1,0 +1,282 @@
+.debt-details-container {
+  padding: 0;
+}
+
+// Profile Section
+.profile-section {
+  display: flex;
+  align-items: center;
+  padding: 20px 0;
+  margin-bottom: 16px;
+  
+  .profile-avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 700;
+    font-size: 1.2em;
+    margin-right: 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+  
+  .profile-info {
+    flex: 1;
+    
+    .customer-name {
+      margin: 0 0 4px 0;
+      font-size: 1.4em;
+      font-weight: 700;
+      color: var(--ion-color-dark);
+    }
+    
+    .customer-subtitle {
+      margin: 0 0 8px 0;
+      color: var(--ion-color-medium);
+      font-size: 0.9em;
+    }
+    
+    .transaction-id {
+      font-size: 0.8em;
+      color: var(--ion-color-medium);
+      font-family: monospace;
+      background: var(--ion-color-light);
+      padding: 4px 8px;
+      border-radius: 6px;
+      display: inline-block;
+    }
+  }
+}
+
+// Status Card
+.status-card {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  
+  .status-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 16px;
+    
+    ion-icon {
+      font-size: 24px;
+      color: white;
+    }
+  }
+  
+  .status-content {
+    flex: 1;
+    
+    h3 {
+      margin: 0 0 4px 0;
+      font-size: 1.1em;
+      font-weight: 600;
+      color: var(--ion-color-dark);
+    }
+    
+    .overdue-note {
+      margin: 0;
+      font-size: 0.85em;
+      color: var(--ion-color-danger);
+      font-weight: 500;
+    }
+  }
+  
+  // Status Variations
+  &.status-paid {
+    background: rgba(var(--ion-color-success-rgb), 0.1);
+    border: 1px solid rgba(var(--ion-color-success-rgb), 0.2);
+    
+    .status-icon {
+      background: var(--ion-color-success);
+    }
+  }
+  
+  &.status-partial {
+    background: rgba(var(--ion-color-warning-rgb), 0.1);
+    border: 1px solid rgba(var(--ion-color-warning-rgb), 0.2);
+    
+    .status-icon {
+      background: var(--ion-color-warning);
+    }
+  }
+  
+  &.status-unpaid {
+    background: rgba(var(--ion-color-medium-rgb), 0.1);
+    border: 1px solid rgba(var(--ion-color-medium-rgb), 0.2);
+    
+    .status-icon {
+      background: var(--ion-color-medium);
+    }
+  }
+  
+  &.status-overdue {
+    background: rgba(var(--ion-color-danger-rgb), 0.1);
+    border: 1px solid rgba(var(--ion-color-danger-rgb), 0.2);
+    
+    .status-icon {
+      background: var(--ion-color-danger);
+    }
+  }
+}
+
+// Details Card
+.details-card {
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+  
+  .card-header {
+    padding-bottom: 8px;
+    
+    ion-card-title {
+      font-size: 1.1em;
+      font-weight: 600;
+      color: var(--ion-color-dark);
+    }
+  }
+  
+  .detail-grid {
+    .detail-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--ion-color-light-shade);
+      
+      &:last-child {
+        border-bottom: none;
+      }
+      
+      .detail-label {
+        display: flex;
+        align-items: center;
+        color: var(--ion-color-medium);
+        font-size: 0.9em;
+        font-weight: 500;
+        
+        ion-icon {
+          margin-right: 8px;
+          font-size: 1.1em;
+        }
+      }
+      
+      .detail-value {
+        font-weight: 600;
+        color: var(--ion-color-dark);
+        text-align: right;
+        
+        &.overdue {
+          color: var(--ion-color-danger);
+        }
+        
+        ion-badge {
+          font-weight: 600;
+          padding: 6px 10px;
+        }
+      }
+    }
+  }
+}
+
+// Alert Banner
+.alert-banner {
+  display: flex;
+  align-items: center;
+  background: rgba(var(--ion-color-danger-rgb), 0.1);
+  border: 1px solid rgba(var(--ion-color-danger-rgb), 0.2);
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 16px;
+  
+  .alert-icon {
+    color: var(--ion-color-danger);
+    font-size: 1.2em;
+    margin-right: 12px;
+  }
+  
+  .alert-content {
+    display: flex;
+    flex-direction: column;
+    
+    strong {
+      color: var(--ion-color-danger);
+      font-size: 0.9em;
+      margin-bottom: 2px;
+    }
+    
+    span {
+      color: var(--ion-color-danger);
+      font-size: 0.8em;
+      opacity: 0.8;
+    }
+  }
+}
+
+// Action Section
+.action-section {
+  .action-button {
+    margin-bottom: 12px;
+    --border-radius: 12px;
+    font-weight: 600;
+    
+    ion-icon {
+      font-size: 1.1em;
+    }
+  }
+}
+
+// Responsive Design
+@media (max-width: 768px) {
+  .profile-section {
+    .profile-avatar {
+      width: 56px;
+      height: 56px;
+      font-size: 1.1em;
+    }
+    
+    .customer-name {
+      font-size: 1.2em;
+    }
+  }
+  
+  .status-card {
+    padding: 12px;
+    
+    .status-icon {
+      width: 40px;
+      height: 40px;
+      
+      ion-icon {
+        font-size: 20px;
+      }
+    }
+  }
+}
+
+// Animation for better UX
+.debt-details-container {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

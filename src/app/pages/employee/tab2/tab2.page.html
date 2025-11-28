@@ -482,11 +482,12 @@
             </ion-card-content>
           </ion-card>
 
+          <!-- In your debt receipt modal, replace the current record payment button with this -->
           <ion-button 
             expand="block" 
             color="success" 
             class="record-payment-btn"
-            (click)="openPaymentModal(selectedDebtProduct)"
+            (click)="openPaymentModalFromDebtReceipt(selectedDebtProduct)"
             [disabled]="selectedDebtProduct.payment_status === 'paid'">
             <ion-icon slot="start" name="card"></ion-icon>
             Record Payment
@@ -496,97 +497,164 @@
     </ng-template>
   </ion-modal>
 
-  <!-- Payment Modal -->
-  <ion-modal [isOpen]="showPaymentModal" (ionModalDidDismiss)="closePaymentModal()" class="payment-modal">
-    <ng-template>
-      <ion-header>
-        <ion-toolbar>
-          <ion-buttons slot="start">
-            <ion-button (click)="closePaymentModal()">
-              <ion-icon slot="icon-only" name="close"></ion-icon>
-            </ion-button>
-          </ion-buttons>
-          <ion-title>Record Payment</ion-title>
-        </ion-toolbar>
-      </ion-header>
-      <ion-content class="ion-padding payment-content">
-        <div *ngIf="selectedDebtForPayment">
-          <ion-card class="debt-summary">
-            <ion-card-header>
-              <ion-card-title>{{selectedDebtForPayment.customerName}}</ion-card-title>
-              <ion-card-subtitle>{{selectedDebtForPayment.customerPhone}}</ion-card-subtitle>
-            </ion-card-header>
-            <ion-card-content>
-              <ion-grid class="debt-grid">
-                <ion-row>
-                  <ion-col size="6"><strong>Total Debt:</strong></ion-col>
-                  <ion-col size="6" class="text-right">{{formatCurrency(selectedDebtForPayment.total)}}</ion-col>
-                </ion-row>
-                <ion-row *ngIf="selectedDebtForPayment.initialPayment">
-                  <ion-col size="6"><strong>Initial Payment:</strong></ion-col>
-                  <ion-col size="6" class="text-right">{{formatCurrency(selectedDebtForPayment.initialPayment)}}</ion-col>
-                </ion-row>
-                <ion-row>
-                  <ion-col size="6"><strong>Remaining Balance:</strong></ion-col>
-                  <ion-col size="6" class="text-right">{{formatCurrency(selectedDebtForPayment.remainingBalance || selectedDebtForPayment.total)}}</ion-col>
-                </ion-row>
-                <ion-row>
-                  <ion-col size="6"><strong>Due Date:</strong></ion-col>
-                  <ion-col size="6" class="text-right">{{formatDate(selectedDebtForPayment.dueDate)}}</ion-col>
-                </ion-row>
-                <ion-row>
-                  <ion-col size="6"><strong>Current Status:</strong></ion-col>
-                  <ion-col size="6" class="text-right">
-                    <ion-badge [color]="getPaymentStatusColor(selectedDebtForPayment.payment_status)">
-                      {{selectedDebtForPayment.payment_status}}
-                    </ion-badge>
-                  </ion-col>
-                </ion-row>
-              </ion-grid>
-            </ion-card-content>
-          </ion-card>
+<!-- Payment Modal - Fixed version -->
+<ion-modal 
+  [isOpen]="showPaymentModal" 
+  (ionModalDidDismiss)="closePaymentModal()" 
+  class="payment-modal"
+  [backdropDismiss]="true"
+  [breakpoints]="[0, 1]"
+  [initialBreakpoint]="1">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar color="primary">
+        <ion-buttons slot="start">
+          <ion-button (click)="closePaymentModal()" fill="clear">
+            <ion-icon slot="icon-only" name="close"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+        <ion-title>Record Payment</ion-title>
+      </ion-toolbar>
+    </ion-header>
+    
+    <ion-content class="ion-padding payment-content">
+      <!-- Debug card - shows if no debt selected -->
+      <ion-card *ngIf="!selectedDebtForPayment" color="warning">
+        <ion-card-content>
+          <p><ion-icon name="warning"></ion-icon> No debt selected for payment.</p>
+          <ion-button size="small" (click)="debugPaymentModal()" expand="block">
+            Show Debug Info
+          </ion-button>
+          <ion-button size="small" (click)="closePaymentModal()" expand="block" color="light">
+            Close Modal
+          </ion-button>
+        </ion-card-content>
+      </ion-card>
 
-          <ion-card class="payment-inputs">
-            <ion-card-header>
-              <ion-card-title>Payment Information</ion-card-title>
-            </ion-card-header>
-            <ion-card-content>
+      <!-- Main payment content -->
+      <div *ngIf="selectedDebtForPayment" class="payment-form-container">
+        <!-- Debt Summary Card -->
+        <ion-card class="debt-summary">
+          <ion-card-header>
+            <ion-card-title>
+              <ion-icon name="person-circle"></ion-icon>
+              {{selectedDebtForPayment.customerName}}
+            </ion-card-title>
+            <ion-card-subtitle>
+              <ion-icon name="call"></ion-icon>
+              {{selectedDebtForPayment.customerPhone || 'No phone'}}
+            </ion-card-subtitle>
+          </ion-card-header>
+          <ion-card-content>
+            <div class="debt-info-grid">
+              <div class="info-row">
+                <span class="label">Total Debt:</span>
+                <span class="value">{{formatCurrency(selectedDebtForPayment.total || 0)}}</span>
+              </div>
+              
+              <div class="info-row" *ngIf="selectedDebtForPayment.initialPayment && selectedDebtForPayment.initialPayment > 0">
+                <span class="label">Initial Payment:</span>
+                <span class="value success">{{formatCurrency(selectedDebtForPayment.initialPayment)}}</span>
+              </div>
+              
+              <div class="info-row highlight">
+                <span class="label"><strong>Remaining Balance:</strong></span>
+                <span class="value danger"><strong>{{formatCurrency(selectedDebtForPayment.remainingBalance || selectedDebtForPayment.total || 0)}}</strong></span>
+              </div>
+              
+              <div class="info-row">
+                <span class="label">Due Date:</span>
+                <span class="value">{{formatDate(selectedDebtForPayment.dueDate)}}</span>
+              </div>
+              
+              <div class="info-row">
+                <span class="label">Status:</span>
+                <span class="value">
+                  <ion-badge [color]="getPaymentStatusColor(selectedDebtForPayment.payment_status)">
+                    {{selectedDebtForPayment.payment_status}}
+                  </ion-badge>
+                </span>
+              </div>
+            </div>
+          </ion-card-content>
+        </ion-card>
+
+        <!-- Payment Input Card -->
+        <ion-card class="payment-inputs">
+          <ion-card-header>
+            <ion-card-title>
+              <ion-icon name="cash"></ion-icon>
+              Payment Information
+            </ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <ion-list lines="none" class="payment-form">
+              <!-- Payment Amount -->
               <ion-item class="payment-amount-item">
-                <ion-label position="stacked">Payment Amount</ion-label>
+                <ion-label position="stacked">
+                  <strong>Payment Amount (₱)</strong>
+                </ion-label>
                 <ion-input 
                   type="number" 
                   [(ngModel)]="paymentAmount"
                   [min]="1"
                   [max]="maxPaymentAmount"
-                  placeholder="Enter payment amount"
+                  placeholder="0.00"
+                  inputmode="decimal"
                   class="payment-input">
                 </ion-input>
-                <ion-note slot="helper">Max: {{formatCurrency(maxPaymentAmount)}}</ion-note>
               </ion-item>
+              <ion-note class="helper-text">
+                <ion-icon name="information-circle"></ion-icon>
+                Maximum: {{formatCurrency(maxPaymentAmount)}}
+              </ion-note>
+              <ion-note class="error-text" *ngIf="paymentAmount > maxPaymentAmount">
+                <ion-icon name="alert-circle"></ion-icon>
+                Amount cannot exceed remaining balance
+              </ion-note>
 
+              <!-- Payment Notes -->
               <ion-item class="payment-notes-item">
-                <ion-label position="stacked">Notes (Optional)</ion-label>
+                <ion-label position="stacked">
+                  <strong>Notes (Optional)</strong>
+                </ion-label>
                 <ion-textarea 
                   [(ngModel)]="paymentNotes"
-                  placeholder="Add payment notes..."
+                  placeholder="Add payment notes or remarks..."
                   rows="3"
+                  maxlength="200"
                   class="payment-textarea">
                 </ion-textarea>
               </ion-item>
-            </ion-card-content>
-          </ion-card>
+              <ion-note class="helper-text">
+                {{paymentNotes.length || 0}}/200 characters
+              </ion-note>
+            </ion-list>
+          </ion-card-content>
+        </ion-card>
 
+        <!-- Action Buttons -->
+        <div class="button-group">
           <ion-button 
             expand="block" 
             color="success" 
+            size="large"
             class="process-payment-btn"
             (click)="processPayment()"
             [disabled]="!paymentAmount || paymentAmount <= 0 || paymentAmount > maxPaymentAmount">
             <ion-icon slot="start" name="checkmark-circle"></ion-icon>
-            Record Payment of {{formatCurrency(paymentAmount)}}
+            Record Payment of {{formatCurrency(paymentAmount || 0)}}
+          </ion-button>
+          
+          <ion-button 
+            expand="block" 
+            fill="clear" 
+            color="medium"
+            (click)="closePaymentModal()">
+            Cancel
           </ion-button>
         </div>
-      </ion-content>
-    </ng-template>
-  </ion-modal>
-</ion-content>
+      </div>
+    </ion-content>
+  </ng-template>
+</ion-modal>

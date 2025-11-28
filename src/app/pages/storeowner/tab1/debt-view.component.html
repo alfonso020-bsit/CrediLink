@@ -1,0 +1,102 @@
+<ion-header>
+  <ion-toolbar [color]="debtEvent.isOverdue ? 'danger' : 'primary'">
+    <ion-title>Transaction Details</ion-title>
+    <ion-buttons slot="end">
+      <ion-button fill="clear" (click)="dismiss()">
+        <ion-icon name="close" slot="icon-only"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <div class="debt-details-container">
+    <!-- Customer Profile Section -->
+    <div class="profile-section">
+      <div class="profile-avatar" [style.background]="getCustomerColor()">
+        {{ getCustomerInitials() }}
+      </div>
+      <div class="profile-info">
+        <h2 class="customer-name">{{ debtEvent.customerName }}</h2>
+        <p class="customer-subtitle">{{ debtEvent.type === 'due_date' ? 'Payment Due' : 'Debt Transaction' }}</p>
+        <div class="transaction-id">
+          ID: {{ debtEvent.transactionId }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Status Card -->
+    <div class="status-card" [class]="getStatusClass()">
+      <div class="status-icon">
+        <ion-icon [name]="getStatusIcon()"></ion-icon>
+      </div>
+      <div class="status-content">
+        <h3>{{ getStatusText() }}</h3>
+        <p *ngIf="debtEvent.isOverdue" class="overdue-note">
+          Payment is past due date
+        </p>
+      </div>
+    </div>
+
+    <!-- Details Card -->
+    <ion-card class="details-card">
+      <ion-card-header class="card-header">
+        <ion-card-title>Transaction Information</ion-card-title>
+      </ion-card-header>
+      
+      <ion-card-content>
+        <div class="detail-grid">
+          <div class="detail-item">
+            <div class="detail-label">
+              <ion-icon name="cash-outline"></ion-icon>
+              Amount
+            </div>
+            <div class="detail-value" [class.overdue]="debtEvent.isOverdue">
+              ₱{{ debtEvent.amount | number:'1.2-2' }}
+            </div>
+          </div>
+
+          <div class="detail-item">
+            <div class="detail-label">
+              <ion-icon name="calendar-outline"></ion-icon>
+              Date
+            </div>
+            <div class="detail-value">
+              {{ debtEvent.date | date:'fullDate' }}
+            </div>
+          </div>
+
+          <div class="detail-item">
+            <div class="detail-label">
+              <ion-icon name="document-text-outline"></ion-icon>
+              Type
+            </div>
+            <div class="detail-value">
+              <ion-badge [color]="debtEvent.type === 'due_date' ? 'warning' : 'primary'">
+                {{ debtEvent.type === 'due_date' ? 'Payment Due' : 'Debt Created' }}
+              </ion-badge>
+            </div>
+          </div>
+
+          <div class="detail-item">
+            <div class="detail-label">
+              <ion-icon name="flag-outline"></ion-icon>
+              Status
+            </div>
+            <div class="detail-value">
+              <ion-badge [color]="getStatusColor()">
+                {{ debtEvent.status | titlecase }}
+              </ion-badge>
+            </div>
+          </div>
+        </div>
+
+        <div *ngIf="debtEvent.isOverdue" class="alert-banner">
+          <ion-icon name="warning" class="alert-icon"></ion-icon>
+          <div class="alert-content">
+            <strong>Overdue Payment</strong>
+            <span>This payment requires immediate attention</span>
+          </div>
+        </div>
+      </ion-card-content>
+    </ion-card>

@@ -2,13 +2,21 @@
   <ion-toolbar color="primary">
     <ion-title>Store Dashboard</ion-title>
     <ion-buttons slot="end">
-      <!-- Logout Button -->
-      <ion-button (click)="logout()" fill="clear">
-        <ion-icon name="log-out" slot="icon-only"></ion-icon>
+      <!-- Refresh Button -->
+      <ion-button (click)="refreshData()" fill="clear">
+        <ion-icon name="refresh" slot="icon-only"></ion-icon>
+      </ion-button>
+      <!-- Filter Button -->
+      <ion-button (click)="toggleFilter()" fill="clear">
+        <ion-icon name="filter" slot="icon-only"></ion-icon>
       </ion-button>
       <!-- Settings Button -->
       <ion-button (click)="toggleSettings()" fill="clear">
         <ion-icon name="settings" slot="icon-only"></ion-icon>
+      </ion-button>
+      <!-- Logout Button -->
+      <ion-button (click)="logout()" fill="clear">
+        <ion-icon name="log-out" slot="icon-only"></ion-icon>
       </ion-button>
     </ion-buttons>
   </ion-toolbar>
@@ -38,10 +46,64 @@
               {{ currentUser?.barangay }}, {{ currentUser?.municipality }}, {{ currentUser?.province }}
             </small>
           </ion-text>
+          <!-- Auto-refresh indicator -->
+          <div class="refresh-indicator">
+            <ion-icon name="sync" color="primary"></ion-icon>
+            <small>Auto-refreshing every 5 seconds</small>
+          </div>
         </div>
       </div>
     </ion-card-header>
   </ion-card>
+
+  <!-- Filter Section (Visible when showFilter is true) -->
+  <div *ngIf="showFilter" class="filter-section">
+    <ion-card>
+      <ion-card-header>
+        <ion-card-title>
+          <ion-icon name="filter" slot="start"></ion-icon>
+          Filter Dashboard
+        </ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <ion-grid>
+          <ion-row>
+            <ion-col size="12" size-md="6">
+              <ion-item>
+                <ion-label position="stacked">Date Range</ion-label>
+                <ion-select [(ngModel)]="selectedDateRange" (ionChange)="onDateRangeChange()" placeholder="Select date range">
+                  <ion-select-option value="today">Today</ion-select-option>
+                  <ion-select-option value="yesterday">Yesterday</ion-select-option>
+                  <ion-select-option value="thisWeek">This Week</ion-select-option>
+                  <ion-select-option value="thisMonth">This Month</ion-select-option>
+                  <ion-select-option value="lastMonth">Last Month</ion-select-option>
+                  <ion-select-option value="custom">Custom Range</ion-select-option>
+                </ion-select>
+              </ion-item>
+            </ion-col>
+            <ion-col size="12" size-md="6" *ngIf="selectedDateRange === 'custom'">
+              <ion-item>
+                <ion-label position="stacked">Custom Date</ion-label>
+                <ion-datetime 
+                  presentation="date" 
+                  [(ngModel)]="customDate" 
+                  (ionChange)="onCustomDateChange()">
+                </ion-datetime>
+              </ion-item>
+            </ion-col>
+          </ion-row>
+          <ion-row>
+            <ion-col size="12">
+              <ion-button expand="block" fill="outline" (click)="toggleFilter()">
+                <ion-icon name="close" slot="start"></ion-icon>
+                Close Filter
+              </ion-button>
+            </ion-col>
+          </ion-row>
+        </ion-grid>
+      </ion-card-content>
+    </ion-card>
+  </div>
 
   <!-- Settings Card (Visible when showSettings is true) -->
   <ion-card *ngIf="showSettings" class="settings-card">
@@ -270,49 +332,267 @@
     </ion-card-content>
   </ion-card>
 
-  <!-- Simple Dashboard Content (Hidden when settings are open) -->
-  <div *ngIf="!showSettings" class="simple-dashboard">
-    <ion-card>
-      <ion-card-header>
-        <ion-card-title>Getting Started</ion-card-title>
-      </ion-card-header>
-      <ion-card-content>
-        <p>Welcome to your store dashboard! Here's what you can do:</p>
-        <ion-list lines="none">
-          <ion-item>
-            <ion-icon name="cube" slot="start" color="primary"></ion-icon>
-            <ion-label>
-              <h3>Manage Inventory</h3>
-              <p>Add and manage your products</p>
-            </ion-label>
-          </ion-item>
-          <ion-item>
-            <ion-icon name="cart" slot="start" color="primary"></ion-icon>
-            <ion-label>
-              <h3>Point of Sale</h3>
-              <p>Process customer transactions</p>
-            </ion-label>
-          </ion-item>
-          <ion-item>
-            <ion-icon name="people" slot="start" color="primary"></ion-icon>
-            <ion-label>
-              <h3>Manage Employees</h3>
-              <p>Add staff to help manage your store</p>
-            </ion-label>
-          </ion-item>
-        </ion-list>
-        
-        <!-- Logout Button at Bottom -->
-        <ion-button 
-          expand="block" 
-          fill="outline" 
-          color="medium" 
-          (click)="logout()"
-          class="logout-btn">
-          <ion-icon name="log-out" slot="start"></ion-icon>
-          Logout
-        </ion-button>
-      </ion-card-content>
-    </ion-card>
+  <!-- Dashboard Content (Hidden when settings or filter are open) -->
+  <div *ngIf="!showSettings && !showFilter" class="dashboard-content">
+    
+    <!-- Loading State -->
+    <div *ngIf="isLoadingDashboard" class="loading-state">
+      <ion-card>
+        <ion-card-content class="ion-text-center">
+          <ion-spinner></ion-spinner>
+          <p>Loading dashboard data...</p>
+        </ion-card-content>
+      </ion-card>
+    </div>
+
+    <!-- Performance Metrics Grid -->
+    <div *ngIf="!isLoadingDashboard" class="metrics-grid">
+      <!-- Today's Revenue -->
+      <ion-card class="metric-card revenue-card">
+        <ion-card-content>
+          <div class="metric-icon">
+            <ion-icon name="cash" color="success"></ion-icon>
+          </div>
+          <div class="metric-content">
+            <h3>{{ getDateRangeLabel() }} Revenue</h3>
+            <p class="metric-value">₱{{ dashboardMetrics.todayRevenue | number:'1.2-2' }}</p>
+            <p class="metric-subtitle">{{ dashboardMetrics.todayTransactions }} transactions</p>
+          </div>
+        </ion-card-content>
+      </ion-card>
+
+      <!-- Total Debts -->
+      <ion-card class="metric-card debts-card" (click)="openDebtCalendar()">
+        <ion-card-content>
+          <div class="metric-icon">
+            <ion-icon name="calendar" color="warning"></ion-icon>
+          </div>
+          <div class="metric-content">
+            <h3>Pending Debts</h3>
+            <p class="metric-value">{{ dashboardMetrics.pendingDebts }}</p>
+            <p class="metric-subtitle">₱{{ dashboardMetrics.totalDebtAmount | number:'1.2-2' }} total</p>
+            <p class="metric-change" [class.negative]="dashboardMetrics.overdueDebts > 0">
+              <ion-icon name="warning" *ngIf="dashboardMetrics.overdueDebts > 0"></ion-icon>
+              {{ dashboardMetrics.overdueDebts }} overdue
+            </p>
+          </div>
+        </ion-card-content>
+      </ion-card>
+
+      <!-- Active Employees -->
+      <ion-card class="metric-card employees-card">
+        <ion-card-content>
+          <div class="metric-icon">
+            <ion-icon name="people" color="primary"></ion-icon>
+          </div>
+          <div class="metric-content">
+            <h3>Active Employees</h3>
+            <p class="metric-value">{{ dashboardMetrics.activeEmployees }}</p>
+            <p class="metric-subtitle">{{ dashboardMetrics.totalEmployees }} total</p>
+          </div>
+        </ion-card-content>
+      </ion-card>
+
+      <!-- Monthly Performance -->
+      <ion-card class="metric-card performance-card">
+        <ion-card-content>
+          <div class="metric-icon">
+            <ion-icon name="trending-up" color="tertiary"></ion-icon>
+          </div>
+          <div class="metric-content">
+            <h3>Monthly Revenue</h3>
+            <p class="metric-value">₱{{ dashboardMetrics.monthlyRevenue | number:'1.2-2' }}</p>
+            <p class="metric-subtitle">{{ dashboardMetrics.monthlyTransactions }} transactions</p>
+          </div>
+        </ion-card-content>
+      </ion-card>
+    </div>
+
+    <!-- Debt Calendar Section -->
+    <div *ngIf="!isLoadingDashboard" class="calendar-section">
+      <ion-card>
+        <ion-card-header>
+          <ion-card-title>
+            <ion-icon name="calendar" slot="start"></ion-icon>
+            Debt Calendar
+          </ion-card-title>
+          <ion-button fill="clear" size="small" (click)="openDebtCalendar()">
+            View All
+            <ion-icon name="arrow-forward" slot="end"></ion-icon>
+          </ion-button>
+        </ion-card-header>
+        <ion-card-content>
+          <!-- Upcoming Debt Events -->
+          <div class="upcoming-events" *ngIf="getUpcomingDebtEvents().length > 0; else noDebtEvents">
+            <div class="event-item" 
+                 *ngFor="let event of getUpcomingDebtEvents()" 
+                 [class.overdue]="event.isOverdue"
+                 (click)="openDebtDetails(event)">
+              <div class="event-date">
+                <span class="event-day">{{ event.date.getDate() }}</span>
+                <span class="event-month">{{ event.date | date:'MMM' }}</span>
+              </div>
+              <div class="event-details">
+                <h4>{{ event.customerName }}</h4>
+                <p>
+                  <ion-badge [color]="event.isOverdue ? 'danger' : 'warning'">
+                    {{ event.type === 'due_date' ? 'Due' : 'Created' }}
+                  </ion-badge>
+                  <span class="event-amount">₱{{ event.amount | number:'1.2-2' }}</span>
+                </p>
+                <p class="event-status" [class.overdue]="event.isOverdue">
+                  {{ event.status }} • {{ event.date | date:'MMM d, yyyy' }}
+                </p>
+              </div>
+              <div class="event-status-icon">
+                <ion-icon 
+                  [name]="event.isOverdue ? 'warning' : 'notifications'" 
+                  [color]="event.isOverdue ? 'danger' : 'medium'">
+                </ion-icon>
+              </div>
+            </div>
+          </div>
+          <ng-template #noDebtEvents>
+            <div class="no-events">
+              <ion-icon name="checkmark-circle" color="success"></ion-icon>
+              <p>No upcoming debt events</p>
+            </div>
+          </ng-template>
+        </ion-card-content>
+      </ion-card>
+    </div>
+
+    <!-- Recent Activity Section -->
+    <div *ngIf="!isLoadingDashboard" class="activity-section">
+      <ion-row>
+        <!-- Recent Transactions -->
+        <ion-col size="12" size-lg="6">
+          <ion-card>
+            <ion-card-header>
+              <ion-card-title>
+                <ion-icon name="receipt" slot="start"></ion-icon>
+                Recent Transactions
+              </ion-card-title>
+              <ion-segment [value]="transactionFilter" (ionChange)="onTransactionFilterChange($event)">
+                <ion-segment-button value="all">
+                  <ion-label>All</ion-label>
+                </ion-segment-button>
+                <ion-segment-button value="cash">
+                  <ion-label>Cash</ion-label>
+                </ion-segment-button>
+                <ion-segment-button value="debt">
+                  <ion-label>Debt</ion-label>
+                </ion-segment-button>
+              </ion-segment>
+            </ion-card-header>
+            <ion-card-content>
+              <div class="transactions-list">
+                <div class="transaction-item" *ngFor="let transaction of getFilteredTransactions()">
+                  <div class="transaction-avatar">
+                    <ion-icon 
+                      [name]="transaction.type === 'cash' ? 'cash' : 'calendar'" 
+                      [color]="transaction.type === 'cash' ? 'success' : 'warning'">
+                    </ion-icon>
+                  </div>
+                  <div class="transaction-details">
+                    <h4>{{ transaction.customerName || 'Walk-in Customer' }}</h4>
+                    <p class="transaction-meta">
+                      <span class="employee">{{ transaction.employeeName }}</span>
+                      • {{ transaction.date | date:'MMM d, h:mm a' }}
+                    </p>
+                  </div>
+                  <div class="transaction-amount">
+                    <strong>₱{{ transaction.total | number:'1.2-2' }}</strong>
+                    <ion-badge [color]="transaction.type === 'cash' ? 'success' : 'warning'">
+                      {{ transaction.type === 'cash' ? 'Cash' : 'Debt' }}
+                    </ion-badge>
+                  </div>
+                </div>
+              </div>
+              <div *ngIf="getFilteredTransactions().length === 0" class="no-data">
+                <ion-icon name="document-text" color="medium"></ion-icon>
+                <p>No {{ transactionFilter }} transactions</p>
+              </div>
+            </ion-card-content>
+          </ion-card>
+        </ion-col>
+
+        <!-- Employee Performance -->
+        <ion-col size="12" size-lg="6">
+          <ion-card>
+            <ion-card-header>
+              <ion-card-title>
+                <ion-icon name="trophy" slot="start"></ion-icon>
+                Top Employees {{ getDateRangeLabel() }}
+              </ion-card-title>
+            </ion-card-header>
+            <ion-card-content>
+              <div class="employees-list">
+                <div class="employee-item" *ngFor="let employee of topEmployees">
+                  <div class="employee-avatar-small">
+                    <div class="avatar-fallback-small" [style.background]="employee.avatarColor">
+                      {{ employee.initials }}
+                    </div>
+                  </div>
+                  <div class="employee-details">
+                    <h4>{{ employee.name }}</h4>
+                    <p class="employee-sales">₱{{ employee.todaySales | number:'1.2-2' }} sales</p>
+                  </div>
+                  <div class="employee-transactions">
+                    <span class="transaction-count">{{ employee.transactionCount }} transactions</span>
+                  </div>
+                </div>
+              </div>
+              <div *ngIf="topEmployees.length === 0" class="no-data">
+                <ion-icon name="people" color="medium"></ion-icon>
+                <p>No employee data {{ getDateRangeLabel().toLowerCase() }}</p>
+              </div>
+            </ion-card-content>
+          </ion-card>
+        </ion-col>
+      </ion-row>
+    </div>
+
+    <!-- Quick Actions -->
+    <div *ngIf="!isLoadingDashboard" class="quick-actions-section">
+      <ion-card>
+        <ion-card-header>
+          <ion-card-title>Quick Actions</ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          <div class="actions-grid">
+            <ion-button class="action-btn" fill="solid" color="primary" routerLink="/storeowner/tab2">
+              <ion-icon name="cart" slot="start"></ion-icon>
+              Point of Sale
+            </ion-button>
+
+            <ion-button class="action-btn" fill="solid" color="secondary" routerLink="/storeowner/tab3">
+              <ion-icon name="cube" slot="start"></ion-icon>
+              Manage Inventory
+            </ion-button>
+
+            <ion-button class="action-btn" fill="solid" color="tertiary" routerLink="/storeowner/tab4">
+              <ion-icon name="people" slot="start"></ion-icon>
+              Employees
+            </ion-button>
+
+            <ion-button class="action-btn" fill="solid" color="warning" routerLink="/storeowner/tab5">
+              <ion-icon name="calendar" slot="start"></ion-icon>
+              Debt Management
+            </ion-button>
+
+            <ion-button class="action-btn" fill="solid" color="success" (click)="generateReport()">
+              <ion-icon name="document-text" slot="start"></ion-icon>
+              Generate Report
+            </ion-button>
+
+            <ion-button class="action-btn" fill="solid" color="medium" (click)="toggleSettings()">
+              <ion-icon name="settings" slot="start"></ion-icon>
+              Store Settings
+            </ion-button>
+          </div>
+        </ion-card-content>
+      </ion-card>
+    </div>
   </div>
 </ion-content>

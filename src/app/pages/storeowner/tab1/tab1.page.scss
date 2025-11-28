@@ -1,5 +1,5 @@
 .welcome-card {
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .store-header {
@@ -50,7 +50,299 @@
   }
 }
 
-// Settings Styles
+// Dashboard Metrics
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.metric-card {
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  
+  &:active {
+    transform: scale(0.98);
+  }
+  
+  ion-card-content {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px;
+    
+    .metric-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 12px;
+      background: rgba(var(--ion-color-primary-rgb), 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      
+      ion-icon {
+        font-size: 28px;
+      }
+    }
+    
+    .metric-content {
+      flex: 1;
+      
+      h3 {
+        margin: 0 0 8px 0;
+        font-size: 0.9em;
+        font-weight: 500;
+        color: var(--ion-color-medium);
+      }
+      
+      .metric-value {
+        margin: 0 0 4px 0;
+        font-size: 1.6em;
+        font-weight: 700;
+        color: var(--ion-color-dark);
+      }
+      
+      .metric-subtitle {
+        margin: 0 0 8px 0;
+        font-size: 0.85em;
+        color: var(--ion-color-medium);
+      }
+    }
+  }
+  
+  // Specific card styles
+  &.revenue-card .metric-icon {
+    background: rgba(var(--ion-color-success-rgb), 0.1);
+  }
+  
+  &.debts-card .metric-icon {
+    background: rgba(var(--ion-color-warning-rgb), 0.1);
+  }
+  
+  &.employees-card .metric-icon {
+    background: rgba(var(--ion-color-primary-rgb), 0.1);
+  }
+  
+  &.performance-card .metric-icon {
+    background: rgba(var(--ion-color-tertiary-rgb), 0.1);
+  }
+}
+
+// Activity Section
+.activity-section {
+  margin-bottom: 24px;
+}
+
+.transactions-list {
+  .transaction-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--ion-color-light-shade);
+    
+    &:last-child {
+      border-bottom: none;
+    }
+    
+    .transaction-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--ion-color-light);
+      
+      ion-icon {
+        font-size: 20px;
+      }
+    }
+    
+    .transaction-details {
+      flex: 1;
+      
+      h4 {
+        margin: 0 0 4px 0;
+        font-size: 0.95em;
+        font-weight: 600;
+      }
+      
+      .transaction-meta {
+        margin: 0;
+        font-size: 0.8em;
+        color: var(--ion-color-medium);
+        
+        .employee {
+          font-weight: 500;
+          color: var(--ion-color-primary);
+        }
+      }
+    }
+    
+    .transaction-amount {
+      text-align: right;
+      
+      strong {
+        font-size: 1em;
+        color: var(--ion-color-dark);
+        display: block;
+        margin-bottom: 4px;
+      }
+    }
+  }
+}
+
+.employees-list {
+  .employee-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--ion-color-light-shade);
+    
+    &:last-child {
+      border-bottom: none;
+    }
+    
+    .employee-avatar-small {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      overflow: hidden;
+      
+      .avatar-fallback-small {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        font-size: 14px;
+      }
+    }
+    
+    .employee-details {
+      flex: 1;
+      
+      h4 {
+        margin: 0 0 4px 0;
+        font-size: 0.95em;
+        font-weight: 600;
+      }
+      
+      .employee-sales {
+        margin: 0;
+        font-size: 0.85em;
+        color: var(--ion-color-success);
+        font-weight: 500;
+      }
+    }
+    
+    .employee-transactions {
+      .transaction-count {
+        font-size: 0.8em;
+        color: var(--ion-color-medium);
+      }
+    }
+  }
+}
+
+// Debt Section
+.debt-section {
+  margin-bottom: 24px;
+}
+
+.debt-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px;
+  text-align: center;
+  
+  .debt-stat {
+    h3 {
+      margin: 0 0 8px 0;
+      font-size: 0.9em;
+      font-weight: 500;
+      color: var(--ion-color-medium);
+    }
+    
+    .debt-amount {
+      margin: 0;
+      font-size: 1.4em;
+      font-weight: 700;
+      color: var(--ion-color-warning);
+    }
+    
+    .debt-count {
+      margin: 0;
+      font-size: 1.4em;
+      font-weight: 700;
+      color: var(--ion-color-dark);
+    }
+    
+    .debt-overdue {
+      margin: 0;
+      font-size: 1.4em;
+      font-weight: 700;
+      color: var(--ion-color-danger);
+    }
+  }
+}
+
+// Quick Actions
+.quick-actions-section {
+  margin-bottom: 24px;
+}
+
+.actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.action-btn {
+  height: 60px;
+  
+  ion-icon {
+    font-size: 20px;
+  }
+}
+
+// Loading and No Data States
+.loading-state {
+  text-align: center;
+  padding: 40px 0;
+  
+  ion-spinner {
+    margin-bottom: 16px;
+  }
+  
+  p {
+    margin: 0;
+    color: var(--ion-color-medium);
+  }
+}
+
+.no-data {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--ion-color-medium);
+  
+  ion-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+  }
+  
+  p {
+    margin: 0;
+    font-size: 0.9em;
+  }
+}
+
+// Settings Styles (keep your existing settings styles)
 .settings-card {
   margin-bottom: 20px;
 }
@@ -101,59 +393,196 @@
   margin-top: 10px;
 }
 
-// Stats Styles
-.stat-card {
-  text-align: center;
-  
-  .stat-icon {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 12px;
-    
-    ion-icon {
-      font-size: 24px;
-      color: white;
-    }
-    
-    &.revenue { background: var(--ion-color-success); }
-    &.sales { background: var(--ion-color-primary); }
-    &.inventory { background: var(--ion-color-warning); }
-    &.employees { background: var(--ion-color-tertiary); }
-  }
-  
-  h2 {
-    margin: 0 0 4px 0;
-    font-size: 1.5rem;
-    font-weight: bold;
-  }
-  
-  p {
-    margin: 0;
-    color: var(--ion-color-medium);
-    font-size: 0.9rem;
-  }
-}
-
-.quick-action-btn {
-  height: 60px;
-  
-  ion-icon {
-    font-size: 20px;
-  }
-}
-
-// Logout button styling
-.logout-btn {
-  margin-top: 20px;
-}
-
 // Header buttons spacing
 ion-buttons {
   ion-button {
     margin-left: 8px;
   }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .actions-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .debt-stats {
+    grid-template-columns: 1fr;
+  }
+  // Refresh indicator
+.refresh-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  
+  ion-icon {
+    font-size: 14px;
+    animation: spin 2s linear infinite;
+  }
+  
+  small {
+    color: var(--ion-color-primary);
+    font-size: 0.8em;
+  }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+// Filter section
+.filter-section {
+  margin-bottom: 16px;
+  
+  ion-card-header {
+    padding-bottom: 0;
+  }
+}
+
+// Settings card
+.settings-card {
+  margin-bottom: 16px;
+}
+
+// Calendar events styling
+.calendar-section {
+  margin-bottom: 24px;
+}
+
+.upcoming-events {
+  .event-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--ion-color-light-shade);
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    
+    &:last-child {
+      border-bottom: none;
+    }
+    
+    &:hover {
+      background-color: rgba(var(--ion-color-primary-rgb), 0.05);
+    }
+    
+    .event-date {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 50px;
+      
+      .event-day {
+        font-size: 1.4em;
+        font-weight: 700;
+        color: var(--ion-color-primary);
+        line-height: 1;
+      }
+      
+      .event-month {
+        font-size: 0.8em;
+        color: var(--ion-color-medium);
+        text-transform: uppercase;
+      }
+    }
+    
+    .event-details {
+      flex: 1;
+      
+      h4 {
+        margin: 0 0 6px 0;
+        font-size: 0.95em;
+        font-weight: 600;
+      }
+      
+      .event-type {
+        margin: 0 0 4px 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.85em;
+        
+        .event-amount {
+          color: var(--ion-color-dark);
+          font-weight: 500;
+        }
+      }
+      
+      .event-status {
+        margin: 0;
+        font-size: 0.8em;
+        color: var(--ion-color-medium);
+        
+        &.overdue {
+          color: var(--ion-color-danger);
+          font-weight: 500;
+        }
+      }
+    }
+    
+    .event-status-icon {
+      ion-icon {
+        font-size: 20px;
+      }
+    }
+  }
+}
+
+.no-events {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--ion-color-medium);
+  
+  ion-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+  }
+  
+  p {
+    margin: 0;
+    font-size: 0.9em;
+  }
+}
+
+// Metric change indicator
+.metric-change {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8em;
+  margin: 0;
+  
+  &.negative {
+    color: var(--ion-color-danger);
+  }
+  
+  ion-icon {
+    font-size: 14px;
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .refresh-indicator {
+    small {
+      font-size: 0.7em;
+    }
+  }
+  
+  .store-header {
+    flex-direction: column;
+    text-align: center;
+    
+    .store-info {
+      text-align: center;
+    }
+  }
+}
 }

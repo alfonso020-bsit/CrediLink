@@ -1,13 +1,897 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
-    <ion-title>tab2</ion-title>
+    <ion-buttons slot="start">
+      <ion-button (click)="doRefreshManual()" fill="clear">
+        <ion-icon slot="icon-only" name="refresh"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>Sales Records</ion-title>
+    
+    <!-- Add Report Button -->
+    <ion-buttons slot="end">
+      <ion-button (click)="openReportModal()" fill="clear">
+        <ion-icon slot="icon-only" name="document"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    
+    <ion-badge slot="end" color="primary" *ngIf="segmentValue === 'cash'">
+      {{filteredCashProducts.length}}
+    </ion-badge>
+    <ion-badge slot="end" color="primary" *ngIf="segmentValue === 'debt'">
+      {{filteredDebtProducts.length}}
+    </ion-badge>
   </ion-toolbar>
 </ion-header>
 
 <ion-content [fullscreen]="true">
+  <ion-refresher slot="fixed" (ionRefresh)="doRefresh($event)">
+    <ion-refresher-content
+      pullingIcon="chevron-down-circle-outline"
+      pullingText="Pull to refresh"
+      refreshingSpinner="circles"
+      refreshingText="Refreshing...">
+    </ion-refresher-content>
+  </ion-refresher>
+
   <ion-header collapse="condense">
     <ion-toolbar>
-      <ion-title size="large">tab2</ion-title>
+      <ion-title size="large">Sales Records</ion-title>
     </ion-toolbar>
   </ion-header>
-</ion-content>
+
+  <!-- Fixed Segment Control -->
+  <ion-segment [(ngModel)]="segmentValue" (ionChange)="segmentChanged()" class="sales-segment">
+    <ion-segment-button value="cash">
+      <ion-icon name="cash"></ion-icon>
+      <ion-label>Cash Sales</ion-label>
+    </ion-segment-button>
+    <ion-segment-button value="debt">
+      <ion-icon name="card"></ion-icon>
+      <ion-label>Debt Sales</ion-label>
+    </ion-segment-button>
+  </ion-segment>
+
+  <!-- Search Bar -->
+  <ion-toolbar class="search-toolbar">
+    <ion-searchbar 
+      [(ngModel)]="searchTerm" 
+      placeholder="Search transactions..."
+      (ionInput)="searchChanged()"
+      animated="true"
+      clearIcon="close-circle"
+      class="custom-searchbar">
+    </ion-searchbar>
+  </ion-toolbar>
+
+  <!-- Debt Status Filter -->
+  <ion-toolbar *ngIf="segmentValue === 'debt'" class="status-toolbar">
+    <ion-segment [(ngModel)]="statusFilter" (ionChange)="filterChanged()" scrollable="true">
+      <ion-segment-button value="all">
+        <ion-label>All</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="unpaid">
+        <ion-label>Unpaid</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="partially_paid">
+        <ion-label>Partial</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="paid">
+        <ion-label>Paid</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="overdue">
+        <ion-label>Overdue</ion-label>
+      </ion-segment-button>
+    </ion-segment>
+  </ion-toolbar>
+
+  <!-- Summary Cards -->
+  <div class="summary-cards" *ngIf="segmentValue === 'cash' && filteredCashProducts.length > 0">
+    <ion-card class="summary-card">
+      <ion-card-header>
+        <ion-card-title>Today's Cash Sales</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <h2>{{formatCurrency(getTodayCashTotal())}}</h2>
+        <p>{{getTodayCashCount()}} transactions</p>
+      </ion-card-content>
+    </ion-card>
+
+    <ion-card class="summary-card">
+      <ion-card-header>
+        <ion-card-title>Total Cash Sales</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <h2>{{formatCurrency(getTotalCashSales())}}</h2>
+        <p>{{filteredCashProducts.length}} total transactions</p>
+      </ion-card-content>
+    </ion-card>
+  </div>
+
+  <div class="summary-cards" *ngIf="segmentValue === 'debt' && filteredDebtProducts.length > 0">
+    <ion-card class="summary-card">
+      <ion-card-header>
+        <ion-card-title>Total Outstanding</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <h2>{{formatCurrency(getTotalOutstanding())}}</h2>
+        <p>{{getDebtCountByStatus('unpaid')}} unpaid</p>
+      </ion-card-content>
+    </ion-card>
+
+    <ion-card class="summary-card">
+      <ion-card-header>
+        <ion-card-title>Debt Overview</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <h3>{{getDebtCountByStatus('partially_paid')}} partial</h3>
+        <p>{{getDebtCountByStatus('paid')}} paid</p>
+      </ion-card-content>
+    </ion-card>
+  </div>
+
+  <!-- Cash Products List -->
+  <div *ngIf="segmentValue === 'cash'" class="sales-list-container">
+    <ion-list lines="full" class="sales-list">
+      <ion-list-header class="list-header">
+        <ion-label>
+          <h2>Cash Transactions</h2>
+          <p>{{filteredCashProducts.length}} records</p>
+        </ion-label>
+        <ion-button fill="clear" size="small" (click)="doRefreshManual()">
+          <ion-icon slot="icon-only" name="refresh"></ion-icon>
+        </ion-button>
+      </ion-list-header>
+
+      <ion-item-sliding *ngFor="let cashProduct of filteredCashProducts; trackBy: trackByCashId" class="sale-item">
+        <ion-item (click)="viewCashReceipt(cashProduct)" class="sale-item-content" detail="true">
+          <ion-avatar slot="start" class="sale-avatar">
+            <ion-icon name="receipt" color="primary"></ion-icon>
+          </ion-avatar>
+          <ion-label class="sale-details">
+            <h2>Receipt #{{cashProduct.id}}</h2>
+            <p *ngIf="cashProduct.customerName" class="customer-info">
+              <ion-icon name="person" size="small"></ion-icon>
+              {{cashProduct.customerName}}
+            </p>
+            <p *ngIf="cashProduct.employeeName" class="employee-info">
+              <ion-icon name="person-circle" size="small"></ion-icon>
+              Sold by: {{cashProduct.employeeName}}
+            </p>
+            <div class="amounts-container">
+              <div class="amount-item">
+                <span class="amount-label">Total:</span>
+                <span class="amount-value">{{formatCurrency(cashProduct.total)}}</span>
+              </div>
+              <div class="amount-item">
+                <span class="amount-label">Paid:</span>
+                <span class="amount-value paid">{{formatCurrency(cashProduct.amountPaid)}}</span>
+              </div>
+              <div class="amount-item">
+                <span class="amount-label">Change:</span>
+                <span class="amount-value change">{{formatCurrency(cashProduct.change)}}</span>
+              </div>
+            </div>
+            <p class="date-info">
+              <ion-icon name="calendar" size="small"></ion-icon>
+              {{formatDate(cashProduct.created_at)}}
+            </p>
+          </ion-label>
+          <ion-badge [color]="getStatusColor(cashProduct.status)" slot="end" class="status-badge">
+            {{cashProduct.status}}
+          </ion-badge>
+        </ion-item>
+
+        <ion-item-options side="end">
+          <ion-item-option (click)="viewCashReceipt(cashProduct)" color="primary" class="action-option">
+            <ion-icon slot="top" name="receipt"></ion-icon>
+            View
+          </ion-item-option>
+        </ion-item-options>
+      </ion-item-sliding>
+
+      <ion-item *ngIf="filteredCashProducts.length === 0" class="empty-state">
+        <div class="empty-content">
+          <ion-icon name="receipt-outline" color="medium"></ion-icon>
+          <ion-label>
+            <h2>No cash transactions found</h2>
+            <p>Cash sales will appear here after transactions</p>
+          </ion-label>
+        </div>
+      </ion-item>
+    </ion-list>
+  </div>
+
+  <!-- Debt Products List -->
+  <div *ngIf="segmentValue === 'debt'" class="sales-list-container">
+    <ion-list lines="full" class="sales-list">
+      <ion-list-header class="list-header">
+        <ion-label>
+          <h2>Debt Transactions</h2>
+          <p>{{filteredDebtProducts.length}} records</p>
+        </ion-label>
+        <ion-button fill="clear" size="small" (click)="doRefreshManual()">
+          <ion-icon slot="icon-only" name="refresh"></ion-icon>
+        </ion-button>
+      </ion-list-header>
+
+      <ion-item-sliding *ngFor="let debtProduct of filteredDebtProducts; trackBy: trackByDebtId" class="sale-item">
+        <ion-item (click)="viewDebtReceipt(debtProduct)" class="sale-item-content" detail="true">
+          <ion-avatar slot="start" class="sale-avatar">
+            <ion-icon name="card" color="warning"></ion-icon>
+          </ion-avatar>
+          <ion-label class="sale-details">
+            <h2>{{debtProduct.customerName}}</h2>
+            <p class="customer-info">
+              <ion-icon name="call" size="small"></ion-icon>
+              {{debtProduct.customerPhone || 'No phone'}}
+            </p>
+            <p *ngIf="debtProduct.employeeName" class="employee-info">
+              <ion-icon name="person-circle" size="small"></ion-icon>
+              Sold by: {{debtProduct.employeeName}}
+            </p>
+            <div class="amounts-container">
+              <div class="amount-item">
+                <span class="amount-label">Total:</span>
+                <span class="amount-value">{{formatCurrency(debtProduct.total)}}</span>
+              </div>
+              <div class="amount-item" *ngIf="debtProduct.initialPayment">
+                <span class="amount-label">Initial Payment:</span>
+                <span class="amount-value paid">{{formatCurrency(debtProduct.initialPayment)}}</span>
+              </div>
+              <div class="amount-item" *ngIf="debtProduct.remainingBalance !== undefined">
+                <span class="amount-label">Remaining:</span>
+                <span class="amount-value remaining">{{formatCurrency(debtProduct.remainingBalance)}}</span>
+              </div>
+            </div>
+            <div class="date-container">
+              <p class="date-info">
+                <ion-icon name="calendar" size="small"></ion-icon>
+                Due: {{formatDate(debtProduct.dueDate)}}
+              </p>
+              <p class="date-info">
+                <ion-icon name="time" size="small"></ion-icon>
+                Created: {{formatDate(debtProduct.created_at)}}
+              </p>
+            </div>
+          </ion-label>
+          <div slot="end" class="status-container">
+            <ion-badge [color]="getPaymentStatusColor(debtProduct.payment_status)" class="payment-badge">
+              {{debtProduct.payment_status}}
+            </ion-badge>
+            <ion-badge [color]="getStatusColor(debtProduct.status)" class="status-badge">
+              {{debtProduct.status}}
+            </ion-badge>
+          </div>
+        </ion-item>
+
+        <ion-item-options side="end">
+          <ion-item-option (click)="viewDebtReceipt(debtProduct)" color="primary" class="action-option">
+            <ion-icon slot="top" name="receipt"></ion-icon>
+            View
+          </ion-item-option>
+          <ion-item-option 
+            (click)="openPaymentModal(debtProduct)" 
+            color="success"
+            [disabled]="debtProduct.payment_status === 'paid'"
+            class="action-option">
+            <ion-icon slot="top" name="card"></ion-icon>
+            Pay
+          </ion-item-option>
+        </ion-item-options>
+      </ion-item-sliding>
+
+      <ion-item *ngIf="filteredDebtProducts.length === 0" class="empty-state">
+        <div class="empty-content">
+          <ion-icon name="card-outline" color="medium"></ion-icon>
+          <ion-label>
+            <h2>No debt transactions found</h2>
+            <p>Debt sales will appear here after transactions</p>
+          </ion-label>
+        </div>
+      </ion-item>
+    </ion-list>
+  </div>
+
+  <!-- Cash Receipt Modal -->
+  <ion-modal [isOpen]="showCashReceiptModal" (ionModalDidDismiss)="closeCashReceiptModal()" class="receipt-modal">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar>
+          <ion-buttons slot="start">
+            <ion-button (click)="closeCashReceiptModal()">
+              <ion-icon slot="icon-only" name="close"></ion-icon>
+            </ion-button>
+          </ion-buttons>
+          <ion-title>Receipt Details</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="shareReceipt(selectedCashProduct)" *ngIf="selectedCashProduct">
+              <ion-icon slot="icon-only" name="share"></ion-icon>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content class="ion-padding receipt-content">
+        <div *ngIf="selectedCashProduct" class="receipt-container">
+          <div class="receipt-image-container" *ngIf="selectedCashProduct.receipt_image">
+            <img 
+              [src]="selectedCashProduct.receipt_image" 
+              alt="Receipt" 
+              class="receipt-image"
+              (error)="handleImageError($event, 'cash')">
+          </div>
+          <div class="no-receipt" *ngIf="!selectedCashProduct.receipt_image">
+            <ion-icon name="receipt-outline"></ion-icon>
+            <p>No receipt image available</p>
+          </div>
+          
+          <ion-card class="receipt-details">
+            <ion-card-header>
+              <ion-card-title>Transaction Details</ion-card-title>
+            </ion-card-header>
+            <ion-card-content>
+              <ion-grid class="receipt-grid">
+                <ion-row>
+                  <ion-col size="6">
+                    <strong>Receipt ID:</strong>
+                  </ion-col>
+                  <ion-col size="6" class="text-right">
+                    {{selectedCashProduct.id}}
+                  </ion-col>
+                </ion-row>
+                <ion-row *ngIf="selectedCashProduct.customerName">
+                  <ion-col size="6">
+                    <strong>Customer:</strong>
+                  </ion-col>
+                  <ion-col size="6" class="text-right">
+                    {{selectedCashProduct.customerName}}
+                  </ion-col>
+                </ion-row>
+                <ion-row *ngIf="selectedCashProduct.employeeName">
+                  <ion-col size="6">
+                    <strong>Employee:</strong>
+                  </ion-col>
+                  <ion-col size="6" class="text-right">
+                    {{selectedCashProduct.employeeName}}
+                  </ion-col>
+                </ion-row>
+                <ion-row>
+                  <ion-col size="6">
+                    <strong>Total Amount:</strong>
+                  </ion-col>
+                  <ion-col size="6" class="text-right">
+                    {{formatCurrency(selectedCashProduct.total)}}
+                  </ion-col>
+                </ion-row>
+                <ion-row>
+                  <ion-col size="6">
+                    <strong>Amount Paid:</strong>
+                  </ion-col>
+                  <ion-col size="6" class="text-right">
+                    {{formatCurrency(selectedCashProduct.amountPaid)}}
+                  </ion-col>
+                </ion-row>
+                <ion-row>
+                  <ion-col size="6">
+                    <strong>Change:</strong>
+                  </ion-col>
+                  <ion-col size="6" class="text-right">
+                    {{formatCurrency(selectedCashProduct.change)}}
+                  </ion-col>
+                </ion-row>
+                <ion-row>
+                  <ion-col size="6">
+                    <strong>Date:</strong>
+                  </ion-col>
+                  <ion-col size="6" class="text-right">
+                    {{formatDate(selectedCashProduct.created_at)}}
+                  </ion-col>
+                </ion-row>
+                <ion-row>
+                  <ion-col size="6">
+                    <strong>Status:</strong>
+                  </ion-col>
+                  <ion-col size="6" class="text-right">
+                    <ion-badge [color]="getStatusColor(selectedCashProduct.status)">
+                      {{selectedCashProduct.status}}
+                    </ion-badge>
+                  </ion-col>
+                </ion-row>
+              </ion-grid>
+            </ion-card-content>
+          </ion-card>
+        </div>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+
+<!-- Debt Receipt Modal -->
+<ion-modal [isOpen]="showDebtReceiptModal" (ionModalDidDismiss)="closeDebtReceiptModal()" class="receipt-modal">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-buttons slot="start">
+          <ion-button (click)="closeDebtReceiptModal()">
+            <ion-icon slot="icon-only" name="close"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+        <ion-title>Debt Receipt</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="shareReceipt(selectedDebtProduct)" *ngIf="selectedDebtProduct">
+            <ion-icon slot="icon-only" name="share"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content class="ion-padding receipt-content">
+      <div *ngIf="selectedDebtProduct" class="receipt-container">
+        <div class="receipt-image-container" *ngIf="selectedDebtProduct.receipt_image">
+          <img 
+            [src]="selectedDebtProduct.receipt_image" 
+            alt="Receipt" 
+            class="receipt-image"
+            (error)="handleImageError($event, 'debt')">
+        </div>
+        <div class="no-receipt" *ngIf="!selectedDebtProduct.receipt_image">
+          <ion-icon name="receipt-outline"></ion-icon>
+          <p>No receipt image available</p>
+        </div>
+        
+        <ion-card class="receipt-details">
+          <ion-card-header>
+            <ion-card-title>Debt Details</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <ion-grid class="receipt-grid">
+              <ion-row>
+                <ion-col size="6">
+                  <strong>Customer:</strong>
+                </ion-col>
+                <ion-col size="6" class="text-right">
+                  {{selectedDebtProduct.customerName}}
+                </ion-col>
+              </ion-row>
+              <ion-row>
+                <ion-col size="6">
+                  <strong>Phone:</strong>
+                </ion-col>
+                <ion-col size="6" class="text-right">
+                  {{selectedDebtProduct.customerPhone || 'N/A'}}
+                </ion-col>
+              </ion-row>
+              <ion-row *ngIf="selectedDebtProduct.employeeName">
+                <ion-col size="6">
+                  <strong>Employee:</strong>
+                </ion-col>
+                <ion-col size="6" class="text-right">
+                  {{selectedDebtProduct.employeeName}}
+                </ion-col>
+              </ion-row>
+              <ion-row>
+                <ion-col size="6">
+                  <strong>Original Total:</strong>
+                </ion-col>
+                <ion-col size="6" class="text-right">
+                  {{formatCurrency(selectedDebtProduct.originalTotal || selectedDebtProduct.total)}}
+                </ion-col>
+              </ion-row>
+              <ion-row *ngIf="selectedDebtProduct.initialPayment">
+                <ion-col size="6">
+                  <strong>Initial Payment:</strong>
+                </ion-col>
+                <ion-col size="6" class="text-right">
+                  {{formatCurrency(selectedDebtProduct.initialPayment)}}
+                </ion-col>
+              </ion-row>
+              <ion-row>
+                <ion-col size="6">
+                  <strong>Remaining Balance:</strong>
+                </ion-col>
+                <ion-col size="6" class="text-right">
+                  {{formatCurrency(selectedDebtProduct.remainingBalance || selectedDebtProduct.total)}}
+                </ion-col>
+              </ion-row>
+              <ion-row>
+                <ion-col size="6">
+                  <strong>Due Date:</strong>
+                </ion-col>
+                <ion-col size="6" class="text-right">
+                  {{formatDate(selectedDebtProduct.dueDate)}}
+                </ion-col>
+              </ion-row>
+              <ion-row>
+                <ion-col size="6">
+                  <strong>Status:</strong>
+                </ion-col>
+                <ion-col size="6" class="text-right">
+                  <ion-badge [color]="getPaymentStatusColor(selectedDebtProduct.payment_status)">
+                    {{selectedDebtProduct.payment_status}}
+                  </ion-badge>
+                </ion-col>
+              </ion-row>
+            </ion-grid>
+          </ion-card-content>
+        </ion-card>
+        
+        <!-- Payment History -->
+        <ion-card class="payment-history" *ngIf="selectedDebtProduct['payments'] && selectedDebtProduct['payments'].length > 0">
+          <ion-card-header>
+            <ion-card-title>Payment History</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <ion-list lines="none" class="payment-list">
+              <ion-item *ngFor="let payment of selectedDebtProduct['payments']" class="payment-item">
+                <ion-avatar slot="start" class="payment-avatar">
+                  <ion-icon name="checkmark-circle" color="success"></ion-icon>
+                </ion-avatar>
+                <ion-label>
+                  <h3>{{formatCurrency(payment.amount)}}</h3>
+                  <p>{{formatDate(payment.paymentDate)}}</p>
+                  <p *ngIf="payment.notes" class="payment-notes">{{payment.notes}}</p>
+                </ion-label>
+                <ion-note slot="end">{{payment.paid_by || 'Customer'}}</ion-note>
+              </ion-item>
+            </ion-list>
+          </ion-card-content>
+        </ion-card>
+
+        <!-- FIXED: Close debt receipt modal first, then open payment modal -->
+        <ion-button 
+          expand="block" 
+          color="success" 
+          class="record-payment-btn"
+          (click)="openPaymentModalFromDebtReceipt(selectedDebtProduct)"
+          [disabled]="selectedDebtProduct.payment_status === 'paid'">
+          <ion-icon slot="start" name="card"></ion-icon>
+          Record Payment
+        </ion-button>
+      </div>
+    </ion-content>
+  </ng-template>
+</ion-modal>
+
+<!-- REPLACE your entire Payment Modal section with this -->
+<!-- Payment Modal - Fixed version -->
+<ion-modal 
+  [isOpen]="showPaymentModal" 
+  (ionModalDidDismiss)="closePaymentModal()" 
+  class="payment-modal"
+  [backdropDismiss]="true"
+  [breakpoints]="[0, 1]"
+  [initialBreakpoint]="1">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar color="primary">
+        <ion-buttons slot="start">
+          <ion-button (click)="closePaymentModal()" fill="clear">
+            <ion-icon slot="icon-only" name="close"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+        <ion-title>Record Payment</ion-title>
+      </ion-toolbar>
+    </ion-header>
+    
+    <ion-content class="ion-padding payment-content">
+      <!-- Debug card - shows if no debt selected -->
+      <ion-card *ngIf="!selectedDebtForPayment" color="warning">
+        <ion-card-content>
+          <p><ion-icon name="warning"></ion-icon> No debt selected for payment.</p>
+          <ion-button size="small" (click)="debugPaymentModal()" expand="block">
+            Show Debug Info
+          </ion-button>
+          <ion-button size="small" (click)="closePaymentModal()" expand="block" color="light">
+            Close Modal
+          </ion-button>
+        </ion-card-content>
+      </ion-card>
+
+      <!-- Main payment content -->
+      <div *ngIf="selectedDebtForPayment" class="payment-form-container">
+        <!-- Debt Summary Card -->
+        <ion-card class="debt-summary">
+          <ion-card-header>
+            <ion-card-title>
+              <ion-icon name="person-circle"></ion-icon>
+              {{selectedDebtForPayment.customerName}}
+            </ion-card-title>
+            <ion-card-subtitle>
+              <ion-icon name="call"></ion-icon>
+              {{selectedDebtForPayment.customerPhone || 'No phone'}}
+            </ion-card-subtitle>
+          </ion-card-header>
+          <ion-card-content>
+            <div class="debt-info-grid">
+              <div class="info-row">
+                <span class="label">Total Debt:</span>
+                <span class="value">{{formatCurrency(selectedDebtForPayment.total || 0)}}</span>
+              </div>
+              
+              <div class="info-row" *ngIf="selectedDebtForPayment.initialPayment && selectedDebtForPayment.initialPayment > 0">
+                <span class="label">Initial Payment:</span>
+                <span class="value success">{{formatCurrency(selectedDebtForPayment.initialPayment)}}</span>
+              </div>
+              
+              <div class="info-row highlight">
+                <span class="label"><strong>Remaining Balance:</strong></span>
+                <span class="value danger"><strong>{{formatCurrency(selectedDebtForPayment.remainingBalance || selectedDebtForPayment.total || 0)}}</strong></span>
+              </div>
+              
+              <div class="info-row">
+                <span class="label">Due Date:</span>
+                <span class="value">{{formatDate(selectedDebtForPayment.dueDate)}}</span>
+              </div>
+              
+              <div class="info-row">
+                <span class="label">Status:</span>
+                <span class="value">
+                  <ion-badge [color]="getPaymentStatusColor(selectedDebtForPayment.payment_status)">
+                    {{selectedDebtForPayment.payment_status}}
+                  </ion-badge>
+                </span>
+              </div>
+            </div>
+          </ion-card-content>
+        </ion-card>
+
+        <!-- Payment Input Card -->
+        <ion-card class="payment-inputs">
+          <ion-card-header>
+            <ion-card-title>
+              <ion-icon name="cash"></ion-icon>
+              Payment Information
+            </ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <ion-list lines="none" class="payment-form">
+              <!-- Payment Amount -->
+              <ion-item class="payment-amount-item">
+                <ion-label position="stacked">
+                  <strong>Payment Amount (₱)</strong>
+                </ion-label>
+                <ion-input 
+                  type="number" 
+                  [(ngModel)]="paymentAmount"
+                  [min]="1"
+                  [max]="maxPaymentAmount"
+                  placeholder="0.00"
+                  inputmode="decimal"
+                  class="payment-input">
+                </ion-input>
+              </ion-item>
+              <ion-note class="helper-text">
+                <ion-icon name="information-circle"></ion-icon>
+                Maximum: {{formatCurrency(maxPaymentAmount)}}
+              </ion-note>
+              <ion-note class="error-text" *ngIf="paymentAmount > maxPaymentAmount">
+                <ion-icon name="alert-circle"></ion-icon>
+                Amount cannot exceed remaining balance
+              </ion-note>
+
+              <!-- Payment Notes -->
+              <ion-item class="payment-notes-item">
+                <ion-label position="stacked">
+                  <strong>Notes (Optional)</strong>
+                </ion-label>
+                <ion-textarea 
+                  [(ngModel)]="paymentNotes"
+                  placeholder="Add payment notes or remarks..."
+                  rows="3"
+                  maxlength="200"
+                  class="payment-textarea">
+                </ion-textarea>
+              </ion-item>
+              <ion-note class="helper-text">
+                {{paymentNotes.length || 0}}/200 characters
+              </ion-note>
+            </ion-list>
+          </ion-card-content>
+        </ion-card>
+
+        <!-- Action Buttons -->
+        <div class="button-group">
+          <ion-button 
+            expand="block" 
+            color="success" 
+            size="large"
+            class="process-payment-btn"
+            (click)="processPayment()"
+            [disabled]="!paymentAmount || paymentAmount <= 0 || paymentAmount > maxPaymentAmount">
+            <ion-icon slot="start" name="checkmark-circle"></ion-icon>
+            Record Payment of {{formatCurrency(paymentAmount || 0)}}
+          </ion-button>
+          
+          <ion-button 
+            expand="block" 
+            fill="clear" 
+            color="medium"
+            (click)="closePaymentModal()">
+            Cancel
+          </ion-button>
+        </div>
+      </div>
+    </ion-content>
+  </ng-template>
+</ion-modal>
+<!-- Report Modal -->
+<ion-modal [isOpen]="showReportModal" (ionModalDidDismiss)="closeReportModal()" class="report-modal">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-buttons slot="start">
+          <ion-button (click)="closeReportModal()">
+            <ion-icon slot="icon-only" name="close"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+        <ion-title>Generate Sales Report</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="generateSalesPDF()" [disabled]="filteredReportData.length === 0" fill="solid" color="primary">
+            <ion-icon slot="start" name="download"></ion-icon>
+            Download PDF
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    
+    <ion-content class="ion-padding">
+      <!-- Report Type Selection -->
+      <ion-card class="report-section">
+        <ion-card-header>
+          <ion-card-title>Report Type</ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          <ion-segment [(ngModel)]="reportType" (ionChange)="onReportTypeChange()">
+            <ion-segment-button value="combined">
+              <ion-label>All Sales</ion-label>
+            </ion-segment-button>
+            <ion-segment-button value="cash">
+              <ion-label>Cash Only</ion-label>
+            </ion-segment-button>
+            <ion-segment-button value="debt">
+              <ion-label>Debt Only</ion-label>
+            </ion-segment-button>
+          </ion-segment>
+        </ion-card-content>
+      </ion-card>
+
+      <!-- Date Range Filter -->
+      <ion-card class="report-section">
+        <ion-card-header>
+          <ion-card-title>Date Range</ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          <ion-item>
+            <ion-label position="stacked">Start Date</ion-label>
+            <ion-input 
+              type="date" 
+              [(ngModel)]="reportStartDate"
+              (ionChange)="onDateFilterChange()">
+            </ion-input>
+          </ion-item>
+          
+          <ion-item>
+            <ion-label position="stacked">End Date</ion-label>
+            <ion-input 
+              type="date" 
+              [(ngModel)]="reportEndDate"
+              (ionChange)="onDateFilterChange()">
+            </ion-input>
+          </ion-item>
+          
+          <ion-grid>
+            <ion-row>
+              <ion-col size="6">
+                <ion-button 
+                  expand="block" 
+                  fill="outline" 
+                  size="small" 
+                  (click)="setDateRange('today')"
+                  class="date-quick-btn">
+                  Today
+                </ion-button>
+              </ion-col>
+              <ion-col size="6">
+                <ion-button 
+                  expand="block" 
+                  fill="outline" 
+                  size="small" 
+                  (click)="setDateRange('week')"
+                  class="date-quick-btn">
+                  This Week
+                </ion-button>
+              </ion-col>
+            </ion-row>
+            <ion-row>
+              <ion-col size="6">
+                <ion-button 
+                  expand="block" 
+                  fill="outline" 
+                  size="small" 
+                  (click)="setDateRange('month')"
+                  class="date-quick-btn">
+                  This Month
+                </ion-button>
+              </ion-col>
+              <ion-col size="6">
+                <ion-button 
+                  expand="block" 
+                  fill="outline" 
+                  size="small" 
+                  (click)="setDateRange('year')"
+                  class="date-quick-btn">
+                  This Year
+                </ion-button>
+              </ion-col>
+            </ion-row>
+          </ion-grid>
+        </ion-card-content>
+      </ion-card>
+
+      <!-- Status Filter (for Debt Reports) -->
+      <ion-card class="report-section" *ngIf="reportType === 'debt' || reportType === 'combined'">
+        <ion-card-header>
+          <ion-card-title>Debt Status Filter</ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          <ion-segment [(ngModel)]="reportDebtStatus" scrollable="true" (ionChange)="onDateFilterChange()">
+            <ion-segment-button value="all">
+              <ion-label>All</ion-label>
+            </ion-segment-button>
+            <ion-segment-button value="unpaid">
+              <ion-label>Unpaid</ion-label>
+            </ion-segment-button>
+            <ion-segment-button value="partially_paid">
+              <ion-label>Partial</ion-label>
+            </ion-segment-button>
+            <ion-segment-button value="paid">
+              <ion-label>Paid</ion-label>
+            </ion-segment-button>
+            <ion-segment-button value="overdue">
+              <ion-label>Overdue</ion-label>
+            </ion-segment-button>
+          </ion-segment>
+        </ion-card-content>
+      </ion-card>
+
+      <!-- Report Summary -->
+      <ion-card class="report-section" *ngIf="filteredReportData.length > 0">
+        <ion-card-header>
+          <ion-card-title>Report Summary</ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          <div class="summary-stats">
+            <div class="stat-item">
+              <span class="stat-label">Total Records:</span>
+              <span class="stat-value">{{filteredReportData.length}}</span>
+            </div>
+            <div class="stat-item" *ngIf="reportType !== 'debt'">
+              <span class="stat-label">Cash Sales Total:</span>
+              <span class="stat-value">{{formatCurrency(getReportCashTotal())}}</span>
+            </div>
+            <div class="stat-item" *ngIf="reportType !== 'cash'">
+              <span class="stat-label">Debt Sales Total:</span>
+              <span class="stat-value">{{formatCurrency(getReportDebtTotal())}}</span>
+            </div>
+            <div class="stat-item" *ngIf="reportType !== 'cash'">
+              <span class="stat-label">Outstanding Balance:</span>
+              <span class="stat-value">{{formatCurrency(getReportOutstandingTotal())}}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Grand Total:</span>
+              <span class="stat-value grand-total">{{formatCurrency(getReportCashTotal() + getReportDebtTotal())}}</span>
+            </div>
+          </div>
+        </ion-card-content>
+      </ion-card>
+
+      <!-- Empty State -->
+      <ion-card class="report-section" *ngIf="filteredReportData.length === 0">
+        <ion-card-content class="empty-state">
+          <div class="empty-content">
+            <ion-icon name="document-outline" color="medium"></ion-icon>
+            <h3>No data found</h3>
+            <p>Adjust your filters to see report data</p>
+          </div>
+        </ion-card-content>
+      </ion-card>
+    </ion-content>
+  </ng-template>
+</ion-modal>

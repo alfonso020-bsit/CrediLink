@@ -1,9 +1,29 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
-import { ToastController, LoadingController } from '@ionic/angular';
+import { ToastController, LoadingController, ModalController } from '@ionic/angular';
 import { AuthService, User } from '../../../services/auth.service';
 import { StoreService, StoreProfile } from '../../../services/store.service';
 import { EmployeeService, EmployeeProfile } from '../../../services/employee.service';
+import { Firestore, collection, query, where, getDocs, Timestamp } from '@angular/fire/firestore';
+import { DebtCalendarModalComponent } from './debt-calendar-modal.component'; // Make sure this component exists
+
+interface DashboardMetrics {
+  todaySales: number;
+  todayTransactions: number;
+  pendingDebts: number;
+  totalDebtAmount: number;
+  monthlyPerformance: number;
+}
+
+interface CalendarEvent {
+  date: Date;
+  type: 'transaction' | 'due_date';
+  transactionId: string;
+  customerName: string;
+  amount: number;
+  status: string;
+  isOverdue?: boolean;
+}
 
 @Component({
   selector: 'app-employee-tab1',
@@ -40,11 +60,27 @@ export class Tab1Page implements OnInit {
   selectedEmployeeFile: File | null = null;
   employeeImagePreview: string | null = null;
 
+  calendarEvents: CalendarEvent[] = [];
+  recentTransactions: any[] = [];
+  
+  isLoadingDashboard: boolean = false;
+
+   // Dashboard Data
+  dashboardMetrics: DashboardMetrics = {
+    todaySales: 0,
+    todayTransactions: 0,
+    pendingDebts: 0,
+    totalDebtAmount: 0,
+    monthlyPerformance: 0
+  };
+
   constructor(
     private authService: AuthService,
     private storeService: StoreService,
     private employeeService: EmployeeService,
+    private firestore: Firestore, // Add this line
     private toastController: ToastController,
+    private modalController: ModalController, // Also add this if missing
     private loadingController: LoadingController,
     private router: Router
   ) {}
@@ -52,11 +88,13 @@ export class Tab1Page implements OnInit {
   async ngOnInit() {
     console.log('🔄 Tab1 ngOnInit');
     await this.loadUserData();
+    await this.loadDashboardData();
   }
 
   async ionViewWillEnter() {
     console.log('🔄 Tab1 ionViewWillEnter - Reloading data');
     await this.loadUserData();
+    await this.loadDashboardData();
   }
 
   async loadUserData() {
@@ -315,4 +353,248 @@ async logout() {
     });
     await toast.present();
   }
+    // NEW: Load Today's Performance Metrics
+  async loadTodayMetrics() {
+    try {
+      const currentUser = this.authService.getCurrentUser();
+      const storeOwnerId = currentUser?.store_owner_id || currentUser?.id;
+      
+      if (!storeOwnerId) return;
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      // Load today's cash transactions
+      const cashProductsRef = collection(this.firestore, 'cash_products');
+      const cashQuery = query(
+        cashProductsRef,
+        where('store_owner_id', '==', storeOwnerId),
+        where('employee_id', '==', currentUser.id),
+        where('created_at', '>=', Timestamp.fromDate(today)),
+        where('created_at', '<', Timestamp.fromDate(tomorrow))
+      );
+
+      const cashSnapshot = await getDocs(cashQuery);
+      const todayCashTransactions = cashSnapshot.docs.map(doc => doc.data());
+      
+      // Load debt transactions
+      const debtProductsRef = collection(this.firestore, 'debt_products');
+      const debtQuery = query(
+        debtProductsRef,
+        where('store_owner_id', '==', storeOwnerId),
+        where('employee_id', '==', currentUser.id)
+      );
+
+      const debtSnapshot = await getDocs(debtQuery);
+      const debtTransactions = debtSnapshot.docs.map(doc => doc.data());
+
+      // Calculate metrics
+      const todaySales = todayCashTransactions.reduce((sum, tx) => sum + (tx['total'] || 0), 0);
+      const pendingDebts = debtTransactions.filter(tx => 
+        tx['payment_status'] === 'unpaid' || tx['payment_status'] === 'partially_paid'
+      );
+      const totalDebtAmount = pendingDebts.reduce((sum, tx) => sum + (tx['remainingBalance'] || 0), 0);
+
+      this.dashboardMetrics = {
+        todaySales: todaySales,
+        todayTransactions: todayCashTransactions.length,
+        pendingDebts: pendingDebts.length,
+        totalDebtAmount: totalDebtAmount,
+        monthlyPerformance: this.calculateMonthlyPerformance(todaySales)
+      };
+
+    } catch (error) {
+      console.error('Error loading today metrics:', error);
+    }
+  }
+
+  // NEW: Load Debt Calendar Events
+  async loadDebtCalendar() {
+    try {
+      const currentUser = this.authService.getCurrentUser();
+      const storeOwnerId = currentUser?.store_owner_id || currentUser?.id;
+      
+      if (!storeOwnerId) return;
+
+      const debtProductsRef = collection(this.firestore, 'debt_products');
+      const debtQuery = query(
+        debtProductsRef,
+        where('store_owner_id', '==', storeOwnerId),
+        where('employee_id', '==', currentUser.id)
+      );
+
+      const debtSnapshot = await getDocs(debtQuery);
+      const events: CalendarEvent[] = [];
+
+      debtSnapshot.docs.forEach(doc => {
+        const data = doc.data();
+        const transactionDate = data['created_at']?.toDate();
+        const dueDate = data['dueDate']?.toDate();
+        const today = new Date();
+
+        // Add transaction date event
+        if (transactionDate) {
+          events.push({
+            date: transactionDate,
+            type: 'transaction',
+            transactionId: doc.id,
+            customerName: data['customerName'] || 'Unknown Customer',
+            amount: data['total'] || 0,
+            status: data['payment_status'] || 'unpaid'
+          });
+        }
+
+        // Add due date event
+        if (dueDate) {
+          events.push({
+            date: dueDate,
+            type: 'due_date',
+            transactionId: doc.id,
+            customerName: data['customerName'] || 'Unknown Customer',
+            amount: data['remainingBalance'] || 0,
+            status: data['payment_status'] || 'unpaid',
+            isOverdue: dueDate < today
+          });
+        }
+      });
+
+      this.calendarEvents = events.sort((a, b) => a.date.getTime() - b.date.getTime());
+
+    } catch (error) {
+      console.error('Error loading debt calendar:', error);
+    }
+  }
+
+  // NEW: Load Recent Transactions
+  async loadRecentTransactions() {
+    try {
+      const currentUser = this.authService.getCurrentUser();
+      const storeOwnerId = currentUser?.store_owner_id || currentUser?.id;
+      
+      if (!storeOwnerId) return;
+
+      // Load last 5 transactions (cash and debt)
+      const cashProductsRef = collection(this.firestore, 'cash_products');
+      const debtProductsRef = collection(this.firestore, 'debt_products');
+      
+      const cashQuery = query(
+        cashProductsRef,
+        where('store_owner_id', '==', storeOwnerId),
+        where('employee_id', '==', currentUser.id)
+      );
+
+      const debtQuery = query(
+        debtProductsRef,
+        where('store_owner_id', '==', storeOwnerId),
+        where('employee_id', '==', currentUser.id)
+      );
+
+      const [cashSnapshot, debtSnapshot] = await Promise.all([
+        getDocs(cashQuery),
+        getDocs(debtQuery)
+      ]);
+
+      const allTransactions = [
+        ...cashSnapshot.docs.map(doc => ({
+          id: doc.id,
+          type: 'cash',
+          ...doc.data(),
+          date: doc.data()['created_at']?.toDate()
+        })),
+        ...debtSnapshot.docs.map(doc => ({
+          id: doc.id,
+          type: 'debt',
+          ...doc.data(),
+          date: doc.data()['created_at']?.toDate()
+        }))
+      ];
+
+      this.recentTransactions = allTransactions
+        .sort((a, b) => b.date.getTime() - a.date.getTime())
+        .slice(0, 5);
+
+    } catch (error) {
+      console.error('Error loading recent transactions:', error);
+    }
+  }
+    // NEW: Load Dashboard Data
+  async loadDashboardData() {
+    this.isLoadingDashboard = true;
+    
+    try {
+      await Promise.all([
+        this.loadTodayMetrics(),
+        this.loadDebtCalendar(),
+        this.loadRecentTransactions()
+      ]);
+      
+      console.log('✅ Dashboard data loaded successfully');
+    } catch (error) {
+      console.error('❌ Error loading dashboard data:', error);
+      this.showToast('Error loading dashboard data', 'danger');
+    } finally {
+      this.isLoadingDashboard = false;
+    }
+  }
+
+
+  // NEW: Open Debt Calendar Modal
+  async openDebtCalendar() {
+    const modal = await this.modalController.create({
+      component: DebtCalendarModalComponent,
+      componentProps: {
+        calendarEvents: this.calendarEvents,
+        employeeName: this.currentUser?.full_name
+      },
+      cssClass: 'debt-calendar-modal'
+    });
+    
+    await modal.present();
+  }
+
+  // NEW: Open Date Details Modal
+  async openDateDetails(selectedDate: Date) {
+    const dayEvents = this.calendarEvents.filter(event => 
+      this.isSameDay(event.date, selectedDate)
+    );
+
+    const modal = await this.modalController.create({
+      component: DebtCalendarModalComponent, // Reuse or create separate component
+      componentProps: {
+        calendarEvents: dayEvents,
+        selectedDate: selectedDate,
+        employeeName: this.currentUser?.full_name
+      },
+      cssClass: 'date-details-modal'
+    });
+    
+    await modal.present();
+  }
+
+  // NEW: Helper Methods
+  private calculateMonthlyPerformance(todaySales: number): number {
+    // Simple calculation - you can enhance this with actual monthly data
+    const basePerformance = 1000; // Example base performance
+    return (todaySales / basePerformance) * 100;
+  }
+
+  private isSameDay(date1: Date, date2: Date): boolean {
+    return date1.getDate() === date2.getDate() &&
+           date1.getMonth() === date2.getMonth() &&
+           date1.getFullYear() === date2.getFullYear();
+  }
+
+  getEventsForDate(date: Date): CalendarEvent[] {
+    return this.calendarEvents.filter(event => this.isSameDay(event.date, date));
+  }
+
+  getUpcomingEvents(): CalendarEvent[] {
+    const today = new Date();
+    return this.calendarEvents
+      .filter(event => event.date >= today)
+      .slice(0, 3);
+  }
+
 }
