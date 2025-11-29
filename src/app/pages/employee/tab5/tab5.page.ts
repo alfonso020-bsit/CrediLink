@@ -453,34 +453,34 @@ async loadDebtTransactions() {
         }
       });
 
-      // Create the transaction object with ALL properties
-      const transaction: TransactionReport = {
-        id: data['id'] || doc.id,
-        firestoreId: doc.id,
-        type: 'debt',
-        date: transactionDate,
-        customerName: data['customerName'] || 'Unknown Customer',
-        totalAmount: totalAmount,
-        status: data['status'] || 'pending',
-        paymentStatus: data['payment_status'] || 'unpaid',
-        employeeName: transactionEmployeeName,
-        employeeId: transactionEmployeeId,
-        itemsCount: data['items']?.length || 0,
-        remainingBalance: remainingBalance,
-        initialPayment: initialPayment,
-        dueDate: data['dueDate'],
-        details: data,
-        // Add payment information
-        payments: payments,
-        userPayments: userPayments,
-        isCreatedByCurrentUser: isCreatedByCurrentUser,
-        hasRecordedPayments: hasRecordedPayments,
-        // Display properties
-        displayType: 'Debt Sale',
-        displayAmount: `PHP ${totalAmount.toFixed(2)}`,
-        displayStatus: this.getStatusBadge(data['status'] || 'pending', data['payment_status'] || 'unpaid'),
-        displayBalance: `PHP ${remainingBalance.toFixed(2)}`
-      };
+      // In your loadDebtTransactions method, ensure this part:
+const transaction: TransactionReport = {
+  id: data['id'] || doc.id,
+  firestoreId: doc.id,
+  type: 'debt',
+  date: transactionDate,
+  customerName: data['customerName'] || 'Unknown Customer',
+  totalAmount: totalAmount,
+  status: data['status'] || 'pending',
+  paymentStatus: data['payment_status'] || 'unpaid',
+  employeeName: transactionEmployeeName,
+  employeeId: transactionEmployeeId,
+  itemsCount: data['items']?.length || 0,
+  remainingBalance: remainingBalance, // Make sure this is set
+  initialPayment: initialPayment, // Make sure this is set
+  dueDate: data['dueDate'],
+  details: data,
+  // CRITICAL: Include payments array
+  payments: payments,
+  userPayments: userPayments,
+  isCreatedByCurrentUser: isCreatedByCurrentUser,
+  hasRecordedPayments: hasRecordedPayments,
+  // Display properties
+  displayType: 'Debt Sale',
+  displayAmount: `PHP ${totalAmount.toFixed(2)}`,
+  displayStatus: this.getStatusBadge(data['status'] || 'pending', data['payment_status'] || 'unpaid'),
+  displayBalance: `PHP ${remainingBalance.toFixed(2)}`
+};
       
       return transaction;
     });
@@ -979,16 +979,87 @@ calculateSummary() {
   }
 
 async viewTransactionDetails(transaction: TransactionReport) {
-  const modal = await this.modalController.create({
-    component: TransactionDetailsModal,
-    componentProps: {
-      transaction: transaction,
-      formatDate: this.formatDate.bind(this)
-    },
-    cssClass: 'transaction-details-modal'
-  });
-  
-  await modal.present();
+  try {
+    console.log('🔍 Opening transaction details for:', {
+      id: transaction.id,
+      type: transaction.type,
+      customer: transaction.customerName,
+      currentBalance: transaction.remainingBalance,
+      currentStatus: transaction.status
+    });
+
+    // For debt transactions, refresh the data from Firestore first
+    if (transaction.type === 'debt' && transaction.firestoreId) {
+      console.log('🔄 Refreshing debt transaction data...');
+      const refreshedTransaction = await this.refreshDebtTransaction(transaction.firestoreId);
+      
+      if (refreshedTransaction) {
+        console.log('✅ Refreshed debt data:', {
+          newBalance: refreshedTransaction.remainingBalance,
+          newStatus: refreshedTransaction.status
+        });
+        transaction = refreshedTransaction;
+      }
+    }
+
+    const modal = await this.modalController.create({
+      component: TransactionDetailsModal,
+      componentProps: {
+        transaction: transaction,
+        formatDate: this.formatDate.bind(this)
+      },
+      cssClass: 'transaction-details-modal'
+    });
+    
+    await modal.present();
+    
+  } catch (error) {
+    console.error('❌ Error opening transaction details:', error);
+    this.showToast('Error loading transaction details', 'danger');
+  }
+}
+
+// Add this method to refresh individual debt transaction
+private async refreshDebtTransaction(firestoreId: string): Promise<TransactionReport | null> {
+  try {
+    const { doc, getDoc } = await import('@angular/fire/firestore');
+    const debtProductRef = doc(this.firestore, 'debt_products', firestoreId);
+    const docSnapshot = await getDoc(debtProductRef);
+    
+    if (docSnapshot.exists()) {
+      const data = docSnapshot.data();
+      console.log('🔄 Fresh debt data from Firestore:', {
+        remainingBalance: data['remainingBalance'],
+        payment_status: data['payment_status'],
+        status: data['status']
+      });
+
+      // Update the local transaction with fresh data
+      const transactionIndex = this.debtTransactions.findIndex(tx => tx.firestoreId === firestoreId);
+      if (transactionIndex !== -1) {
+        // Update the local array
+        this.debtTransactions[transactionIndex].remainingBalance = this.cleanAndParseNumber(data['remainingBalance']);
+        this.debtTransactions[transactionIndex].paymentStatus = data['payment_status'];
+        this.debtTransactions[transactionIndex].status = data['status'];
+        this.debtTransactions[transactionIndex].initialPayment = this.cleanAndParseNumber(data['initialPayment'] || 0);
+        this.debtTransactions[transactionIndex].payments = data['payments'] || [];
+        
+        // Also update the combined report
+        const combinedIndex = this.combinedReport.findIndex(tx => tx.firestoreId === firestoreId);
+        if (combinedIndex !== -1) {
+          this.combinedReport[combinedIndex] = { ...this.debtTransactions[transactionIndex] };
+        }
+        
+        console.log('✅ Successfully updated local transaction data');
+        return this.debtTransactions[transactionIndex];
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('❌ Error refreshing debt transaction:', error);
+    return null;
+  }
 }
 
   // Filter methods

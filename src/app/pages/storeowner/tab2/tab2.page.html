@@ -84,50 +84,79 @@
     </ion-segment>
   </ion-toolbar>
 
-  <!-- Summary Cards -->
-  <div class="summary-cards" *ngIf="segmentValue === 'cash' && filteredCashProducts.length > 0">
-    <ion-card class="summary-card">
-      <ion-card-header>
-        <ion-card-title>Today's Cash Sales</ion-card-title>
-      </ion-card-header>
-      <ion-card-content>
-        <h2>{{formatCurrency(getTodayCashTotal())}}</h2>
-        <p>{{getTodayCashCount()}} transactions</p>
-      </ion-card-content>
-    </ion-card>
+<!-- Enhanced Summary Cards with Profit Information -->
+<div class="summary-cards" *ngIf="segmentValue === 'cash' && filteredCashProducts.length > 0">
+  <ion-card class="summary-card">
+    <ion-card-header>
+      <ion-card-title>Today's Cash Sales</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <h2>{{formatCurrency(getTodayCashTotal())}}</h2>
+      <p>{{getTodayCashCount()}} transactions</p>
+      <!-- Enhanced Profit Information -->
+      <div class="profit-info">
+        <p class="profit-amount">Profit: {{formatCurrency(getTodayCashProfit())}}</p>
+        <p class="profit-margin">Margin: {{getTodayCashMargin()}}%</p>
+        <p class="sale-types" *ngIf="getTodaySaleTypesCount() > 0">
+          <small>
+            {{getBulkSalesCount('today')}} bulk • {{getPieceSalesCount('today')}} piece
+          </small>
+        </p>
+      </div>
+    </ion-card-content>
+  </ion-card>
 
-    <ion-card class="summary-card">
-      <ion-card-header>
-        <ion-card-title>Total Cash Sales</ion-card-title>
-      </ion-card-header>
-      <ion-card-content>
-        <h2>{{formatCurrency(getTotalCashSales())}}</h2>
-        <p>{{filteredCashProducts.length}} total transactions</p>
-      </ion-card-content>
-    </ion-card>
-  </div>
+  <ion-card class="summary-card">
+    <ion-card-header>
+      <ion-card-title>Total Cash Sales</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <h2>{{formatCurrency(getTotalCashSales())}}</h2>
+      <p>{{filteredCashProducts.length}} total transactions</p>
+      <!-- Enhanced Profit Information -->
+      <div class="profit-info">
+        <p class="profit-amount">Total Profit: {{formatCurrency(getTotalCashProfit())}}</p>
+        <p class="profit-margin">Avg Margin: {{getAverageCashMargin()}}%</p>
+        <p class="sale-types" *ngIf="getTotalSaleTypesCount() > 0">
+          <small>
+            {{getBulkSalesCount('total')}} bulk • {{getPieceSalesCount('total')}} piece
+          </small>
+        </p>
+      </div>
+    </ion-card-content>
+  </ion-card>
+</div>
 
-  <div class="summary-cards" *ngIf="segmentValue === 'debt' && filteredDebtProducts.length > 0">
-    <ion-card class="summary-card">
-      <ion-card-header>
-        <ion-card-title>Total Outstanding</ion-card-title>
-      </ion-card-header>
-      <ion-card-content>
-        <h2>{{formatCurrency(getTotalOutstanding())}}</h2>
-        <p>{{getDebtCountByStatus('unpaid')}} unpaid</p>
-      </ion-card-content>
-    </ion-card>
+<div class="summary-cards" *ngIf="segmentValue === 'debt' && filteredDebtProducts.length > 0">
+  <ion-card class="summary-card">
+    <ion-card-header>
+      <ion-card-title>Total Outstanding</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <h2>{{formatCurrency(getTotalOutstanding())}}</h2>
+      <p>{{getDebtCountByStatus('unpaid')}} unpaid</p>
+      <!-- NEW: Profit Information -->
+      <div class="profit-info">
+        <p class="profit-amount">Potential Profit: {{formatCurrency(getTotalDebtProfit())}}</p>
+        <p class="profit-margin">Avg Margin: {{getAverageDebtMargin()}}%</p>
+      </div>
+    </ion-card-content>
+  </ion-card>
 
-    <ion-card class="summary-card">
-      <ion-card-header>
-        <ion-card-title>Debt Overview</ion-card-title>
-      </ion-card-header>
-      <ion-card-content>
-        <h3>{{getDebtCountByStatus('partially_paid')}} partial</h3>
-        <p>{{getDebtCountByStatus('paid')}} paid</p>
-      </ion-card-content>
-    </ion-card>
-  </div>
+  <ion-card class="summary-card">
+    <ion-card-header>
+      <ion-card-title>Debt Overview</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <h3>{{getDebtCountByStatus('partially_paid')}} partial</h3>
+      <p>{{getDebtCountByStatus('paid')}} paid</p>
+      <!-- NEW: Profit Information -->
+      <div class="profit-info">
+        <p>Realized Profit: {{formatCurrency(getRealizedDebtProfit())}}</p>
+      </div>
+    </ion-card-content>
+  </ion-card>
+</div>
 
   <!-- Cash Products List -->
   <div *ngIf="segmentValue === 'cash'" class="sales-list-container">
@@ -397,6 +426,57 @@
                   </ion-col>
                 </ion-row>
               </ion-grid>
+              <!-- Add Profit Information to Debt Receipt -->
+              <div *ngIf="selectedDebtProduct && selectedDebtProduct.totalCost !== undefined && selectedDebtProduct.profit !== undefined && selectedDebtProduct.profitMargin !== undefined">
+                <ion-row>
+                  <ion-col size="6">
+                    <strong>Total Cost:</strong>
+                  </ion-col>
+                  <ion-col size="6" class="text-right">
+                    {{formatCurrency(selectedDebtProduct.totalCost)}}
+                  </ion-col>
+                </ion-row>
+                <ion-row>
+                  <ion-col size="6">
+                    <strong>Gross Profit:</strong>
+                  </ion-col>
+                  <ion-col size="6" class="text-right">
+                    <span [class]="getProfitClass(selectedDebtProduct.profit)">
+                      {{formatCurrency(selectedDebtProduct.profit)}}
+                    </span>
+                  </ion-col>
+                </ion-row>
+                <ion-row>
+                  <ion-col size="6">
+                    <strong>Profit Margin:</strong>
+                  </ion-col>
+                  <ion-col size="6" class="text-right">
+                    <span [class]="getMarginClass(selectedDebtProduct.profitMargin)">
+                      {{selectedDebtProduct.profitMargin.toFixed(1)}}%
+                    </span>
+                  </ion-col>
+                </ion-row>
+                
+                <!-- Realized Profit (for paid debts) -->
+                <ion-row *ngIf="selectedDebtProduct.payment_status === 'paid'">
+                  <ion-col size="6">
+                    <strong>Realized Profit:</strong>
+                  </ion-col>
+                  <ion-col size="6" class="text-right success">
+                    {{formatCurrency(selectedDebtProduct.profit)}}
+                  </ion-col>
+                </ion-row>
+                
+                <!-- Potential Profit (for unpaid/partial debts) -->
+                <ion-row *ngIf="selectedDebtProduct.payment_status !== 'paid'">
+                  <ion-col size="6">
+                    <strong>Potential Profit:</strong>
+                  </ion-col>
+                  <ion-col size="6" class="text-right warning">
+                    {{formatCurrency(selectedDebtProduct.profit)}}
+                  </ion-col>
+                </ion-row>
+              </div>
             </ion-card-content>
           </ion-card>
         </div>

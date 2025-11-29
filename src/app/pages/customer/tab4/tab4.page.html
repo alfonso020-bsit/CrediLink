@@ -1,13 +1,411 @@
 <ion-header [translucent]="true">
-  <ion-toolbar>
-    <ion-title>tab4</ion-title>
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-button (click)="loadStoresAndProducts()" fill="clear">
+        <ion-icon slot="icon-only" name="refresh"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>Browse Stores & Products</ion-title>
+    <ion-badge *ngIf="viewMode === 'products' && filteredProducts.length > 0" slot="end" color="warning">
+      {{filteredProducts.length}}
+    </ion-badge>
+    <ion-badge *ngIf="viewMode === 'stores' && stores.length > 0" slot="end" color="success">
+      {{stores.length}}
+    </ion-badge>
   </ion-toolbar>
 </ion-header>
 
 <ion-content [fullscreen]="true">
+  <ion-refresher slot="fixed" (ionRefresh)="doRefresh($event)">
+    <ion-refresher-content
+      pullingIcon="chevron-down-circle-outline"
+      pullingText="Pull to refresh"
+      refreshingSpinner="circles"
+      refreshingText="Refreshing...">
+    </ion-refresher-content>
+  </ion-refresher>
+
   <ion-header collapse="condense">
     <ion-toolbar>
-      <ion-title size="large">tab4</ion-title>
+      <ion-title size="large">Browse Stores & Products</ion-title>
     </ion-toolbar>
   </ion-header>
+
+  <!-- View Mode Toggle -->
+  <ion-toolbar class="view-mode-toolbar">
+    <ion-segment [(ngModel)]="viewMode" (ionChange)="switchViewMode(viewMode)" value="stores">
+      <ion-segment-button value="stores">
+        <ion-label>Stores</ion-label>
+        <ion-badge color="success" *ngIf="stores.length > 0">{{stores.length}}</ion-badge>
+      </ion-segment-button>
+      <ion-segment-button value="products">
+        <ion-label>Products</ion-label>
+        <ion-badge color="warning" *ngIf="products.length > 0">{{products.length}}</ion-badge>
+      </ion-segment-button>
+    </ion-segment>
+  </ion-toolbar>
+
+  <!-- Search Bar -->
+  <ion-toolbar class="search-toolbar">
+    <ion-searchbar 
+      [(ngModel)]="searchTerm" 
+      [placeholder]="viewMode === 'stores' ? 'Search stores...' : 'Search products...'"
+      (ionInput)="onSearchChange()"
+      animated="true"
+      clearIcon="close-circle"
+      class="custom-searchbar">
+    </ion-searchbar>
+  </ion-toolbar>
+
+  <!-- Products View Filters -->
+  <ion-toolbar *ngIf="viewMode === 'products'" class="filter-toolbar">
+    <ion-segment [(ngModel)]="selectedStore" (ionChange)="onFilterChange()" scrollable="true">
+      <ion-segment-button value="all">
+        <ion-label>All Stores</ion-label>
+      </ion-segment-button>
+      <ion-segment-button *ngFor="let store of stores" [value]="store.id">
+        <ion-label>{{store.initials}}</ion-label>
+      </ion-segment-button>
+    </ion-segment>
+  </ion-toolbar>
+
+  <!-- Additional Filters for Products -->
+  <ion-toolbar *ngIf="viewMode === 'products'" class="secondary-filters">
+    <ion-segment [(ngModel)]="selectedCategory" (ionChange)="onFilterChange()" scrollable="true">
+      <ion-segment-button value="all">
+        <ion-label>All Categories</ion-label>
+      </ion-segment-button>
+      <ion-segment-button *ngFor="let category of categories" [value]="category">
+        <ion-label>{{category}}</ion-label>
+        <ion-badge color="light">{{getProductsCountByCategory(category)}}</ion-badge>
+      </ion-segment-button>
+    </ion-segment>
+
+    <ion-select 
+      [(ngModel)]="priceRange" 
+      (ionChange)="onFilterChange()" 
+      placeholder="Price Range"
+      interface="popover"
+      class="price-select">
+      <ion-select-option value="all">All Prices</ion-select-option>
+      <ion-select-option value="under50">Under ₱50</ion-select-option>
+      <ion-select-option value="50-100">₱50 - ₱100</ion-select-option>
+      <ion-select-option value="100-200">₱100 - ₱200</ion-select-option>
+      <ion-select-option value="over200">Over ₱200</ion-select-option>
+    </ion-select>
+
+    <ion-select 
+      [(ngModel)]="sortBy" 
+      (ionChange)="onFilterChange()" 
+      placeholder="Sort by"
+      interface="popover"
+      class="sort-select">
+      <ion-select-option value="name">Name A-Z</ion-select-option>
+      <ion-select-option value="price_low">Price: Low to High</ion-select-option>
+      <ion-select-option value="price_high">Price: High to Low</ion-select-option>
+      <ion-select-option value="store">Store Name</ion-select-option>
+      <ion-select-option value="category">Category</ion-select-option>
+    </ion-select>
+  </ion-toolbar>
+
+  <!-- STORES VIEW -->
+  <div *ngIf="viewMode === 'stores'" class="stores-container">
+    <ion-list lines="full" class="stores-list">
+      <ion-list-header class="list-header" *ngIf="filteredStores.length > 0">
+        <ion-label>
+          <h2>{{getLocationInfo()}}</h2>
+          <p>{{filteredStores.length}} store{{filteredStores.length === 1 ? '' : 's'}} found near you</p>
+        </ion-label>
+      </ion-list-header>
+
+      <ion-card *ngFor="let store of filteredStores; trackBy: trackByStoreId" class="store-card" (click)="viewStoreDetails(store)">
+        <div class="store-header" [style.background]="store.color">
+          <div class="store-avatar">
+            <img 
+              *ngIf="store.profile_image; else storeFallback"
+              [src]="store.profile_image" 
+              [alt]="store.name"
+              class="store-profile-image"
+              (error)="handleImageError($event, 'store')">
+            <ng-template #storeFallback>
+              <div class="store-avatar-fallback">
+                {{ store.initials }}
+              </div>
+            </ng-template>
+          </div>
+          <div class="store-basic-info">
+            <h2>{{store.name}}</h2>
+            <p class="store-category">{{store.category || 'Sari-Sari Store'}}</p>
+            <div class="store-stats">
+              <ion-badge color="light">
+                <ion-icon name="cube" size="small"></ion-icon>
+                {{store.productCount}} product{{store.productCount === 1 ? '' : 's'}}
+              </ion-badge>
+              <ion-badge [color]="store.isOpen ? 'success' : 'danger'">
+                {{store.isOpen ? 'Open' : 'Closed'}}
+              </ion-badge>
+            </div>
+          </div>
+        </div>
+
+        <ion-card-content>
+          <p class="store-address">
+            <ion-icon name="location" size="small"></ion-icon>
+            {{store.address}}
+          </p>
+          <p class="store-contact">
+            <ion-icon name="call" size="small"></ion-icon>
+            {{store.contact}}
+          </p>
+          <p *ngIf="store.description" class="store-description">{{store.description}}</p>
+          
+          <ion-button expand="block" fill="outline" size="small" (click)="viewStoreProducts(); $event.stopPropagation()">
+            <ion-icon slot="start" name="storefront"></ion-icon>
+            Browse Products ({{store.productCount}})
+          </ion-button>
+        </ion-card-content>
+      </ion-card>
+
+      <!-- Empty State for Stores -->
+      <ion-item *ngIf="filteredStores.length === 0 && !isLoading" class="empty-state">
+        <div class="empty-content">
+          <ion-icon name="storefront-outline" color="medium" size="large"></ion-icon>
+          <ion-label>
+            <h2>No stores found</h2>
+            <p *ngIf="stores.length === 0">Stores will appear here when they register in the system</p>
+            <p *ngIf="stores.length > 0 && searchTerm">Try adjusting your search term</p>
+          </ion-label>
+        </div>
+      </ion-item>
+    </ion-list>
+  </div>
+
+  <!-- PRODUCTS VIEW -->
+  <div *ngIf="viewMode === 'products'" class="products-container">
+    <ion-list lines="full" class="products-list">
+      <ion-list-header class="list-header" *ngIf="filteredProducts.length > 0">
+        <ion-label>
+          <h2>Available Products</h2>
+          <p>{{filteredProducts.length}} products found</p>
+        </ion-label>
+      </ion-list-header>
+
+      <ion-card *ngFor="let product of filteredProducts; trackBy: trackByProductId" class="product-card">
+        <div class="product-image-container">
+          <img 
+            *ngIf="product.product_image; else productFallback"
+            [src]="product.product_image" 
+            [alt]="product.name"
+            class="product-image"
+            (error)="handleImageError($event, 'product')">
+          <ng-template #productFallback>
+            <div class="product-image-fallback" [style.background]="product.store_color">
+              <ion-icon name="cube" size="large"></ion-icon>
+            </div>
+          </ng-template>
+          
+          <div class="product-badges">
+            <ion-badge [color]="getProductBadgeColor(product.category)" class="category-badge">
+              {{product.category}}
+            </ion-badge>
+            <ion-badge [color]="getStockStatusColor(product.stock_quantity)" class="stock-badge">
+              {{getStockStatusText(product.stock_quantity)}}
+            </ion-badge>
+          </div>
+        </div>
+
+        <ion-card-header>
+          <ion-card-title class="product-name">{{product.name}}</ion-card-title>
+          <ion-card-subtitle class="store-name">
+            <ion-icon name="storefront" size="small"></ion-icon>
+            {{product.store_name}}
+          </ion-card-subtitle>
+        </ion-card-header>
+
+        <ion-card-content>
+          <p *ngIf="product.description" class="product-description">{{product.description}}</p>
+          
+          <div class="product-details">
+            <div class="price-section">
+              <h3 class="product-price">{{formatCurrency(product.selling_price)}}</h3>
+              <p class="product-unit">{{product.pricing_option === 'bulk' ? 'per ' + product.unit : 'per piece'}}</p>
+            </div>
+            
+            <div class="stock-section">
+              <p class="stock-info">
+                <ion-icon name="pricetag" size="small"></ion-icon>
+                Stock: {{product.stock_quantity}} {{product.unit}}
+              </p>
+            </div>
+          </div>
+
+          <div class="product-actions">
+            <ion-button fill="outline" size="small" (click)="viewStoreFromProduct(product.store_id)">
+              <ion-icon slot="start" name="storefront"></ion-icon>
+              View Store
+            </ion-button>
+          </div>
+        </ion-card-content>
+      </ion-card>
+
+      <!-- Empty State for Products -->
+      <ion-item *ngIf="filteredProducts.length === 0 && !isLoading" class="empty-state">
+        <div class="empty-content">
+          <ion-icon name="cube-outline" color="medium" size="large"></ion-icon>
+          <ion-label>
+            <h2>No products found</h2>
+            <p *ngIf="products.length === 0">Products will appear here when stores add them</p>
+            <p *ngIf="products.length > 0">Try adjusting your filters or search term</p>
+          </ion-label>
+        </div>
+      </ion-item>
+    </ion-list>
+  </div>
+
+  <!-- Loading State -->
+  <ion-item *ngIf="isLoading" class="loading-state">
+    <ion-thumbnail slot="start">
+      <ion-skeleton-text animated></ion-skeleton-text>
+    </ion-thumbnail>
+    <ion-label>
+      <h3><ion-skeleton-text animated style="width: 80%"></ion-skeleton-text></h3>
+      <p><ion-skeleton-text animated style="width: 60%"></ion-skeleton-text></p>
+      <p><ion-skeleton-text animated style="width: 40%"></ion-skeleton-text></p>
+    </ion-label>
+  </ion-item>
 </ion-content>
+
+<!-- Store Details Modal -->
+<ion-modal [isOpen]="showStoreModal" (ionModalDidDismiss)="closeStoreModal()" class="store-modal">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-buttons slot="start">
+          <ion-button (click)="closeStoreModal()">
+            <ion-icon slot="icon-only" name="close"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+        <ion-title>Store Details</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="viewStoreProducts()">
+            <ion-icon slot="icon-only" name="list"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    
+    <ion-content [scrollY]="true" [scrollEvents]="true" *ngIf="selectedStoreDetail">
+      <div class="store-details-container" style="overflow: visible;">
+        <div class="store-header-large" [style.background]="selectedStoreDetail.color">
+          <div class="store-avatar-large">
+            <img 
+              *ngIf="selectedStoreDetail.profile_image; else storeFallbackLarge"
+              [src]="selectedStoreDetail.profile_image" 
+              [alt]="selectedStoreDetail.name"
+              class="store-profile-image-large"
+              (error)="handleImageError($event, 'store')">
+            <ng-template #storeFallbackLarge>
+              <div class="store-avatar-fallback-large">
+                {{ selectedStoreDetail.initials }}
+              </div>
+            </ng-template>
+          </div>
+          <div class="store-info-large">
+            <h1>{{selectedStoreDetail.name}}</h1>
+            <p class="store-category-large">{{selectedStoreDetail.category || 'General'}}</p>
+            <div class="store-stats-large">
+              <ion-badge color="light" class="stat-badge">
+                <ion-icon name="cube"></ion-icon>
+                {{selectedStoreDetail.productCount}} Products
+              </ion-badge>
+              <ion-badge *ngIf="selectedStoreDetail.rating" color="warning" class="stat-badge">
+                <ion-icon name="star"></ion-icon>
+                {{selectedStoreDetail.rating}} Rating
+              </ion-badge>
+            </div>
+          </div>
+        </div>
+
+        <ion-card class="store-info-card">
+          <ion-card-header>
+            <ion-card-title>Store Information</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <div class="info-item">
+              <ion-icon name="location" color="primary"></ion-icon>
+              <div class="info-content">
+                <strong>Address:</strong>
+                <p>{{selectedStoreDetail.address}}</p>
+              </div>
+            </div>
+            
+            <div class="info-item">
+              <ion-icon name="call" color="primary"></ion-icon>
+              <div class="info-content">
+                <strong>Contact:</strong>
+                <p>{{selectedStoreDetail.contact}}</p>
+              </div>
+            </div>
+            
+            <div class="info-item" *ngIf="selectedStoreDetail.description">
+              <ion-icon name="information-circle" color="primary"></ion-icon>
+              <div class="info-content">
+                <strong>Description:</strong>
+                <p>{{selectedStoreDetail.description}}</p>
+              </div>
+            </div>
+
+            <div class="info-item" *ngIf="selectedStoreDetail.operating_hours">
+              <ion-icon name="time" color="primary"></ion-icon>
+              <div class="info-content">
+                <strong>Operating Hours:</strong>
+                <p>{{formatOperatingHours(selectedStoreDetail.operating_hours)}}</p>
+              </div>
+            </div>
+          </ion-card-content>
+        </ion-card>
+
+        <!-- Store Products in Modal -->
+        <ion-card class="store-products-card" *ngIf="storeProducts.length > 0">
+          <ion-card-header>
+            <ion-card-title>Available Products ({{storeProducts.length}})</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <ion-list lines="none" class="store-products-list">
+              <ion-item *ngFor="let product of storeProducts" class="store-product-item">
+                <ion-thumbnail slot="start" class="product-thumbnail">
+                  <img 
+                    *ngIf="product.product_image; else productThumbFallback"
+                    [src]="product.product_image" 
+                    [alt]="product.name"
+                    (error)="handleImageError($event, 'product')">
+                  <ng-template #productThumbFallback>
+                    <div class="product-thumb-fallback" [style.background]="product.store_color">
+                      <ion-icon name="cube"></ion-icon>
+                    </div>
+                  </ng-template>
+                </ion-thumbnail>
+                <ion-label class="product-info">
+                  <h3>{{product.name}}</h3>
+                  <p>{{product.category}}</p>
+                  <p class="product-price">{{formatCurrency(product.selling_price)}}</p>
+                </ion-label>
+                <ion-badge slot="end" [color]="getStockStatusColor(product.stock_quantity)">
+                  {{product.stock_quantity}} in stock
+                </ion-badge>
+              </ion-item>
+            </ion-list>
+          </ion-card-content>
+        </ion-card>
+
+        <ion-button 
+          expand="block" 
+          color="primary" 
+          (click)="viewStoreProducts()">
+          <ion-icon slot="start" name="storefront"></ion-icon>
+          Browse All Store Products ({{selectedStoreDetail.productCount}})
+        </ion-button>
+      </div>
+    </ion-content>
+  </ng-template>
+</ion-modal>

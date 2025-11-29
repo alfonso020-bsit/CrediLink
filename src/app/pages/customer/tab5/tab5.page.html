@@ -1,13 +1,408 @@
 <ion-header [translucent]="true">
-  <ion-toolbar>
-    <ion-title>tab5</ion-title>
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-button (click)="loadAllData()" fill="clear">
+        <ion-icon slot="icon-only" name="refresh"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>Financial Alerts</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="toggleAlertsPanel()" fill="clear" class="alerts-button">
+        <ion-icon slot="icon-only" name="notifications"></ion-icon>
+        <ion-badge *ngIf="unreadAlertsCount > 0" color="danger" class="alert-badge">
+          {{unreadAlertsCount}}
+        </ion-badge>
+      </ion-button>
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
 <ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">tab5</ion-title>
-    </ion-toolbar>
-  </ion-header>
+  <ion-refresher slot="fixed" (ionRefresh)="doRefresh($event)">
+    <ion-refresher-content
+      pullingIcon="chevron-down-circle-outline"
+      pullingText="Pull to refresh"
+      refreshingSpinner="circles"
+      refreshingText="Refreshing...">
+    </ion-refresher-content>
+  </ion-refresher>
+
+  <!-- Alerts Panel -->
+  <div *ngIf="showAlertsPanel" class="alerts-panel">
+    <ion-card>
+      <ion-card-header>
+        <ion-card-title>
+          <ion-icon name="notifications" slot="start"></ion-icon>
+          Alerts & Notifications
+          <ion-button fill="clear" size="small" (click)="markAllAlertsAsRead()">
+            Mark All Read
+          </ion-button>
+        </ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <div class="alerts-list">
+          <div *ngFor="let alert of alerts; trackBy: trackByAlertId" 
+               class="alert-item" 
+               [class.unread]="!alert.read"
+               [class.high-priority]="alert.priority === 'high'"
+               [class.medium-priority]="alert.priority === 'medium'">
+            
+            <div class="alert-icon" [style.background]="getAlertColor(alert.priority)">
+              <ion-icon [name]="getAlertIcon(alert.type)"></ion-icon>
+            </div>
+            
+            <div class="alert-content" (click)="handleAlertAction(alert)">
+              <h4>{{alert.title}}</h4>
+              <p>{{alert.message}}</p>
+              <small>{{formatDate(alert.date)}}</small>
+            </div>
+            
+            <ion-button fill="clear" size="small" (click)="deleteAlert(alert)">
+              <ion-icon name="close" slot="icon-only"></ion-icon>
+            </ion-button>
+          </div>
+
+          <div *ngIf="alerts.length === 0" class="no-alerts">
+            <ion-icon name="checkmark-circle" color="success" size="large"></ion-icon>
+            <p>No new alerts</p>
+            <small>You're all caught up!</small>
+          </div>
+        </div>
+      </ion-card-content>
+    </ion-card>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="summary-cards" *ngIf="!isLoading">
+    <ion-card class="summary-card total-debt" (click)="filterByStatus('all')">
+      <ion-card-content>
+        <div class="summary-content">
+          <ion-icon name="document-text" color="primary"></ion-icon>
+          <div class="summary-text">
+            <h3>Total Debts</h3>
+            <p class="amount">{{formatCurrency(totalDebtAmount)}}</p>
+            <p class="count">{{debts.length}} active</p>
+          </div>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <ion-card class="summary-card due-soon" (click)="filterByStatus('due_soon')">
+      <ion-card-content>
+        <div class="summary-content">
+          <ion-icon name="warning" color="warning"></ion-icon>
+          <div class="summary-text">
+            <h3>Due Soon</h3>
+            <p class="amount">{{formatCurrency(dueSoonAmount)}}</p>
+            <p class="count">{{dueSoonCount}} debts</p>
+          </div>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <ion-card class="summary-card overdue" (click)="filterByStatus('overdue')">
+      <ion-card-content>
+        <div class="summary-content">
+          <ion-icon name="alert-circle" color="danger"></ion-icon>
+          <div class="summary-text">
+            <h3>Overdue</h3>
+            <p class="amount">{{formatCurrency(overdueAmount)}}</p>
+            <p class="count">{{overdueCount}} debts</p>
+          </div>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <ion-card class="summary-card alerts" (click)="toggleAlertsPanel()">
+      <ion-card-content>
+        <div class="summary-content">
+          <ion-icon name="notifications" color="tertiary"></ion-icon>
+          <div class="summary-text">
+            <h3>Alerts</h3>
+            <p class="amount">{{unreadAlertsCount}} new</p>
+            <p class="count">{{alerts.length}} total</p>
+          </div>
+        </div>
+      </ion-card-content>
+    </ion-card>
+  </div>
+
+  <!-- Calendar Section -->
+  <ion-card class="calendar-card" *ngIf="!isLoading">
+    <ion-card-header>
+      <ion-card-title>
+        <ion-icon name="calendar" slot="start"></ion-icon>
+        Financial Calendar
+      </ion-card-title>
+      <ion-card-subtitle>Shows debt creation, payments, due dates, and alerts</ion-card-subtitle>
+    </ion-card-header>
+    <ion-card-content>
+      <div class="calendar-header">
+        <ion-button fill="clear" (click)="previousMonth()">
+          <ion-icon name="chevron-back"></ion-icon>
+        </ion-button>
+        <h3>{{currentMonth}}</h3>
+        <ion-button fill="clear" (click)="nextMonth()">
+          <ion-icon name="chevron-forward"></ion-icon>
+        </ion-button>
+      </div>
+      
+      <div class="calendar-legend">
+        <div class="legend-item">
+          <div class="legend-color created"></div>
+          <span>Debt Created</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color payment"></div>
+          <span>Payment Made</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color due"></div>
+          <span>Due Date</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color alert"></div>
+          <span>Alert</span>
+        </div>
+      </div>
+      
+      <div class="calendar-grid">
+        <div class="calendar-weekday" *ngFor="let day of weekDays">{{day}}</div>
+        <div 
+          *ngFor="let day of calendarDays" 
+          class="calendar-day"
+          [class.empty]="!day.date"
+          [class.has-events]="day.hasDebtEvents"
+          [class.due-today]="day.isDueToday"
+          [class.due-soon]="day.isDueSoon"
+          [class.overdue]="day.isOverdue"
+          [class.has-payments]="day.hasPayments"
+          [class.has-new-stores]="day.hasNewStores"
+          [class.selected]="day.date === selectedDate"
+          (click)="selectDate(day)">
+          
+          <div class="day-number">{{day.day}}</div>
+          <div class="event-indicators">
+            <div *ngIf="hasDebtCreatedEvent(day)" class="event-dot created"></div>
+            <div *ngIf="hasPaymentMadeEvent(day)" class="event-dot payment"></div>
+            <div *ngIf="hasDueDateEvent(day)" class="event-dot due"></div>
+            <div *ngIf="hasAlertEvent(day)" class="event-dot alert"></div>
+          </div>
+          <div class="events-count" *ngIf="day.hasDebtEvents">
+            <ion-badge [color]="getEventBadgeColor(day)" class="event-badge">
+              <ion-icon [name]="getEventBadgeIcon(day)" size="small"></ion-icon>
+              {{day.debtCount}}
+            </ion-badge>
+          </div>
+        </div>
+      </div>
+    </ion-card-content>
+  </ion-card>
+
+  <!-- Debt List -->
+  <ion-card class="debts-card" *ngIf="!isLoading">
+    <ion-card-header>
+      <ion-card-title>
+        <ion-icon name="list" slot="start"></ion-icon>
+        Debt Details
+        <ion-badge *ngIf="filteredDebts.length > 0" color="primary">{{filteredDebts.length}}</ion-badge>
+      </ion-card-title>
+    </ion-card-header>
+
+    <ion-segment [(ngModel)]="currentFilter" (ionChange)="applyFilter()" value="all">
+      <ion-segment-button value="all">
+        <ion-label>All</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="due_soon">
+        <ion-label>Due Soon</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="overdue">
+        <ion-label>Overdue</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="paid">
+        <ion-label>Paid</ion-label>
+      </ion-segment-button>
+    </ion-segment>
+
+    <ion-list lines="full">
+      <ion-item 
+        *ngFor="let debt of filteredDebts; trackBy: trackByDebtId" 
+        class="debt-item"
+        [class.overdue]="debt.isOverdue"
+        [class.due-soon]="debt.days_remaining !== undefined && debt.days_remaining <= 15 && debt.days_remaining >= 0"
+        (click)="viewDebtDetails(debt)">
+        
+        <ion-avatar slot="start" class="store-avatar">
+          <img 
+            *ngIf="debt.storeProfileImage; else storeFallback"
+            [src]="debt.storeProfileImage" 
+            [alt]="debt.storeName">
+          <ng-template #storeFallback>
+            <div class="store-avatar-fallback" [style.background]="debt.storeColor">
+              {{ debt.storeInitials }}
+            </div>
+          </ng-template>
+        </ion-avatar>
+
+        <ion-label class="debt-info">
+          <h3>{{debt.storeName}}</h3>
+          <p class="debt-description">{{debt.items[0]?.product_name || debt.items[0]?.name || 'General debt'}}</p>
+          <p class="debt-amount">{{formatCurrency(debt.remainingBalance || debt.total)}}</p>
+        </ion-label>
+
+        <div slot="end" class="debt-status">
+          <ion-badge [color]="getStatusColor(debt.isOverdue ? 'overdue' : (debt.days_remaining !== undefined && debt.days_remaining <= 15 && debt.days_remaining >= 0 ? 'due_soon' : 'active'))">
+            {{getStatusText(debt.isOverdue ? 'overdue' : (debt.days_remaining !== undefined && debt.days_remaining <= 15 && debt.days_remaining >= 0 ? 'due_soon' : 'active'))}}
+          </ion-badge>
+          <p class="due-date">{{formatDate(debt.dueDate)}}</p>
+          <p class="days-left" *ngIf="debt.days_remaining !== undefined" [class.urgent]="debt.days_remaining !== undefined && debt.days_remaining <= 5">
+            {{getDaysRemainingText(debt.days_remaining)}}
+          </p>
+        </div>
+      </ion-item>
+
+      <!-- Empty State -->
+      <ion-item *ngIf="filteredDebts.length === 0" class="empty-state">
+        <ion-label class="empty-content">
+          <ion-icon name="checkmark-circle" color="success" size="large"></ion-icon>
+          <h2>No debts found</h2>
+          <p *ngIf="currentFilter === 'all'">You're all caught up! No active debts.</p>
+          <p *ngIf="currentFilter === 'due_soon'">No debts due soon.</p>
+          <p *ngIf="currentFilter === 'overdue'">No overdue debts. Great job!</p>
+          <p *ngIf="currentFilter === 'paid'">No paid debts to show.</p>
+        </ion-label>
+      </ion-item>
+    </ion-list>
+  </ion-card>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="loading-container">
+    <ion-spinner name="crescent"></ion-spinner>
+    <p>Loading your debts...</p>
+  </div>
 </ion-content>
+
+<!-- Debt Details Modal -->
+<ion-modal [isOpen]="showDebtModal" (ionModalDidDismiss)="closeDebtModal()" class="debt-modal">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-buttons slot="start">
+          <ion-button (click)="closeDebtModal()">
+            <ion-icon slot="icon-only" name="close"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+        <ion-title>Debt Details</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="contactStore()" *ngIf="selectedDebt">
+            <ion-icon slot="icon-only" name="call"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content [scrollY]="true" [scrollEvents]="true" *ngIf="selectedDebt">
+      <div class="debt-details-container" style="overflow: visible;">
+        
+        <!-- Store Header -->
+        <div class="store-header" [style.background]="selectedDebt.storeColor">
+          <ion-avatar class="store-avatar-large">
+            <img 
+              *ngIf="selectedDebt.storeProfileImage; else storeFallbackLarge"
+              [src]="selectedDebt.storeProfileImage" 
+              [alt]="selectedDebt.storeName">
+            <ng-template #storeFallbackLarge>
+              <div class="store-avatar-fallback-large">
+                {{ selectedDebt.storeInitials }}
+              </div>
+            </ng-template>
+          </ion-avatar>
+          <div class="store-info">
+            <h1>{{selectedDebt.storeName}}</h1>
+            <p>{{selectedDebt.storeAddress}}</p>
+          </div>
+        </div>
+
+        <!-- Debt Information -->
+        <ion-card class="debt-info-card">
+          <ion-card-header>
+            <ion-card-title>Debt Information</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <div class="info-row">
+              <div class="info-label">Amount</div>
+              <div class="info-value amount">{{formatCurrency(selectedDebt.remainingBalance || selectedDebt.total)}}</div>
+            </div>
+            
+            <div class="info-row">
+              <div class="info-label">Due Date</div>
+              <div class="info-value">
+                {{formatDate(selectedDebt.dueDate)}}
+                <ion-badge [color]="getStatusColor(selectedDebt.isOverdue ? 'overdue' : (selectedDebt.days_remaining !== undefined && selectedDebt.days_remaining <= 15 && selectedDebt.days_remaining >= 0 ? 'due_soon' : 'active'))" class="status-badge">
+                  {{getStatusText(selectedDebt.isOverdue ? 'overdue' : (selectedDebt.days_remaining !== undefined && selectedDebt.days_remaining <= 15 && selectedDebt.days_remaining >= 0 ? 'due_soon' : 'active'))}}
+                </ion-badge>
+              </div>
+            </div>
+            
+            <div class="info-row" *ngIf="selectedDebt.days_remaining !== undefined">
+              <div class="info-label">Days Remaining</div>
+              <div class="info-value" [class.urgent]="selectedDebt.days_remaining !== undefined && selectedDebt.days_remaining <= 5">
+                {{getDaysRemainingText(selectedDebt.days_remaining)}}
+              </div>
+            </div>
+            
+            <div class="info-row" *ngIf="selectedDebt.items && selectedDebt.items.length > 0">
+              <div class="info-label">Items</div>
+              <div class="info-value description">
+                <div *ngFor="let item of selectedDebt.items">
+                  {{item.product_name || item.name}} - {{item.quantity}} x {{formatCurrency(item.price)}}
+                </div>
+              </div>
+            </div>
+            
+            <div class="info-row">
+              <div class="info-label">Created Date</div>
+              <div class="info-value">{{formatDate(selectedDebt.created_at)}}</div>
+            </div>
+            
+            <div class="info-row" *ngIf="selectedDebt.payments && selectedDebt.payments.length > 0">
+              <div class="info-label">Payment History</div>
+              <div class="info-value paid">
+                {{selectedDebt.payments.length}} payment(s) made
+              </div>
+            </div>
+          </ion-card-content>
+        </ion-card>
+
+        <!-- Payment History -->
+        <ion-card class="payment-history-card" *ngIf="selectedDebt && selectedDebt.payments && selectedDebt.payments.length > 0">
+          <ion-card-header>
+            <ion-card-title>Payment History</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <ion-list lines="none">
+              <ion-item *ngFor="let payment of selectedDebt.payments" class="payment-item">
+                <ion-label>
+                  <h3>{{formatCurrency(payment.amount)}}</h3>
+                  <p>{{formatDate(payment.paymentDate)}}</p>
+                </ion-label>
+                <ion-note slot="end">{{payment.paid_by || 'Store'}}</ion-note>
+              </ion-item>
+            </ion-list>
+          </ion-card-content>
+        </ion-card>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons" *ngIf="selectedDebt && selectedDebt.payment_status !== 'paid'">
+          <ion-button expand="block" color="primary" (click)="markAsPaid()">
+            <ion-icon slot="start" name="checkmark-circle"></ion-icon>
+            Mark as Paid
+          </ion-button>
+          <ion-button expand="block" fill="outline" (click)="contactStore()">
+            <ion-icon slot="start" name="call"></ion-icon>
+            Contact Store
+          </ion-button>
+        </div>
+      </div>
+    </ion-content>
+  </ng-template>
+</ion-modal>

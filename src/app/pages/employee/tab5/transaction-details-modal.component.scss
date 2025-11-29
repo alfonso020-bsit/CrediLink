@@ -91,4 +91,61 @@ ion-list {
   .transaction-header {
     background: var(--ion-color-dark);
   }
+  .zero-balance {
+  color: var(--ion-color-success);
+  font-weight: bold;
+}
+
+.has-balance {
+  color: var(--ion-color-warning);
+  font-weight: bold;
+}
+
+.fully-paid-badge {
+  background: var(--ion-color-success);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.8em;
+  margin-left: 8px;
+}
+
+.payment-history {
+  margin-top: 8px;
+}
+
+.payment-item {
+  padding: 4px 0;
+  border-bottom: 1px solid var(--ion-color-light);
+  
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.stock-change {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  
+  .previous-stock {
+    color: var(--ion-color-medium);
+  }
+  
+  .new-stock {
+    color: var(--ion-color-dark);
+    font-weight: bold;
+  }
+}
+
+.amount {
+  font-size: 1.1em;
+  font-weight: bold;
+  color: var(--ion-color-primary);
+}
+
+.balance {
+  font-size: 1.1em;
+  font-weight: bold;
+}
 }

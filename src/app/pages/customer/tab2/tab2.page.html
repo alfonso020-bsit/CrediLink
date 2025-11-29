@@ -1,13 +1,399 @@
 <ion-header [translucent]="true">
-  <ion-toolbar>
-    <ion-title>tab2</ion-title>
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-button (click)="doRefreshManual()" fill="clear">
+        <ion-icon slot="icon-only" name="refresh"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>My Debts</ion-title>
+    <ion-badge slot="end" color="warning">
+      {{filteredDebtProducts.length}}
+    </ion-badge>
   </ion-toolbar>
 </ion-header>
 
 <ion-content [fullscreen]="true">
+  <ion-refresher slot="fixed" (ionRefresh)="doRefresh($event)">
+    <ion-refresher-content
+      pullingIcon="chevron-down-circle-outline"
+      pullingText="Pull to refresh"
+      refreshingSpinner="circles"
+      refreshingText="Refreshing...">
+    </ion-refresher-content>
+  </ion-refresher>
+
   <ion-header collapse="condense">
     <ion-toolbar>
-      <ion-title size="large">tab2</ion-title>
+      <ion-title size="large">My Debts</ion-title>
     </ion-toolbar>
   </ion-header>
+
+  <!-- Search Bar -->
+  <ion-toolbar class="search-toolbar">
+    <ion-searchbar 
+      [(ngModel)]="searchTerm" 
+      placeholder="Search stores or amounts..."
+      (ionInput)="searchChanged()"
+      animated="true"
+      clearIcon="close-circle"
+      class="custom-searchbar">
+    </ion-searchbar>
+  </ion-toolbar>
+
+  <!-- Debt Status Filter -->
+  <ion-toolbar class="status-toolbar">
+    <ion-segment [(ngModel)]="statusFilter" (ionChange)="filterChanged()" scrollable="true">
+      <ion-segment-button value="all">
+        <ion-label>All</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="unpaid">
+        <ion-label>Unpaid</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="partially_paid">
+        <ion-label>Partial</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="paid">
+        <ion-label>Paid</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="overdue">
+        <ion-label>Overdue</ion-label>
+      </ion-segment-button>
+    </ion-segment>
+  </ion-toolbar>
+
+  <!-- Summary Cards -->
+  <div class="summary-cards" *ngIf="filteredDebtProducts.length > 0">
+    <ion-card class="summary-card total-debt">
+      <ion-card-header>
+        <ion-card-title>Total Outstanding</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <h2>{{formatCurrency(getTotalOutstanding())}}</h2>
+        <p>{{getDebtCountByStatus('unpaid') + getDebtCountByStatus('partially_paid')}} active debts</p>
+      </ion-card-content>
+    </ion-card>
+
+    <ion-card class="summary-card overdue-debt" *ngIf="getDebtCountByStatus('overdue') > 0">
+      <ion-card-header>
+        <ion-card-title>Overdue Debts</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <h2>{{getDebtCountByStatus('overdue')}}</h2>
+        <p>{{formatCurrency(getOverdueTotal())}} total</p>
+      </ion-card-content>
+    </ion-card>
+  </div>
+
+  <!-- Debt Products List -->
+  <div class="debts-list-container">
+    <ion-list lines="full" class="debts-list">
+      <ion-list-header class="list-header">
+        <ion-label>
+          <h2>My Debts</h2>
+          <p>{{filteredDebtProducts.length}} records across {{getUniqueStoresCount()}} stores</p>
+        </ion-label>
+        <ion-button fill="clear" size="small" (click)="doRefreshManual()">
+          <ion-icon slot="icon-only" name="refresh"></ion-icon>
+        </ion-button>
+      </ion-list-header>
+
+      <ion-item-sliding *ngFor="let debtProduct of filteredDebtProducts; trackBy: trackByDebtId" class="debt-item">
+        <ion-item (click)="viewDebtReceipt(debtProduct)" class="debt-item-content" detail="true">
+          <!-- Store Avatar -->
+          <div slot="start" class="store-avatar">
+            <img 
+              *ngIf="debtProduct.storeProfileImage; else storeFallback"
+              [src]="debtProduct.storeProfileImage" 
+              [alt]="debtProduct.storeName"
+              class="store-profile-image">
+            <ng-template #storeFallback>
+              <div class="store-avatar-fallback" [style.background]="debtProduct.storeColor">
+                {{ debtProduct.storeInitials }}
+              </div>
+            </ng-template>
+          </div>
+
+          <ion-label class="debt-details">
+            <h2>{{debtProduct.storeName}}</h2>
+            <p class="transaction-info">
+              <ion-icon name="receipt" size="small"></ion-icon>
+              Transaction #{{debtProduct.id}}
+            </p>
+            <div class="amounts-container">
+              <div class="amount-item">
+                <span class="amount-label">Total:</span>
+                <span class="amount-value">{{formatCurrency(debtProduct.total)}}</span>
+              </div>
+              <div class="amount-item" *ngIf="debtProduct.initialPayment">
+                <span class="amount-label">Paid:</span>
+                <span class="amount-value paid">{{formatCurrency(debtProduct.initialPayment)}}</span>
+              </div>
+              <div class="amount-item" *ngIf="debtProduct.remainingBalance !== undefined">
+                <span class="amount-label">Remaining:</span>
+                <span class="amount-value remaining">{{formatCurrency(debtProduct.remainingBalance)}}</span>
+              </div>
+            </div>
+            <div class="date-container">
+              <p class="date-info" [class.overdue]="debtProduct.isOverdue">
+                <ion-icon [name]="debtProduct.isOverdue ? 'warning' : 'calendar'" size="small"></ion-icon>
+                Due: {{formatDate(debtProduct.dueDate)}}
+                <span *ngIf="debtProduct.isOverdue" class="overdue-badge">OVERDUE</span>
+              </p>
+              <p class="date-info">
+                <ion-icon name="time" size="small"></ion-icon>
+                Created: {{formatDate(debtProduct.created_at)}}
+              </p>
+            </div>
+          </ion-label>
+          <div slot="end" class="status-container">
+            <ion-badge [color]="getPaymentStatusColor(debtProduct.payment_status)" class="payment-badge">
+              {{getPaymentStatusText(debtProduct.payment_status)}}
+            </ion-badge>
+            <ion-badge [color]="getStatusColor(debtProduct.status)" class="status-badge">
+              {{debtProduct.status}}
+            </ion-badge>
+          </div>
+        </ion-item>
+
+        <ion-item-options side="end">
+          <ion-item-option (click)="viewDebtReceipt(debtProduct)" color="primary" class="action-option">
+            <ion-icon slot="top" name="receipt"></ion-icon>
+            View Receipt
+          </ion-item-option>
+          <ion-item-option (click)="downloadReceipt(debtProduct)" color="secondary" class="action-option">
+            <ion-icon slot="top" name="download"></ion-icon>
+            Download
+          </ion-item-option>
+        </ion-item-options>
+      </ion-item-sliding>
+
+      <ion-item *ngIf="filteredDebtProducts.length === 0" class="empty-state">
+        <div class="empty-content">
+          <ion-icon name="card-outline" color="medium"></ion-icon>
+          <ion-label>
+            <h2>No debt records found</h2>
+            <p>Your debt transactions will appear here</p>
+          </ion-label>
+        </div>
+      </ion-item>
+    </ion-list>
+  </div>
+
+  <!-- Debt Receipt Modal -->
+  <ion-modal [isOpen]="showDebtReceiptModal" (ionModalDidDismiss)="closeDebtReceiptModal()" class="receipt-modal">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar>
+          <ion-buttons slot="start">
+            <ion-button (click)="closeDebtReceiptModal()">
+              <ion-icon slot="icon-only" name="close"></ion-icon>
+            </ion-button>
+          </ion-buttons>
+          <ion-title>Debt Receipt</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="downloadReceipt(selectedDebtProduct)" *ngIf="selectedDebtProduct">
+              <ion-icon slot="icon-only" name="download"></ion-icon>
+            </ion-button>
+            <ion-button (click)="shareReceipt(selectedDebtProduct)" *ngIf="selectedDebtProduct">
+              <ion-icon slot="icon-only" name="share"></ion-icon>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content class="ion-padding receipt-content">
+        <div *ngIf="selectedDebtProduct" class="receipt-container">
+          <!-- Store Header -->
+          <div class="store-header">
+            <div class="store-avatar-large">
+              <img 
+                *ngIf="selectedDebtProduct.storeProfileImage; else storeFallbackLarge"
+                [src]="selectedDebtProduct.storeProfileImage" 
+                [alt]="selectedDebtProduct.storeName"
+                class="store-profile-image-large">
+              <ng-template #storeFallbackLarge>
+                <div class="store-avatar-fallback-large" [style.background]="selectedDebtProduct.storeColor">
+                  {{ selectedDebtProduct.storeInitials }}
+                </div>
+              </ng-template>
+            </div>
+            <div class="store-info">
+              <h2>{{selectedDebtProduct.storeName}}</h2>
+              <p class="store-address">{{selectedDebtProduct.storeAddress}}</p>
+              <p class="store-contact">{{selectedDebtProduct.storeContact}}</p>
+            </div>
+          </div>
+
+          <!-- Receipt Image -->
+          <div class="receipt-image-container" *ngIf="selectedDebtProduct.receipt_image">
+            <img 
+              [src]="selectedDebtProduct.receipt_image" 
+              alt="Receipt" 
+              class="receipt-image"
+              (error)="handleImageError($event, 'debt')">
+          </div>
+          <div class="no-receipt" *ngIf="!selectedDebtProduct.receipt_image">
+            <ion-icon name="receipt-outline" size="large"></ion-icon>
+            <p>No receipt image available</p>
+          </div>
+          
+          <!-- Debt Details -->
+          <ion-card class="receipt-details">
+            <ion-card-header>
+              <ion-card-title>Debt Details</ion-card-title>
+            </ion-card-header>
+            <ion-card-content>
+              <ion-grid class="receipt-grid">
+                <ion-row>
+                  <ion-col size="6">
+                    <strong>Transaction ID:</strong>
+                  </ion-col>
+                  <ion-col size="6" class="text-right">
+                    {{selectedDebtProduct.id}}
+                  </ion-col>
+                </ion-row>
+                <ion-row>
+                  <ion-col size="6">
+                    <strong>Store:</strong>
+                  </ion-col>
+                  <ion-col size="6" class="text-right">
+                    {{selectedDebtProduct.storeName}}
+                  </ion-col>
+                </ion-row>
+                <ion-row>
+                  <ion-col size="6">
+                    <strong>Original Total:</strong>
+                  </ion-col>
+                  <ion-col size="6" class="text-right">
+                    {{formatCurrency(selectedDebtProduct.originalTotal || selectedDebtProduct.total)}}
+                  </ion-col>
+                </ion-row>
+                <ion-row *ngIf="selectedDebtProduct.initialPayment">
+                  <ion-col size="6">
+                    <strong>Initial Payment:</strong>
+                  </ion-col>
+                  <ion-col size="6" class="text-right">
+                    {{formatCurrency(selectedDebtProduct.initialPayment)}}
+                  </ion-col>
+                </ion-row>
+                <ion-row>
+                  <ion-col size="6">
+                    <strong>Remaining Balance:</strong>
+                  </ion-col>
+                  <ion-col size="6" class="text-right">
+                    <strong>{{formatCurrency(selectedDebtProduct.remainingBalance || selectedDebtProduct.total)}}</strong>
+                  </ion-col>
+                </ion-row>
+                <ion-row>
+                  <ion-col size="6">
+                    <strong>Due Date:</strong>
+                  </ion-col>
+                  <ion-col size="6" class="text-right" [class.overdue]="selectedDebtProduct.isOverdue">
+                    {{formatDate(selectedDebtProduct.dueDate)}}
+                    <ion-badge *ngIf="selectedDebtProduct.isOverdue" color="danger" class="overdue-badge">
+                      OVERDUE
+                    </ion-badge>
+                  </ion-col>
+                </ion-row>
+                <ion-row>
+                  <ion-col size="6">
+                    <strong>Status:</strong>
+                  </ion-col>
+                  <ion-col size="6" class="text-right">
+                    <ion-badge [color]="getPaymentStatusColor(selectedDebtProduct.payment_status)">
+                      {{getPaymentStatusText(selectedDebtProduct.payment_status)}}
+                    </ion-badge>
+                  </ion-col>
+                </ion-row>
+                <ion-row>
+                  <ion-col size="6">
+                    <strong>Transaction Date:</strong>
+                  </ion-col>
+                  <ion-col size="6" class="text-right">
+                    {{formatDate(selectedDebtProduct.created_at)}}
+                  </ion-col>
+                </ion-row>
+              </ion-grid>
+            </ion-card-content>
+          </ion-card>
+
+          <!-- Items List -->
+          <ion-card class="items-card" *ngIf="selectedDebtProduct.items && selectedDebtProduct.items.length > 0">
+            <ion-card-header>
+              <ion-card-title>Items Purchased</ion-card-title>
+            </ion-card-header>
+            <ion-card-content>
+              <ion-list lines="none" class="items-list">
+                <ion-item *ngFor="let item of selectedDebtProduct.items" class="item-row">
+                  <ion-label>
+                    <h3>{{item.product_name || item.name}}</h3>
+                    <p>{{item.quantity}} x {{formatCurrency(item.price)}}</p>
+                  </ion-label>
+                  <ion-note slot="end">{{formatCurrency(item.quantity * item.price)}}</ion-note>
+                </ion-item>
+                <ion-item class="total-row">
+                  <ion-label><strong>Total</strong></ion-label>
+                  <ion-note slot="end"><strong>{{formatCurrency(selectedDebtProduct.total)}}</strong></ion-note>
+                </ion-item>
+              </ion-list>
+            </ion-card-content>
+          </ion-card>
+          
+          <!-- Payment History -->
+          <ion-card class="payment-history" *ngIf="selectedDebtProduct.payments && selectedDebtProduct.payments.length > 0">
+            <ion-card-header>
+              <ion-card-title>Payment History</ion-card-title>
+            </ion-card-header>
+            <ion-card-content>
+              <ion-list lines="none" class="payment-list">
+                <ion-item *ngFor="let payment of selectedDebtProduct.payments" class="payment-item">
+                  <ion-avatar slot="start" class="payment-avatar">
+                    <ion-icon name="checkmark-circle" color="success"></ion-icon>
+                  </ion-avatar>
+                  <ion-label>
+                    <h3>{{formatCurrency(payment.amount)}}</h3>
+                    <p>{{formatDate(payment.paymentDate)}}</p>
+                    <p *ngIf="payment.notes" class="payment-notes">{{payment.notes}}</p>
+                  </ion-label>
+                  <ion-note slot="end">{{payment.paid_by || 'Store'}}</ion-note>
+                </ion-item>
+              </ion-list>
+            </ion-card-content>
+          </ion-card>
+
+          <!-- Download Button -->
+          <ion-button 
+            expand="block" 
+            color="primary" 
+            class="download-receipt-btn"
+            (click)="downloadReceipt(selectedDebtProduct)">
+            <ion-icon slot="start" name="download"></ion-icon>
+            Download Receipt
+          </ion-button>
+
+            <!-- Single Payment Receipt Button -->
+            <ion-button 
+              *ngIf="selectedDebtProduct?.payments && selectedDebtProduct.payments!.length > 0"
+              expand="block" 
+              color="secondary" 
+              class="payment-receipt-btn"
+              (click)="generatePaymentReceiptImage(selectedDebtProduct!)">
+              <ion-icon slot="start" name="card"></ion-icon>
+              Generate Payment Receipt
+            </ion-button>
+
+            <!-- Payment History Receipt Button -->
+            <ion-button 
+              *ngIf="selectedDebtProduct?.payments && selectedDebtProduct.payments!.length > 0"
+              expand="block" 
+              color="tertiary" 
+              class="payment-history-btn"
+              (click)="generatePaymentHistoryReceipt(selectedDebtProduct!)">
+              <ion-icon slot="start" name="list"></ion-icon>
+              Generate Payment History
+            </ion-button>
+     
+        </div>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
 </ion-content>

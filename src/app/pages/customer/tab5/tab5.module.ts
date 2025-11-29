@@ -7,6 +7,7 @@ import { IonicModule } from '@ionic/angular';
 import { Tab5PageRoutingModule } from './tab5-routing.module';
 
 import { Tab5Page } from './tab5.page';
+import { DayEventsModalComponent } from './day-events-modal.component'; // ✅ Fixed import path
 
 @NgModule({
   imports: [
@@ -14,7 +15,11 @@ import { Tab5Page } from './tab5.page';
     FormsModule,
     IonicModule,
     Tab5PageRoutingModule
+    
   ],
-  declarations: [Tab5Page]
+  declarations: [
+    Tab5Page,
+    DayEventsModalComponent
+]
 })
 export class Tab5PageModule {}

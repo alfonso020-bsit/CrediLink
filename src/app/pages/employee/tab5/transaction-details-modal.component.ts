@@ -25,7 +25,22 @@ export class TransactionDetailsModal {
       }
     }
   }
-
+  formatPaymentDate(paymentDate: any): string {
+  if (!paymentDate) return 'Unknown date';
+  
+  try {
+    const date = paymentDate.toDate ? paymentDate.toDate() : new Date(paymentDate);
+    return date.toLocaleDateString('en-PH', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  } catch (error) {
+    return 'Invalid date';
+  }
+}
   onBackdropClick(event: any) {
     if (event.target === event.currentTarget) {
       this.dismiss();

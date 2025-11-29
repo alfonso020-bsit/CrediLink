@@ -1,0 +1,790 @@
+// Blue & White Color Scheme
+:root {
+  --primary-blue: #2196F3;
+  --dark-blue: #1976D2;
+  --light-blue: #BBDEFB;
+  --very-light-blue: #E3F2FD;
+  --white: #FFFFFF;
+  --text-dark: #212121;
+  --text-medium: #757575;
+  --border-color: #E0E0E0;
+  --success-green: #4CAF50;
+  --warning-orange: #FF9800;
+}
+
+.transaction-history-page {
+  --background: var(--very-light-blue);
+}
+
+// Header Styling - ENHANCED
+ion-header {
+  ion-toolbar {
+    --background: linear-gradient(135deg, var(--primary-blue) 0%, var(--dark-blue) 100%);
+    --color: var(--white);
+    box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
+    
+    ion-title {
+      color: var(--white);
+      font-weight: 700;
+      font-size: 1.2em;
+    }
+    
+    ion-button {
+      --color: var(--white);
+      
+      ion-icon {
+        color: var(--white);
+        font-size: 1.5em;
+      }
+    }
+    
+    ion-badge {
+      background: var(--white);
+      color: var(--primary-blue);
+      font-weight: bold;
+      padding: 6px 12px;
+      border-radius: 20px;
+    }
+  }
+}
+
+// Summary Cards - WITH COLORS
+.summary-cards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  padding: 16px;
+  
+  .summary-card {
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    margin: 0;
+    overflow: hidden;
+    
+    // Debt Records Card - Orange/Warning theme
+    &.total-debts {
+      background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+      
+      ion-card-header {
+        padding: 16px 16px 8px 16px;
+        
+        ion-card-title {
+          color: var(--white);
+          font-size: 14px;
+          font-weight: 600;
+        }
+      }
+      
+      ion-card-content {
+        padding: 8px 16px 16px 16px;
+        
+        h2 {
+          color: var(--white);
+          font-size: 32px;
+          font-weight: bold;
+          margin: 0 0 4px 0;
+        }
+        
+        p {
+          color: rgba(255, 255, 255, 0.9);
+          font-size: 12px;
+          margin: 0;
+        }
+      }
+    }
+    
+    // Payments Made Card - Green/Success theme
+    &.total-payments {
+      background: linear-gradient(135deg, #4CAF50 0%, #388E3C 100%);
+      
+      ion-card-header {
+        padding: 16px 16px 8px 16px;
+        
+        ion-card-title {
+          color: var(--white);
+          font-size: 14px;
+          font-weight: 600;
+        }
+      }
+      
+      ion-card-content {
+        padding: 8px 16px 16px 16px;
+        
+        h2 {
+          color: var(--white);
+          font-size: 32px;
+          font-weight: bold;
+          margin: 0 0 4px 0;
+        }
+        
+        p {
+          color: rgba(255, 255, 255, 0.9);
+          font-size: 12px;
+          margin: 0;
+        }
+      }
+    }
+  }
+}
+
+// Filter Toolbar
+.filter-toolbar {
+  --background: var(--white);
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-color);
+  
+  .custom-searchbar {
+    --background: var(--very-light-blue);
+    --border-radius: 8px;
+    --icon-color: var(--primary-blue);
+    --placeholder-color: var(--text-medium);
+    padding: 0;
+  }
+}
+
+// Filter Controls - FIXED BLUE HIGHLIGHTING
+.filter-controls,
+.secondary-controls {
+  --background: var(--white);
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border-color);
+  
+  ion-segment {
+    --background: var(--very-light-blue);
+    border-radius: 8px;
+    padding: 4px;
+    
+    ion-segment-button {
+      --color: var(--text-medium);
+      --color-checked: var(--white);
+      --indicator-color: transparent;
+      --background: transparent;
+      --background-checked: var(--primary-blue);
+      --background-hover: var(--light-blue);
+      min-height: 36px;
+      font-size: 13px;
+      border-radius: 6px;
+      margin: 0 2px;
+      transition: all 0.3s ease;
+      font-weight: 500;
+      
+      // This is the key fix for blue highlighting
+      &::part(native) {
+        color: var(--text-medium);
+      }
+      
+      &.segment-button-checked {
+        --background: var(--primary-blue);
+        background: var(--primary-blue);
+        color: var(--white);
+        font-weight: 600;
+        box-shadow: 0 2px 6px rgba(33, 150, 243, 0.4);
+        
+        &::part(native) {
+          color: var(--white);
+        }
+        
+        ion-label {
+          color: var(--white);
+        }
+      }
+      
+      ion-label {
+        font-weight: 500;
+      }
+    }
+  }
+  
+  .sort-select {
+    --padding-start: 12px;
+    --padding-end: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--white);
+    color: var(--text-dark);
+    font-size: 13px;
+    min-width: 140px;
+  }
+}
+
+.secondary-controls {
+  display: flex;
+  gap: 12px;
+  
+  ion-segment {
+    flex: 1;
+  }
+}
+
+// Custom Date Card
+.custom-date-card {
+  margin: 12px 16px;
+  background: var(--white);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(33, 150, 243, 0.1);
+  
+  ion-card-header {
+    padding: 12px 16px 8px;
+    border-bottom: 1px solid var(--border-color);
+    
+    ion-card-title {
+      color: var(--primary-blue);
+      font-size: 15px;
+      font-weight: 600;
+    }
+  }
+  
+  ion-card-content {
+    padding: 12px 16px;
+    
+    ion-item {
+      --background: var(--white);
+      --border-color: var(--border-color);
+      
+      ion-label {
+        color: var(--text-dark);
+        font-weight: 500;
+      }
+      
+      ion-input {
+        --color: var(--text-dark);
+      }
+    }
+  }
+}
+
+// Transactions List
+.transactions-container {
+  padding: 0 16px 20px;
+}
+
+.transactions-list {
+  background: transparent;
+  
+  .list-header {
+    background: var(--white);
+    margin-bottom: 12px;
+    border-radius: 8px;
+    padding: 12px 16px;
+    box-shadow: 0 1px 4px rgba(33, 150, 243, 0.1);
+    
+    ion-label {
+      h2 {
+        color: var(--primary-blue);
+        font-weight: 600;
+        font-size: 16px;
+        margin: 0 0 4px 0;
+      }
+      
+      p {
+        color: var(--text-medium);
+        font-size: 13px;
+        margin: 0;
+      }
+    }
+  }
+}
+
+// Transaction Items
+.transaction-item {
+  margin-bottom: 12px;
+  --background: var(--white);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(33, 150, 243, 0.1);
+  
+  .transaction-item-content {
+    --padding-start: 12px;
+    --padding-end: 12px;
+    --inner-padding-end: 8px;
+    --background: var(--white);
+    --border-color: transparent;
+    
+    &:active {
+      --background: var(--very-light-blue);
+    }
+  }
+  
+  .store-avatar {
+    margin-right: 12px;
+    
+    .store-profile-image {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      object-fit: cover;
+      border: 2px solid var(--light-blue);
+    }
+    
+    .store-avatar-fallback {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--primary-blue);
+      color: var(--white);
+      font-weight: bold;
+      font-size: 16px;
+    }
+  }
+}
+
+.transaction-details {
+  h2 {
+    color: var(--text-dark);
+    font-weight: 600;
+    font-size: 15px;
+    margin: 0 0 6px 0;
+  }
+  
+  .transaction-info {
+    color: var(--text-medium);
+    font-size: 12px;
+    margin: 0 0 10px 0;
+    
+    ion-icon {
+      color: var(--primary-blue);
+      margin-right: 4px;
+    }
+  }
+  
+  .amounts-container {
+    margin-bottom: 10px;
+    
+    .amount-item {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 4px;
+      
+      .amount-label {
+        color: var(--text-medium);
+        font-size: 12px;
+      }
+      
+      .amount-value {
+        color: var(--text-dark);
+        font-size: 13px;
+        font-weight: 600;
+        
+        &.payment-amount {
+          color: var(--primary-blue);
+        }
+        
+        &.remaining {
+          color: #FF9800;
+        }
+      }
+    }
+  }
+  
+  .date-container {
+    .date-info,
+    .status-info {
+      color: var(--text-medium);
+      font-size: 11px;
+      margin: 2px 0;
+      display: flex;
+      align-items: center;
+      
+      ion-icon {
+        color: var(--primary-blue);
+        margin-right: 4px;
+        font-size: 12px;
+      }
+    }
+    
+    .status-info {
+      .status-badge {
+        margin-left: 6px;
+        font-size: 10px;
+      }
+    }
+  }
+}
+
+.type-indicator {
+  text-align: right;
+  
+  .type-badge {
+    font-size: 11px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  
+  .items-count {
+    color: var(--text-medium);
+    font-size: 11px;
+  }
+}
+
+// Item Options (Swipe actions)
+.action-option {
+  ion-icon {
+    font-size: 20px;
+  }
+}
+
+// Empty & Loading States
+.empty-state,
+.loading-state {
+  --background: var(--white);
+  margin: 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(33, 150, 243, 0.1);
+  
+  .empty-content {
+    text-align: center;
+    padding: 60px 20px;
+    
+    ion-icon {
+      color: var(--primary-blue);
+      opacity: 0.5;
+      font-size: 64px;
+      margin-bottom: 16px;
+    }
+    
+    h2 {
+      color: var(--text-dark);
+      font-size: 18px;
+      font-weight: 600;
+      margin: 0 0 8px 0;
+    }
+    
+    p {
+      color: var(--text-medium);
+      font-size: 14px;
+      margin: 0;
+    }
+  }
+}
+
+// Receipt Modal
+.receipt-modal {
+  --width: 95%;
+  --height: 85%;
+  --max-width: 600px;
+  --border-radius: 16px;
+  --box-shadow: 0 10px 30px rgba(33, 150, 243, 0.3);
+  
+  ion-header {
+    ion-toolbar {
+      --background: var(--primary-blue);
+      --color: var(--white);
+      
+      ion-button {
+        --color: var(--white);
+        
+        ion-icon {
+          color: var(--white);
+        }
+      }
+    }
+  }
+}
+
+.receipt-content {
+  --background: var(--very-light-blue);
+  
+  .receipt-container {
+    background: var(--white);
+    margin: 16px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(33, 150, 243, 0.15);
+    padding: 20px;
+    
+    .store-header {
+      background: linear-gradient(135deg, var(--primary-blue) 0%, var(--dark-blue) 100%);
+      border-radius: 12px;
+      padding: 24px;
+      margin: -20px -20px 20px -20px;
+      color: var(--white);
+      text-align: center;
+      
+      .store-avatar-large {
+        margin-bottom: 16px;
+        
+        .store-profile-image-large {
+          width: 80px;
+          height: 80px;
+          border-radius: 50%;
+          border: 4px solid var(--white);
+          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .store-avatar-fallback-large {
+          width: 80px;
+          height: 80px;
+          border-radius: 50%;
+          border: 4px solid var(--white);
+          background: var(--white);
+          color: var(--primary-blue);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: bold;
+          font-size: 28px;
+          margin: 0 auto;
+        }
+      }
+      
+      .store-info {
+        h2 {
+          color: var(--white);
+          font-size: 1.5em;
+          font-weight: 700;
+          margin: 0 0 8px 0;
+        }
+        
+        .store-address,
+        .store-contact {
+          color: var(--white);
+          opacity: 0.95;
+          font-size: 0.95em;
+          margin: 4px 0;
+        }
+      }
+    }
+    
+    .receipt-image-container {
+      margin: 16px 0;
+      text-align: center;
+      
+      .receipt-image {
+        max-width: 100%;
+        border-radius: 8px;
+        border: 2px solid var(--light-blue);
+        box-shadow: 0 2px 12px rgba(33, 150, 243, 0.15);
+      }
+    }
+    
+    .receipt-details,
+    .items-card,
+    .payment-history {
+      background: var(--white);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 8px rgba(33, 150, 243, 0.08);
+      
+      ion-card-header {
+        border-bottom: 1px solid var(--border-color);
+        padding: 12px 16px;
+        
+        ion-card-title {
+          color: var(--primary-blue);
+          font-size: 16px;
+          font-weight: 600;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          
+          ion-icon {
+            color: var(--primary-blue);
+          }
+        }
+      }
+      
+      ion-card-content {
+        padding: 16px;
+        
+        .receipt-grid {
+          ion-row {
+            padding: 4px 0;
+            
+            ion-col {
+              color: var(--text-dark);
+              font-size: 13px;
+              
+              strong {
+                color: var(--text-dark);
+                font-weight: 600;
+              }
+              
+              &.text-right {
+                text-align: right;
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    .receipt-preview {
+      background: var(--very-light-blue);
+      border: 2px dashed var(--primary-blue);
+      border-radius: 12px;
+      padding: 24px;
+      text-align: center;
+      margin-bottom: 20px;
+      
+      .preview-text {
+        color: var(--primary-blue);
+        font-size: 15px;
+        font-weight: 600;
+        margin-bottom: 12px;
+      }
+      
+      .preview-details {
+        p {
+          color: var(--text-dark);
+          font-size: 13px;
+          margin: 6px 0;
+          
+          strong {
+            color: var(--primary-blue);
+          }
+        }
+      }
+    }
+  }
+}
+
+// Download Button
+.download-receipt-btn {
+  margin: 20px 0 10px 0;
+  --border-radius: 12px;
+  --background: var(--primary-blue);
+  --background-activated: var(--dark-blue);
+  --background-hover: var(--dark-blue);
+  --box-shadow: 0 4px 15px rgba(33, 150, 243, 0.4);
+  height: 48px;
+  font-weight: 600;
+  
+  ion-icon {
+    font-size: 20px;
+  }
+  
+  &.download-success {
+    --background: #4CAF50;
+    animation: downloadSuccess 0.5s ease-in-out;
+  }
+}
+
+@keyframes downloadSuccess {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+// Items & Payment Lists
+.items-list,
+.payment-list {
+  .item-row,
+  .payment-item {
+    --background: transparent;
+    --padding-start: 0;
+    --padding-end: 0;
+    --inner-padding-end: 0;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-color);
+    
+    &:last-child {
+      border-bottom: none;
+    }
+    
+    ion-label {
+      h3 {
+        color: var(--text-dark);
+        font-weight: 500;
+        font-size: 13px;
+        margin: 0 0 4px 0;
+      }
+      
+      p {
+        color: var(--text-medium);
+        font-size: 12px;
+        margin: 0;
+      }
+    }
+    
+    ion-note {
+      color: var(--primary-blue);
+      font-weight: 600;
+      font-size: 13px;
+    }
+  }
+  
+  .total-row {
+    padding-top: 12px;
+    margin-top: 8px;
+    border-top: 2px solid var(--primary-blue);
+    
+    ion-label,
+    ion-note {
+      color: var(--primary-blue);
+      font-weight: bold;
+      font-size: 14px;
+    }
+  }
+  
+  .payment-avatar {
+    width: 36px;
+    height: 36px;
+    margin-right: 12px;
+    
+    ion-icon {
+      font-size: 24px;
+    }
+  }
+  
+  .payment-notes {
+    color: var(--text-medium);
+    font-style: italic;
+    font-size: 11px;
+  }
+}
+
+// Badge Colors
+ion-badge {
+  &[color="warning"] {
+    --background: #FF9800;
+    --color: var(--white);
+  }
+  
+  &[color="success"] {
+    --background: #4CAF50;
+    --color: var(--white);
+  }
+  
+  &[color="danger"] {
+    --background: #F44336;
+    --color: var(--white);
+  }
+  
+  &[color="medium"] {
+    --background: var(--text-medium);
+    --color: var(--white);
+  }
+}
+
+// Responsive Design
+@media (max-width: 480px) {
+  .summary-cards {
+    grid-template-columns: 1fr;
+  }
+  
+  .secondary-controls {
+    flex-direction: column;
+    
+    .sort-select {
+      width: 100%;
+    }
+  }
+}
+
+// Smooth Animations
+.transaction-item {
+  animation: fadeInUp 0.3s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

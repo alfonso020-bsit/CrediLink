@@ -1,12 +1,17 @@
-<ion-header [translucent]="true">
+<ion-header [translucent]="true" class="ion-no-border">
   <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-button (click)="doRefresh(null)" fill="clear">
+        <ion-icon slot="icon-only" name="refresh-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
     <ion-title>Employee Reports</ion-title>
     <ion-buttons slot="end">
       <ion-button (click)="openFilterModal()" fill="clear">
-        <ion-icon slot="icon-only" name="filter"></ion-icon>
+        <ion-icon slot="icon-only" name="filter-outline"></ion-icon>
       </ion-button>
       <ion-button (click)="exportToPDF()" fill="clear">
-        <ion-icon slot="icon-only" name="download"></ion-icon>
+        <ion-icon slot="icon-only" name="download-outline"></ion-icon>
       </ion-button>
     </ion-buttons>
   </ion-toolbar>

@@ -1,13 +1,489 @@
 <ion-header [translucent]="true">
-  <ion-toolbar>
-    <ion-title>tab1</ion-title>
+  <ion-toolbar color="primary">
+    <ion-title>Customer Dashboard</ion-title>
+    <ion-buttons slot="end">
+      <!-- Refresh Button -->
+      <ion-button (click)="refreshData()" fill="clear">
+        <ion-icon name="refresh" slot="icon-only"></ion-icon>
+      </ion-button>
+      <!-- Settings Button -->
+      <ion-button (click)="toggleSettings()" fill="clear">
+        <ion-icon name="settings" slot="icon-only"></ion-icon>
+      </ion-button>
+      <!-- Logout Button -->
+      <ion-button (click)="logout()" fill="clear">
+        <ion-icon name="log-out" slot="icon-only"></ion-icon>
+      </ion-button>
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">CUSTOMER TAB</ion-title>
-    </ion-toolbar>
-  </ion-header>
-</ion-content>
+<ion-content [fullscreen]="true" class="ion-padding">
+  <!-- Welcome Card -->
+  <ion-card class="welcome-card">
+    <ion-card-header>
+      <div class="customer-header">
+        <div class="customer-avatar" (click)="toggleSettings()">
+          <img 
+            *ngIf="customerProfile?.profile_image; else avatarFallback" 
+            [src]="customerProfile?.profile_image" 
+            alt="Profile Image"
+            class="profile-image">
+          <ng-template #avatarFallback>
+            <img [src]="customerAvatar" alt="Customer Avatar" class="profile-image">
+          </ng-template>
+        </div>
+        <div class="customer-info">
+          <h1>Welcome, {{ currentUser?.full_name || 'Customer' }}! 👋</h1>
+          <p>Here's your shopping overview</p>
+          <ion-text color="medium">
+            <small>
+              {{ currentUser?.phone_number }} • 
+              {{ currentUser?.barangay }}, {{ currentUser?.municipality }}, {{ currentUser?.province }}
+            </small>
+          </ion-text>
+        </div>
+      </div>
+    </ion-card-header>
+  </ion-card>
+
+  <!-- Settings Card (Visible when showSettings is true) -->
+  <ion-card *ngIf="showSettings" class="settings-card">
+    <ion-card-header>
+      <ion-card-title>Customer Profile Settings</ion-card-title>
+      <ion-card-subtitle>Manage your personal information and preferences</ion-card-subtitle>
+    </ion-card-header>
+    <ion-card-content>
+      <form #customerForm="ngForm" (ngSubmit)="saveCustomerProfile()">
+        
+        <!-- Profile Image Upload -->
+        <div class="image-upload-section">
+          <div class="image-preview">
+            <div class="customer-avatar-large">
+              <img 
+                *ngIf="imagePreview || customerProfile?.profile_image; else avatarFallbackLarge" 
+                [src]="imagePreview || customerProfile?.profile_image" 
+                alt="Profile Image"
+                class="profile-image-large">
+              <ng-template #avatarFallbackLarge>
+                <img [src]="customerAvatarLarge" alt="Customer Avatar" class="profile-image-large">
+              </ng-template>
+            </div>
+          </div>
+          
+          <div class="image-actions">
+            <input 
+              type="file" 
+              #fileInput 
+              (change)="onFileSelected($event)" 
+              accept="image/*" 
+              hidden>
+            <ion-button expand="block" fill="outline" (click)="fileInput.click()" size="small">
+              <ion-icon name="camera" slot="start"></ion-icon>
+              {{ customerProfile?.profile_image ? 'Change' : 'Upload' }} Profile Image
+            </ion-button>
+            
+            <ion-button *ngIf="imagePreview || customerProfile?.profile_image" expand="block" fill="clear" color="danger" size="small" (click)="deleteProfileImage()">
+              <ion-icon name="trash" slot="start"></ion-icon>
+              Remove Image
+            </ion-button>
+          </div>
+        </div>
+
+        <!-- Basic Information from all_users (Read-only) -->
+        <ion-card>
+          <ion-card-header>
+            <ion-card-title>Basic Information</ion-card-title>
+            <ion-card-subtitle>From your registration (read-only)</ion-card-subtitle>
+          </ion-card-header>
+          <ion-card-content>
+            <ion-list>
+              <ion-item>
+                <ion-label position="stacked">Full Name</ion-label>
+                <ion-input 
+                  type="text" 
+                  [value]="currentUser?.full_name" 
+                  readonly>
+                </ion-input>
+              </ion-item>
+
+              <ion-item>
+                <ion-label position="stacked">Contact Number</ion-label>
+                <ion-input 
+                  type="tel" 
+                  [value]="currentUser?.phone_number" 
+                  readonly>
+                </ion-input>
+              </ion-item>
+
+              <ion-item>
+                <ion-label position="stacked">Email</ion-label>
+                <ion-input 
+                  type="email" 
+                  [value]="currentUser?.email" 
+                  readonly>
+                </ion-input>
+              </ion-item>
+
+              <ion-item>
+                <ion-label position="stacked">Address</ion-label>
+                <ion-textarea 
+                  [value]="getFullAddress()" 
+                  readonly
+                  rows="2">
+                </ion-textarea>
+              </ion-item>
+            </ion-list>
+          </ion-card-content>
+        </ion-card>
+
+        <!-- Additional Customer Information (Editable) -->
+        <ion-card>
+          <ion-card-header>
+            <ion-card-title>Personal Details</ion-card-title>
+            <ion-card-subtitle>Additional personal information</ion-card-subtitle>
+          </ion-card-header>
+          <ion-card-content>
+            <ion-list>
+              <ion-item>
+                <ion-label position="stacked">Date of Birth</ion-label>
+                <ion-input 
+                  type="date" 
+                  [(ngModel)]="customerData.date_of_birth" 
+                  name="dateOfBirth">
+                </ion-input>
+              </ion-item>
+
+              <ion-item>
+                <ion-label position="stacked">Gender</ion-label>
+                <ion-select 
+                  [(ngModel)]="customerData.gender" 
+                  name="gender"
+                  placeholder="Select gender">
+                  <ion-select-option value="male">Male</ion-select-option>
+                  <ion-select-option value="female">Female</ion-select-option>
+                  <ion-select-option value="other">Other</ion-select-option>
+                  <ion-select-option value="prefer_not_to_say">Prefer not to say</ion-select-option>
+                </ion-select>
+              </ion-item>
+
+              <ion-item>
+                <ion-label position="stacked">Preferred Store</ion-label>
+                <ion-input 
+                  type="text" 
+                  [(ngModel)]="customerData.preferred_store" 
+                  name="preferredStore"
+                  placeholder="Your favorite store">
+                </ion-input>
+              </ion-item>
+            </ion-list>
+          </ion-card-content>
+        </ion-card>
+
+        <!-- Social Media & Contact Preferences -->
+        <ion-card>
+          <ion-card-header>
+            <ion-card-title>Social Media & Preferences</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <ion-list>
+              <ion-item>
+                <ion-label position="stacked">Facebook Account</ion-label>
+                <ion-input 
+                  type="url" 
+                  [(ngModel)]="customerData.social_media.facebook" 
+                  name="facebook"
+                  placeholder="https://facebook.com/yourprofile">
+                </ion-input>
+              </ion-item>
+
+              <ion-item>
+                <ion-label position="stacked">Instagram</ion-label>
+                <ion-input 
+                  type="url" 
+                  [(ngModel)]="customerData.social_media.instagram" 
+                  name="instagram"
+                  placeholder="https://instagram.com/yourprofile">
+                </ion-input>
+              </ion-item>
+
+              <ion-item>
+                <ion-label position="stacked">Preferred Contact Method</ion-label>
+                <ion-select 
+                  [(ngModel)]="customerData.preferred_contact_method" 
+                  name="contactMethod"
+                  placeholder="Select preferred method">
+                  <ion-select-option value="sms">SMS</ion-select-option>
+                  <ion-select-option value="email">Email</ion-select-option>
+                  <ion-select-option value="facebook">Facebook</ion-select-option>
+                  <ion-select-option value="instagram">Instagram</ion-select-option>
+                </ion-select>
+              </ion-item>
+
+              <ion-item>
+                <ion-label>Receive Promotional Notifications</ion-label>
+                <ion-toggle 
+                  [(ngModel)]="customerData.receive_promotions" 
+                  name="receivePromotions">
+                </ion-toggle>
+              </ion-item>
+
+              <ion-item>
+                <ion-label>Receive Debt Reminders</ion-label>
+                <ion-toggle 
+                  [(ngModel)]="customerData.receive_debt_reminders" 
+                  name="receiveDebtReminders">
+                </ion-toggle>
+              </ion-item>
+            </ion-list>
+          </ion-card-content>
+        </ion-card>
+
+        <!-- Save Button -->
+        <ion-button 
+          expand="block" 
+          type="submit" 
+          class="save-btn">
+          <ion-icon name="save" slot="start"></ion-icon>
+          Save Profile
+        </ion-button>
+
+        <ion-button 
+          expand="block" 
+          fill="outline" 
+          color="medium" 
+          (click)="toggleSettings()"
+          class="cancel-btn">
+          <ion-icon name="close" slot="start"></ion-icon>
+          Cancel
+        </ion-button>
+
+      </form>
+    </ion-card-content>
+  </ion-card>
+
+  <!-- Dashboard Content (Hidden when settings are open) -->
+  <div *ngIf="!showSettings" class="dashboard-content">
+    
+    <!-- Loading State -->
+    <div *ngIf="isLoadingDashboard" class="loading-state">
+      <ion-card>
+        <ion-card-content class="ion-text-center">
+          <ion-spinner></ion-spinner>
+          <p>Loading your data...</p>
+        </ion-card-content>
+      </ion-card>
+    </div>
+
+    <!-- Customer Metrics Grid -->
+    <div *ngIf="!isLoadingDashboard" class="metrics-grid">
+      <!-- Total Spending -->
+      <ion-card class="metric-card spending-card">
+        <ion-card-content>
+          <div class="metric-icon">
+            <ion-icon name="cash" color="success"></ion-icon>
+          </div>
+          <div class="metric-content">
+            <h3>Total Spending</h3>
+            <p class="metric-value">₱{{ dashboardMetrics.totalSpending | number:'1.2-2' }}</p>
+            <p class="metric-subtitle">{{ dashboardMetrics.totalTransactions }} transactions</p>
+          </div>
+        </ion-card-content>
+      </ion-card>
+
+      <!-- Current Debts -->
+      <ion-card class="metric-card debts-card" (click)="openDebtDetails()">
+        <ion-card-content>
+          <div class="metric-icon">
+            <ion-icon name="calendar" color="warning"></ion-icon>
+          </div>
+          <div class="metric-content">
+            <h3>Current Debts</h3>
+            <p class="metric-value">{{ dashboardMetrics.pendingDebts }}</p>
+            <p class="metric-subtitle">₱{{ dashboardMetrics.totalDebtAmount | number:'1.2-2' }} total</p>
+            <p class="metric-change" [class.negative]="dashboardMetrics.overdueDebts > 0">
+              <ion-icon name="warning" *ngIf="dashboardMetrics.overdueDebts > 0"></ion-icon>
+              {{ dashboardMetrics.overdueDebts }} overdue
+            </p>
+          </div>
+        </ion-card-content>
+      </ion-card>
+
+      <!-- Stores Visited -->
+      <ion-card class="metric-card stores-card">
+        <ion-card-content>
+          <div class="metric-icon">
+            <ion-icon name="business" color="primary"></ion-icon>
+          </div>
+          <div class="metric-content">
+            <h3>Stores Visited</h3>
+            <p class="metric-value">{{ dashboardMetrics.storesVisited }}</p>
+            <p class="metric-subtitle">{{ dashboardMetrics.favoriteStore || 'No favorite' }}</p>
+          </div>
+        </ion-card-content>
+      </ion-card>
+
+      <!-- Monthly Spending -->
+      <ion-card class="metric-card monthly-card">
+        <ion-card-content>
+          <div class="metric-icon">
+            <ion-icon name="trending-up" color="tertiary"></ion-icon>
+          </div>
+          <div class="metric-content">
+            <h3>This Month</h3>
+            <p class="metric-value">₱{{ dashboardMetrics.monthlySpending | number:'1.2-2' }}</p>
+            <p class="metric-subtitle">{{ dashboardMetrics.monthlyTransactions }} transactions</p>
+          </div>
+        </ion-card-content>
+      </ion-card>
+    </div>
+
+    <!-- Upcoming Debt Payments -->
+    <div *ngIf="!isLoadingDashboard && dashboardMetrics.pendingDebts > 0" class="debt-section">
+      <ion-card>
+        <ion-card-header>
+          <ion-card-title>
+            <ion-icon name="calendar" slot="start"></ion-icon>
+            Upcoming Payments
+          </ion-card-title>
+          <ion-button fill="clear" size="small" (click)="openDebtDetails()">
+            View All
+            <ion-icon name="arrow-forward" slot="end"></ion-icon>
+          </ion-button>
+        </ion-card-header>
+        <ion-card-content>
+          <div class="upcoming-payments">
+            <div class="payment-item" *ngFor="let payment of getUpcomingPayments()">
+              <div class="store-avatar-small">
+                <img 
+                  *ngIf="payment.storeProfileImage; else storeFallback"
+                  [src]="payment.storeProfileImage" 
+                  [alt]="payment.storeName"
+                  class="store-profile-image">
+                <ng-template #storeFallback>
+                  <div class="store-avatar-fallback" [style.background]="payment.storeColor">
+                    {{ payment.storeInitials }}
+                  </div>
+                </ng-template>
+              </div>
+              <div class="payment-details">
+                <h4>{{ payment.storeName }}</h4>
+                <p>
+                  <ion-badge [color]="payment.isOverdue ? 'danger' : 'warning'">
+                    {{ payment.isOverdue ? 'Overdue' : 'Due' }}
+                  </ion-badge>
+                  <span class="payment-amount">₱{{ payment.amount | number:'1.2-2' }}</span>
+                </p>
+                <p class="payment-due" [class.overdue]="payment.isOverdue">
+                  Due: {{ payment.dueDate | date:'MMM d, yyyy' }}
+                </p>
+              </div>
+              <div class="payment-status">
+                <ion-icon 
+                  [name]="payment.isOverdue ? 'warning' : 'time'" 
+                  [color]="payment.isOverdue ? 'danger' : 'medium'">
+                </ion-icon>
+              </div>
+            </div>
+          </div>
+        </ion-card-content>
+      </ion-card>
+    </div>
+
+    <!-- Recent Activity Section -->
+    <div *ngIf="!isLoadingDashboard" class="activity-section">
+      <ion-row>
+        <!-- Recent Transactions -->
+        <ion-col size="12" size-lg="6">
+          <ion-card>
+            <ion-card-header>
+              <ion-card-title>
+                <ion-icon name="receipt" slot="start"></ion-icon>
+                Recent Transactions
+              </ion-card-title>
+            </ion-card-header>
+            <ion-card-content>
+              <div class="transactions-list">
+                <div class="transaction-item" *ngFor="let transaction of recentTransactions">
+                  <div class="store-avatar-small">
+                    <img 
+                      *ngIf="transaction.storeProfileImage; else storeFallback"
+                      [src]="transaction.storeProfileImage" 
+                      [alt]="transaction.storeName"
+                      class="store-profile-image">
+                    <ng-template #storeFallback>
+                      <div class="store-avatar-fallback" [style.background]="transaction.storeColor">
+                        {{ transaction.storeInitials }}
+                      </div>
+                    </ng-template>
+                  </div>
+                  <div class="transaction-details">
+                    <h4>{{ transaction.storeName }}</h4>
+                    <p class="transaction-meta">
+                      {{ transaction.type === 'cash' ? 'Cash Purchase' : 'Credit Purchase' }}
+                      • {{ transaction.date | date:'MMM d, h:mm a' }}
+                    </p>
+                    <p class="transaction-items" *ngIf="transaction.items">
+                      {{ transaction.items }} items
+                    </p>
+                  </div>
+                  <div class="transaction-amount">
+                    <strong>₱{{ transaction.total | number:'1.2-2' }}</strong>
+                    <ion-badge [color]="transaction.type === 'cash' ? 'success' : 'warning'">
+                      {{ transaction.type === 'cash' ? 'Paid' : 'Credit' }}
+                    </ion-badge>
+                  </div>
+                </div>
+              </div>
+              <div *ngIf="recentTransactions.length === 0" class="no-data">
+                <ion-icon name="document-text" color="medium"></ion-icon>
+                <p>No recent transactions</p>
+              </div>
+            </ion-card-content>
+          </ion-card>
+        </ion-col>
+
+        <!-- Favorite Stores -->
+        <ion-col size="12" size-lg="6">
+          <ion-card>
+            <ion-card-header>
+              <ion-card-title>
+                <ion-icon name="star" slot="start"></ion-icon>
+                Favorite Stores
+              </ion-card-title>
+            </ion-card-header>
+            <ion-card-content>
+              <div class="stores-list">
+                <div class="store-item" *ngFor="let store of favoriteStores">
+                  <div class="store-avatar-small">
+                    <img 
+                      *ngIf="store.storeProfileImage; else storeFallback"
+                      [src]="store.storeProfileImage" 
+                      [alt]="store.storeName"
+                      class="store-profile-image">
+                    <ng-template #storeFallback>
+                      <div class="store-avatar-fallback" [style.background]="store.color">
+                        {{ store.initials }}
+                      </div>
+                    </ng-template>
+                  </div>
+                  <div class="store-details">
+                    <h4>{{ store.storeName }}</h4>
+                    <p class="store-visits">{{ store.visitCount }} visits</p>
+                    <p class="store-spending">₱{{ store.totalSpending | number:'1.2-2' }} spent</p>
+                  </div>
+                  <div class="store-rating">
+                    <ion-icon name="star" color="warning"></ion-icon>
+                    <span>{{ store.rating }}</span>
+                  </div>
+                </div>
+              </div>
+              <div *ngIf="favoriteStores.length === 0" class="no-data">
+                <ion-icon name="business" color="medium"></ion-icon>
+                <p>No store visits yet</p>
+              </div>
+            </ion-card-content>
+          </ion-card>
+        </ion-col>
+      </ion-row>
+    </div>

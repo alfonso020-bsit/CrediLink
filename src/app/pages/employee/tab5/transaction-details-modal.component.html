@@ -62,7 +62,13 @@
         <ion-item>
           <ion-label>
             <h3>Remaining Balance</h3>
-            <p class="balance">₱{{ (transaction.remainingBalance || 0).toFixed(2) }}</p>
+            <p 
+              class="balance" 
+              [class.zero-balance]="(transaction.remainingBalance || 0) <= 0"
+              [class.has-balance]="(transaction.remainingBalance || 0) > 0">
+              ₱{{ (transaction.remainingBalance || 0).toFixed(2) }}
+              <span *ngIf="(transaction.remainingBalance || 0) <= 0" class="fully-paid-badge">(Fully Paid)</span>
+            </p>
           </ion-label>
         </ion-item>
 
@@ -73,10 +79,33 @@
           </ion-label>
         </ion-item>
 
+        <ion-item>
+          <ion-label>
+            <h3>Original Total</h3>
+            <p>₱{{ (transaction.totalAmount || 0).toFixed(2) }}</p>
+          </ion-label>
+        </ion-item>
+
         <ion-item *ngIf="transaction.dueDate">
           <ion-label>
             <h3>Due Date</h3>
             <p>{{ formatDueDate(transaction.dueDate) }}</p>
+          </ion-label>
+        </ion-item>
+
+        <!-- Payment History -->
+        <ion-item *ngIf="transaction.payments && transaction.payments.length > 0">
+          <ion-label>
+            <h3>Payment History</h3>
+            <div class="payment-history">
+              <div *ngFor="let payment of transaction.payments" class="payment-item">
+                <small>
+                  ₱{{ (payment.amount || 0).toFixed(2) }} - 
+                  {{ formatPaymentDate(payment.paymentDate) }}
+                  <span *ngIf="payment.paid_by">by {{ payment.paid_by }}</span>
+                </small>
+              </div>
+            </div>
           </ion-label>
         </ion-item>
       </ng-container>

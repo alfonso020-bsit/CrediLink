@@ -1,13 +1,505 @@
 <ion-header [translucent]="true">
-  <ion-toolbar>
-    <ion-title>tab3</ion-title>
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-button (click)="loadTransactionHistory()" fill="clear">
+        <ion-icon slot="icon-only" name="refresh"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>Transaction History</ion-title>
+    <ion-badge *ngIf="filteredTransactions.length > 0" slot="end" color="warning">
+      {{filteredTransactions.length}}
+    </ion-badge>
   </ion-toolbar>
 </ion-header>
 
 <ion-content [fullscreen]="true">
+  <ion-refresher slot="fixed" (ionRefresh)="doRefresh($event)">
+    <ion-refresher-content
+      pullingIcon="chevron-down-circle-outline"
+      pullingText="Pull to refresh"
+      refreshingSpinner="circles"
+      refreshingText="Refreshing...">
+    </ion-refresher-content>
+  </ion-refresher>
+
   <ion-header collapse="condense">
     <ion-toolbar>
-      <ion-title size="large">tab3</ion-title>
+      <ion-title size="large">Transaction History</ion-title>
     </ion-toolbar>
   </ion-header>
+
+<!-- Summary Cards -->
+<div class="summary-cards" *ngIf="transactionHistory.length > 0">
+  <ion-card class="summary-card total-debts">
+    <ion-card-header>
+      <ion-card-title>Debt Records</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <h2>{{totalDebts}}</h2>
+      <p>debt transactions</p>
+    </ion-card-content>
+  </ion-card>
+
+  <ion-card class="summary-card total-payments">
+    <ion-card-header>
+      <ion-card-title>Payments Made</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <h2>{{totalPayments}}</h2>
+      <p>payment records</p>
+    </ion-card-content>
+  </ion-card>
+</div>
+
+  <!-- Search and Filter Section -->
+  <ion-toolbar class="filter-toolbar">
+    <ion-searchbar 
+      [(ngModel)]="searchTerm" 
+      placeholder="Search stores or amounts..."
+      (ionInput)="onSearchChange()"
+      animated="true"
+      clearIcon="close-circle"
+      class="custom-searchbar">
+    </ion-searchbar>
+  </ion-toolbar>
+
+<!-- Filter Controls -->
+<ion-toolbar class="filter-controls">
+  <ion-segment [(ngModel)]="transactionType" (ionChange)="onFilterChange()" scrollable="true">
+    <ion-segment-button value="all">
+      <ion-label>All</ion-label>
+    </ion-segment-button>
+    <ion-segment-button value="debt">
+      <ion-label>Debts</ion-label>
+    </ion-segment-button>
+    <ion-segment-button value="payment">
+      <ion-label>Payments</ion-label>
+    </ion-segment-button>
+  </ion-segment>
+</ion-toolbar>
+
+  <!-- Date and Sort Controls -->
+  <ion-toolbar class="secondary-controls">
+    <ion-segment [(ngModel)]="dateRange" (ionChange)="onFilterChange()" scrollable="true">
+      <ion-segment-button value="all">
+        <ion-label>All Time</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="today">
+        <ion-label>Today</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="week">
+        <ion-label>This Week</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="month">
+        <ion-label>This Month</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="year">
+        <ion-label>This Year</ion-label>
+      </ion-segment-button>
+    </ion-segment>
+
+    <ion-select 
+      [(ngModel)]="sortBy" 
+      (ionChange)="onSortChange()" 
+      placeholder="Sort by"
+      interface="popover"
+      class="sort-select">
+      <ion-select-option value="newest">Newest First</ion-select-option>
+      <ion-select-option value="oldest">Oldest First</ion-select-option>
+      <ion-select-option value="amount_high">Amount (High to Low)</ion-select-option>
+      <ion-select-option value="amount_low">Amount (Low to High)</ion-select-option>
+    </ion-select>
+  </ion-toolbar>
+
+  <!-- Custom Date Range -->
+  <ion-card *ngIf="dateRange === 'custom'" class="custom-date-card">
+    <ion-card-header>
+      <ion-card-title>Custom Date Range</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <ion-grid>
+        <ion-row>
+          <ion-col size="6">
+            <ion-item>
+              <ion-label position="stacked">Start Date</ion-label>
+              <ion-input type="date" [(ngModel)]="customStartDate" (ionChange)="onFilterChange()"></ion-input>
+            </ion-item>
+          </ion-col>
+          <ion-col size="6">
+            <ion-item>
+              <ion-label position="stacked">End Date</ion-label>
+              <ion-input type="date" [(ngModel)]="customEndDate" (ionChange)="onFilterChange()"></ion-input>
+            </ion-item>
+          </ion-col>
+        </ion-row>
+      </ion-grid>
+    </ion-card-content>
+  </ion-card>
+
+  <!-- Transaction History List -->
+  <div class="transactions-container">
+    <ion-list lines="full" class="transactions-list">
+      <ion-list-header class="list-header" *ngIf="filteredTransactions.length > 0">
+        <ion-label>
+          <h2>Transaction History</h2>
+          <p>{{filteredTransactions.length}} records found</p>
+        </ion-label>
+      </ion-list-header>
+
+      <ion-item-sliding 
+        *ngFor="let transaction of filteredTransactions; trackBy: trackByTransactionId" 
+        class="transaction-item">
+        
+        <ion-item (click)="viewReceipt(transaction)" class="transaction-item-content" detail="true">
+          <!-- Store Avatar -->
+          <div slot="start" class="store-avatar">
+            <img 
+              *ngIf="transaction.storeProfileImage; else storeFallback"
+              [src]="transaction.storeProfileImage" 
+              [alt]="transaction.storeName"
+              class="store-profile-image">
+            <ng-template #storeFallback>
+              <div class="store-avatar-fallback" [style.background]="transaction.storeColor">
+                {{ transaction.storeInitials }}
+              </div>
+            </ng-template>
+          </div>
+
+          <ion-label class="transaction-details">
+            <h2>{{transaction.storeName}}</h2>
+            <p class="transaction-info">
+              <ion-icon [name]="getTransactionIcon(transaction.type)" size="small"></ion-icon>
+              {{transaction.type === 'debt' ? 'Debt Transaction' : 'Debt Payment'}}
+              • {{transaction.id}}
+            </p>
+            
+            <div class="amounts-container">
+              <div class="amount-item">
+                <span class="amount-label" *ngIf="transaction.type === 'payment'">Payment:</span>
+                <span class="amount-label" *ngIf="transaction.type !== 'payment'">Amount:</span>
+                <span class="amount-value" [class.payment-amount]="transaction.type === 'payment'">
+                  {{formatCurrency(transaction.paymentAmount || transaction.totalAmount)}}
+                </span>
+              </div>
+              
+              <div class="amount-item" *ngIf="transaction.type === 'debt' && transaction.remainingBalance">
+                <span class="amount-label">Remaining:</span>
+                <span class="amount-value remaining">{{formatCurrency(transaction.remainingBalance)}}</span>
+              </div>
+              
+              <div class="amount-item" *ngIf="transaction.type === 'payment' && transaction.paid_by">
+                <span class="amount-label">Processed by:</span>
+                <span class="amount-value">{{transaction.paid_by}}</span>
+              </div>
+            </div>
+            
+            <div class="date-container">
+              <p class="date-info">
+                <ion-icon name="calendar" size="small"></ion-icon>
+                {{formatDate(transaction.transactionDate)}}
+              </p>
+              <p class="status-info" *ngIf="transaction.status || transaction.paymentStatus">
+                <ion-icon name="information-circle" size="small"></ion-icon>
+                {{transaction.paymentStatus || transaction.status}}
+                <ion-badge [color]="getStatusColor(transaction.paymentStatus || transaction.status)" class="status-badge">
+                  {{transaction.paymentStatus || transaction.status}}
+                </ion-badge>
+              </p>
+            </div>
+          </ion-label>
+
+          <div slot="end" class="type-indicator">
+            <ion-badge [color]="getTransactionColor(transaction.type)" class="type-badge">
+              {{transaction.type}}
+            </ion-badge>
+            <div class="items-count" *ngIf="transaction.items && transaction.items.length > 0">
+              {{transaction.items.length}} items
+            </div>
+          </div>
+        </ion-item>
+
+        <ion-item-options side="end">
+          <ion-item-option (click)="viewReceipt(transaction)" color="primary" class="action-option">
+            <ion-icon slot="top" name="receipt"></ion-icon>
+            View Receipt
+          </ion-item-option>
+          <ion-item-option (click)="downloadReceipt(transaction)" color="secondary" class="action-option">
+            <ion-icon slot="top" name="download"></ion-icon>
+            Download
+          </ion-item-option>
+        </ion-item-options>
+      </ion-item-sliding>
+
+      <!-- Empty State -->
+      <ion-item *ngIf="filteredTransactions.length === 0 && !isLoading" class="empty-state">
+        <div class="empty-content">
+          <ion-icon name="time-outline" color="medium" size="large"></ion-icon>
+          <ion-label>
+            <h2>No transactions found</h2>
+            <p *ngIf="transactionHistory.length === 0">Your transaction history will appear here</p>
+            <p *ngIf="transactionHistory.length > 0">Try adjusting your filters</p>
+          </ion-label>
+        </div>
+      </ion-item>
+
+      <!-- Loading State -->
+      <ion-item *ngIf="isLoading" class="loading-state">
+        <ion-thumbnail slot="start">
+          <ion-skeleton-text animated></ion-skeleton-text>
+        </ion-thumbnail>
+        <ion-label>
+          <h3><ion-skeleton-text animated style="width: 80%"></ion-skeleton-text></h3>
+          <p><ion-skeleton-text animated style="width: 60%"></ion-skeleton-text></p>
+          <p><ion-skeleton-text animated style="width: 40%"></ion-skeleton-text></p>
+        </ion-label>
+      </ion-item>
+    </ion-list>
+  </div>
 </ion-content>
+<!-- Receipt Viewing Modal -->
+<ion-modal [isOpen]="showReceiptModal" (ionModalDidDismiss)="closeReceiptModal()" class="receipt-modal">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-buttons slot="start">
+          <ion-button (click)="closeReceiptModal()">
+            <ion-icon slot="icon-only" name="close"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+        <ion-title>Transaction Receipt</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="downloadReceipt(selectedTransaction!)" *ngIf="selectedTransaction">
+            <ion-icon slot="icon-only" name="download"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content class="ion-padding receipt-content">
+      <div *ngIf="selectedTransaction" class="receipt-container">
+        <!-- Store Header -->
+        <div class="store-header">
+          <div class="store-avatar-large">
+            <img 
+              *ngIf="selectedTransaction.storeProfileImage; else storeFallbackLarge"
+              [src]="selectedTransaction.storeProfileImage" 
+              [alt]="selectedTransaction.storeName"
+              class="store-profile-image-large">
+            <ng-template #storeFallbackLarge>
+              <div class="store-avatar-fallback-large" [style.background]="selectedTransaction.storeColor">
+                {{ selectedTransaction.storeInitials }}
+              </div>
+            </ng-template>
+          </div>
+          <div class="store-info">
+            <h2>{{selectedTransaction.storeName}}</h2>
+            <p class="store-address">{{selectedTransaction.storeAddress}}</p>
+            <p class="store-contact">{{selectedTransaction.storeContact}}</p>
+          </div>
+        </div>
+
+        <!-- Receipt Image -->
+        <div class="receipt-image-container" *ngIf="selectedTransaction.receipt_image">
+          <img 
+            [src]="selectedTransaction.receipt_image" 
+            alt="Receipt" 
+            class="receipt-image"
+            (error)="handleImageError($event)">
+        </div>
+
+        <!-- Transaction Details -->
+        <ion-card class="receipt-details">
+          <ion-card-header>
+            <ion-card-title>
+              <ion-icon [name]="getTransactionIcon(selectedTransaction.type)"></ion-icon>
+              {{selectedTransaction.type === 'debt' ? 'Debt Transaction' : 'Debt Payment'}}
+            </ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <ion-grid class="receipt-grid">
+              <ion-row>
+                <ion-col size="6">
+                  <strong>Transaction ID:</strong>
+                </ion-col>
+                <ion-col size="6" class="text-right">
+                  {{selectedTransaction.id}}
+                </ion-col>
+              </ion-row>
+              
+              <ion-row>
+                <ion-col size="6">
+                  <strong>Date & Time:</strong>
+                </ion-col>
+                <ion-col size="6" class="text-right">
+                  {{formatDate(selectedTransaction.transactionDate)}}
+                </ion-col>
+              </ion-row>
+
+              <ion-row>
+                <ion-col size="6">
+                  <strong>Customer:</strong>
+                </ion-col>
+                <ion-col size="6" class="text-right">
+                  {{selectedTransaction.customerName}}
+                </ion-col>
+              </ion-row>
+
+              <ion-row>
+                <ion-col size="6">
+                  <strong>Phone:</strong>
+                </ion-col>
+                <ion-col size="6" class="text-right">
+                  {{selectedTransaction.customerPhone}}
+                </ion-col>
+              </ion-row>
+
+              <!-- Debt Transaction Details -->
+              <ion-row *ngIf="selectedTransaction.type === 'debt'">
+                <ion-col size="6">
+                  <strong>Initial Payment:</strong>
+                </ion-col>
+                <ion-col size="6" class="text-right">
+                  {{formatCurrency(selectedTransaction.initialPayment || 0)}}
+                </ion-col>
+              </ion-row>
+
+              <ion-row *ngIf="selectedTransaction.type === 'debt'">
+                <ion-col size="6">
+                  <strong>Remaining Balance:</strong>
+                </ion-col>
+                <ion-col size="6" class="text-right">
+                  <strong>{{formatCurrency(selectedTransaction.remainingBalance || 0)}}</strong>
+                </ion-col>
+              </ion-row>
+
+              <ion-row *ngIf="selectedTransaction.type === 'debt' && selectedTransaction.dueDate">
+                <ion-col size="6">
+                  <strong>Due Date:</strong>
+                </ion-col>
+                <ion-col size="6" class="text-right">
+                  {{formatDate(selectedTransaction.dueDate)}}
+                </ion-col>
+              </ion-row>
+
+              <!-- Payment Transaction Details -->
+              <ion-row *ngIf="selectedTransaction.type === 'payment'">
+                <ion-col size="6">
+                  <strong>Payment Amount:</strong>
+                </ion-col>
+                <ion-col size="6" class="text-right">
+                  <strong style="color: var(--ion-color-success);">
+                    {{formatCurrency(selectedTransaction.paymentAmount || 0)}}
+                  </strong>
+                </ion-col>
+              </ion-row>
+
+              <ion-row *ngIf="selectedTransaction.type === 'payment'">
+                <ion-col size="6">
+                  <strong>Processed By:</strong>
+                </ion-col>
+                <ion-col size="6" class="text-right">
+                  {{selectedTransaction.paid_by || 'Store'}}
+                </ion-col>
+              </ion-row>
+
+              <ion-row *ngIf="selectedTransaction.type === 'payment' && selectedTransaction.notes">
+                <ion-col size="6">
+                  <strong>Notes:</strong>
+                </ion-col>
+                <ion-col size="6" class="text-right">
+                  {{selectedTransaction.notes}}
+                </ion-col>
+              </ion-row>
+
+              <ion-row>
+                <ion-col size="6">
+                  <strong>Total Amount:</strong>
+                </ion-col>
+                <ion-col size="6" class="text-right">
+                  <strong>{{formatCurrency(selectedTransaction.totalAmount)}}</strong>
+                </ion-col>
+              </ion-row>
+
+              <ion-row>
+                <ion-col size="6">
+                  <strong>Status:</strong>
+                </ion-col>
+                <ion-col size="6" class="text-right">
+                  <ion-badge [color]="getStatusColor(selectedTransaction.paymentStatus || selectedTransaction.status)">
+                    {{selectedTransaction.paymentStatus || selectedTransaction.status}}
+                  </ion-badge>
+                </ion-col>
+              </ion-row>
+            </ion-grid>
+          </ion-card-content>
+        </ion-card>
+
+        <!-- Items List -->
+        <ion-card class="items-card" *ngIf="selectedTransaction.items && selectedTransaction.items.length > 0">
+          <ion-card-header>
+            <ion-card-title>Items Purchased</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <ion-list lines="none" class="items-list">
+              <ion-item *ngFor="let item of selectedTransaction.items" class="item-row">
+                <ion-label>
+                  <h3>{{item.product_name || item.name}}</h3>
+                  <p>{{item.quantity}} x {{formatCurrency(item.price || item.sellingPrice)}}</p>
+                </ion-label>
+                <ion-note slot="end">{{formatCurrency(item.quantity * (item.price || item.sellingPrice))}}</ion-note>
+              </ion-item>
+              <ion-item class="total-row">
+                <ion-label><strong>Total</strong></ion-label>
+                <ion-note slot="end"><strong>{{formatCurrency(selectedTransaction.totalAmount)}}</strong></ion-note>
+              </ion-item>
+            </ion-list>
+          </ion-card-content>
+        </ion-card>
+
+        <!-- Payment History for Debt Transactions -->
+        <ion-card class="payment-history" *ngIf="selectedTransaction.type === 'debt' && selectedTransaction.payments && selectedTransaction.payments.length > 0">
+          <ion-card-header>
+            <ion-card-title>Payment History</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <ion-list lines="none" class="payment-list">
+              <ion-item *ngFor="let payment of selectedTransaction.payments" class="payment-item">
+                <ion-avatar slot="start" class="payment-avatar">
+                  <ion-icon name="checkmark-circle" color="success"></ion-icon>
+                </ion-avatar>
+                <ion-label>
+                  <h3>{{formatCurrency(payment.amount)}}</h3>
+                  <p>{{formatDate(payment.paymentDate)}}</p>
+                  <p *ngIf="payment.notes" class="payment-notes">{{payment.notes}}</p>
+                </ion-label>
+                <ion-note slot="end">{{payment.paid_by || 'Store'}}</ion-note>
+              </ion-item>
+            </ion-list>
+          </ion-card-content>
+        </ion-card>
+
+        <!-- Download Section with Preview -->
+          <div class="receipt-preview" *ngIf="selectedTransaction">
+            <div class="preview-text">
+              📄 Receipt will be generated as professional image
+            </div>
+            <div class="preview-details">
+              <p><strong>Format:</strong> PNG Image</p>
+              <p><strong>Contents:</strong> Store info, transaction details, items list</p>
+              <p><strong>Size:</strong> Thermal receipt format (80mm)</p>
+            </div>
+          </div>
+
+          <!-- Download Button -->
+          <ion-button 
+            expand="block" 
+            color="primary" 
+            class="download-receipt-btn"
+            (click)="downloadReceipt(selectedTransaction)"
+            [class.download-success]="downloadSuccess">
+            <ion-icon slot="start" name="image"></ion-icon>
+            Download as Image
+          </ion-button>
+      </div>
+    </ion-content>
+  </ng-template>
+</ion-modal>

@@ -1,0 +1,599 @@
+// Customer Dashboard Styles
+.customer-dashboard {
+  // Welcome Card Styles
+  .welcome-card {
+    margin-bottom: 20px;
+    
+    .customer-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      
+      .customer-avatar {
+        position: relative;
+        cursor: pointer;
+        
+        .profile-image {
+          width: 80px;
+          height: 80px;
+          border-radius: 50%;
+          object-fit: cover;
+          border: 3px solid var(--ion-color-primary);
+        }
+        
+        .avatar-fallback {
+          width: 80px;
+          height: 80px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: var(--ion-color-primary);
+          border: 3px solid var(--ion-color-primary);
+          
+          svg {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+          }
+        }
+      }
+      
+      .customer-info {
+        flex: 1;
+        
+        h1 {
+          margin: 0 0 8px 0;
+          font-size: 1.5rem;
+          font-weight: 600;
+          color: var(--ion-color-dark);
+        }
+        
+        p {
+          margin: 0 0 8px 0;
+          color: var(--ion-color-medium);
+        }
+        
+        ion-text {
+          small {
+            font-size: 0.875rem;
+          }
+        }
+      }
+    }
+  }
+
+  // Settings Card Styles
+  .settings-card {
+    .image-upload-section {
+      text-align: center;
+      margin-bottom: 24px;
+      
+      .image-preview {
+        margin-bottom: 16px;
+        
+        .customer-avatar-large {
+          .profile-image-large {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid var(--ion-color-primary);
+            margin: 0 auto;
+          }
+          
+          .avatar-fallback-large {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--ion-color-primary);
+            border: 4px solid var(--ion-color-primary);
+            
+            svg {
+              width: 100%;
+              height: 100%;
+              border-radius: 50%;
+            }
+          }
+        }
+      }
+      
+      .image-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        max-width: 200px;
+        margin: 0 auto;
+      }
+    }
+    
+    .save-btn {
+      margin-top: 24px;
+    }
+    
+    .cancel-btn {
+      margin-top: 12px;
+    }
+  }
+
+  // Dashboard Content Styles
+  .dashboard-content {
+    // Loading State
+    .loading-state {
+      text-align: center;
+      padding: 40px 0;
+      
+      ion-spinner {
+        margin-bottom: 16px;
+      }
+      
+      p {
+        color: var(--ion-color-medium);
+        margin: 0;
+      }
+    }
+
+    // Metrics Grid
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+      
+      .metric-card {
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        
+        &:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        ion-card-content {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          padding: 20px;
+          
+          .metric-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(var(--ion-color-primary-rgb), 0.1);
+            
+            ion-icon {
+              font-size: 24px;
+            }
+          }
+          
+          .metric-content {
+            flex: 1;
+            
+            h3 {
+              margin: 0 0 8px 0;
+              font-size: 0.9rem;
+              font-weight: 500;
+              color: var(--ion-color-medium);
+            }
+            
+            .metric-value {
+              margin: 0 0 4px 0;
+              font-size: 1.5rem;
+              font-weight: 700;
+              color: var(--ion-color-dark);
+            }
+            
+            .metric-subtitle {
+              margin: 0;
+              font-size: 0.875rem;
+              color: var(--ion-color-medium);
+            }
+            
+            .metric-change {
+              margin: 8px 0 0 0;
+              font-size: 0.75rem;
+              display: flex;
+              align-items: center;
+              gap: 4px;
+              
+              &.negative {
+                color: var(--ion-color-danger);
+              }
+              
+              &:not(.negative) {
+                color: var(--ion-color-success);
+              }
+            }
+          }
+        }
+        
+        // Specific metric card colors
+        &.spending-card .metric-icon {
+          background: rgba(var(--ion-color-success-rgb), 0.1);
+        }
+        
+        &.debts-card .metric-icon {
+          background: rgba(var(--ion-color-warning-rgb), 0.1);
+        }
+        
+        &.stores-card .metric-icon {
+          background: rgba(var(--ion-color-primary-rgb), 0.1);
+        }
+        
+        &.monthly-card .metric-icon {
+          background: rgba(var(--ion-color-tertiary-rgb), 0.1);
+        }
+      }
+    }
+
+    // Debt Section
+    .debt-section {
+      margin-bottom: 24px;
+      
+      .upcoming-payments {
+        .payment-item {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px;
+          border-radius: 8px;
+          margin-bottom: 8px;
+          cursor: pointer;
+          transition: background-color 0.2s ease;
+          
+          &:hover {
+            background: var(--ion-color-light);
+          }
+          
+          &.overdue {
+            border-left: 4px solid var(--ion-color-danger);
+          }
+          
+          &:not(.overdue) {
+            border-left: 4px solid var(--ion-color-warning);
+          }
+          
+          .store-avatar-small {
+            .store-profile-image {
+              width: 40px;
+              height: 40px;
+              border-radius: 50%;
+              object-fit: cover;
+              border: 2px solid var(--ion-color-light);
+            }
+            
+            .store-avatar-fallback {
+              width: 40px;
+              height: 40px;
+              border-radius: 50%;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              color: white;
+              font-weight: 600;
+              font-size: 0.875rem;
+              border: 2px solid var(--ion-color-light);
+            }
+          }
+          
+          .payment-details {
+            flex: 1;
+            
+            h4 {
+              margin: 0 0 4px 0;
+              font-size: 1rem;
+              font-weight: 600;
+            }
+            
+            p {
+              margin: 0 0 4px 0;
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              
+              .payment-amount {
+                font-weight: 600;
+                color: var(--ion-color-dark);
+              }
+            }
+            
+            .payment-due {
+              margin: 0;
+              font-size: 0.875rem;
+              
+              &.overdue {
+                color: var(--ion-color-danger);
+                font-weight: 600;
+              }
+              
+              &:not(.overdue) {
+                color: var(--ion-color-medium);
+              }
+            }
+          }
+          
+          .payment-status {
+            ion-icon {
+              font-size: 20px;
+            }
+          }
+        }
+      }
+    }
+
+    // Activity Section
+    .activity-section {
+      margin-bottom: 24px;
+      
+      .transactions-list, .stores-list {
+        .transaction-item, .store-item {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px;
+          border-radius: 8px;
+          margin-bottom: 8px;
+          transition: background-color 0.2s ease;
+          
+          &:hover {
+            background: var(--ion-color-light);
+          }
+          
+          .store-avatar-small {
+            .store-profile-image {
+              width: 40px;
+              height: 40px;
+              border-radius: 50%;
+              object-fit: cover;
+              border: 2px solid var(--ion-color-light);
+            }
+            
+            .store-avatar-fallback {
+              width: 40px;
+              height: 40px;
+              border-radius: 50%;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              color: white;
+              font-weight: 600;
+              font-size: 0.875rem;
+              border: 2px solid var(--ion-color-light);
+            }
+          }
+          
+          .transaction-details, .store-details {
+            flex: 1;
+            
+            h4 {
+              margin: 0 0 4px 0;
+              font-size: 1rem;
+              font-weight: 600;
+            }
+            
+            .transaction-meta, .store-visits, .store-spending {
+              margin: 0 0 4px 0;
+              font-size: 0.875rem;
+              color: var(--ion-color-medium);
+            }
+            
+            .transaction-items {
+              margin: 0;
+              font-size: 0.75rem;
+              color: var(--ion-color-medium);
+            }
+          }
+          
+          .transaction-amount, .store-rating {
+            text-align: right;
+            
+            strong {
+              display: block;
+              font-size: 1rem;
+              margin-bottom: 4px;
+            }
+            
+            ion-badge {
+              font-size: 0.75rem;
+            }
+            
+            span {
+              font-size: 0.875rem;
+              font-weight: 600;
+              color: var(--ion-color-warning);
+            }
+          }
+        }
+      }
+      
+      .no-data {
+        text-align: center;
+        padding: 40px 20px;
+        color: var(--ion-color-medium);
+        
+        ion-icon {
+          font-size: 48px;
+          margin-bottom: 16px;
+          opacity: 0.5;
+        }
+        
+        p {
+          margin: 0;
+          font-size: 1rem;
+        }
+      }
+    }
+    }
+  }
+
+// Responsive Design
+@media (max-width: 768px) {
+  .customer-dashboard {
+    .welcome-card {
+      .customer-header {
+        flex-direction: column;
+        text-align: center;
+        
+        .customer-info {
+          text-align: center;
+        }
+      }
+    }
+    
+    .dashboard-content {
+      .metrics-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .activity-section {
+        ion-col {
+          margin-bottom: 16px;
+        }
+      }
+      
+      .quick-actions-section {
+        .actions-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    }
+  }
+}
+
+// Animation for loading states
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.metric-card, .payment-item, .transaction-item, .store-item {
+  animation: fadeIn 0.3s ease-out;
+}
+
+// Add this to your SCSS file
+ion-content {
+  --overflow: auto !important;
+  
+  .dashboard-content {
+    position: relative;
+    min-height: fit-content;
+  }
+}
+
+// Ensure cards don't have fixed heights that might cause overflow
+.metric-card, .settings-card, .welcome-card {
+  height: auto !important;
+  min-height: fit-content;
+}
+
+// Store avatar styles (for transactions, favorite stores, debt payments)
+.store-avatar-small {
+  .store-profile-image {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--ion-color-light);
+  }
+  
+  .store-avatar-fallback {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    font-size: 0.875rem;
+    border: 2px solid var(--ion-color-light);
+  }
+}
+
+// Customer avatar styles (for customer profile images)
+.customer-avatar {
+  .profile-image {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--ion-color-primary);
+  }
+}
+
+.customer-avatar-large {
+  .profile-image-large {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 4px solid var(--ion-color-primary);
+    margin: 0 auto;
+  }
+}
+
+// Dark mode support
+@media (prefers-color-scheme: dark) {
+  .customer-dashboard {
+    .dashboard-content {
+      .metrics-grid {
+        .metric-card {
+          background: var(--ion-color-dark);
+          
+          ion-card-content {
+            .metric-content {
+              .metric-value {
+                color: var(--ion-color-light);
+              }
+            }
+          }
+        }
+      }
+      
+      .debt-section,
+      .activity-section {
+        .payment-item,
+        .transaction-item,
+        .store-item {
+          &:hover {
+            background: var(--ion-color-dark-shade);
+          }
+        }
+      }
+    }
+  }
+}
+
+// Print styles
+@media print {
+  .customer-dashboard {
+    .welcome-card {
+      break-inside: avoid;
+    }
+    
+    .metrics-grid {
+      break-inside: avoid;
+    }
+    
+    .activity-section {
+      break-inside: avoid;
+    }
+  }
+  
+  ion-buttons {
+    display: none !important;
+  }
+}
