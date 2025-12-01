@@ -1,13 +1,365 @@
 <ion-header [translucent]="true">
-  <ion-toolbar>
-    <ion-title>tab4</ion-title>
+  <ion-toolbar color="primary">
+    <ion-title>Analytics Dashboard</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="refreshAnalytics()" [disabled]="isLoading">
+        <ion-icon slot="icon-only" name="refresh"></ion-icon>
+      </ion-button>
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
 <ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">tab4</ion-title>
-    </ion-toolbar>
-  </ion-header>
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="loading-container">
+    <ion-spinner name="crescent"></ion-spinner>
+    <p>Loading analytics...</p>
+  </div>
+
+  <!-- Analytics Content -->
+  <div *ngIf="!isLoading" class="analytics-container">
+    
+    <!-- Last Updated -->
+    <div class="last-updated">
+      <ion-icon name="time-outline"></ion-icon>
+      <span>Last updated: {{ formatLastUpdated() }}</span>
+    </div>
+
+    <!-- Overview Cards -->
+    <div class="section-header">
+      <h2>Overview</h2>
+    </div>
+    
+    <div class="stats-grid">
+      <!-- Total Users Card -->
+      <ion-card class="stat-card">
+        <ion-card-content>
+          <div class="stat-icon users">
+            <ion-icon name="people"></ion-icon>
+          </div>
+          <div class="stat-details">
+            <h3>{{ formatNumber(analytics.totalUsers) }}</h3>
+            <p>Total Users</p>
+            <div class="stat-growth" [class.positive]="analytics.userGrowthRate >= 0" [class.negative]="analytics.userGrowthRate < 0">
+              <ion-icon [name]="getGrowthIcon(analytics.userGrowthRate)"></ion-icon>
+              <span>{{ formatPercentage(Math.abs(analytics.userGrowthRate)) }}</span>
+            </div>
+          </div>
+        </ion-card-content>
+      </ion-card>
+
+      <!-- Active Users Card -->
+      <ion-card class="stat-card">
+        <ion-card-content>
+          <div class="stat-icon active">
+            <ion-icon name="checkmark-circle"></ion-icon>
+          </div>
+          <div class="stat-details">
+            <h3>{{ formatNumber(analytics.activeUsers) }}</h3>
+            <p>Active Users</p>
+            <div class="stat-subtitle">
+              {{ formatPercentage((analytics.activeUsers / analytics.totalUsers) * 100) }} active
+            </div>
+          </div>
+        </ion-card-content>
+      </ion-card>
+
+      <!-- Total Stores Card -->
+      <ion-card class="stat-card">
+        <ion-card-content>
+          <div class="stat-icon stores">
+            <ion-icon name="storefront"></ion-icon>
+          </div>
+          <div class="stat-details">
+            <h3>{{ formatNumber(analytics.totalStores) }}</h3>
+            <p>Total Stores</p>
+            <div class="stat-growth" [class.positive]="analytics.storeGrowthRate >= 0" [class.negative]="analytics.storeGrowthRate < 0">
+              <ion-icon [name]="getGrowthIcon(analytics.storeGrowthRate)"></ion-icon>
+              <span>{{ formatPercentage(Math.abs(analytics.storeGrowthRate)) }}</span>
+            </div>
+          </div>
+        </ion-card-content>
+      </ion-card>
+
+      <!-- Total Products Card -->
+      <ion-card class="stat-card">
+        <ion-card-content>
+          <div class="stat-icon products">
+            <ion-icon name="cube"></ion-icon>
+          </div>
+          <div class="stat-details">
+            <h3>{{ formatNumber(analytics.totalProducts) }}</h3>
+            <p>Total Products</p>
+            <div class="stat-subtitle">
+              {{ formatNumber(analytics.averageProductsPerStore) }} avg/store
+            </div>
+          </div>
+        </ion-card-content>
+      </ion-card>
+    </div>
+
+    <!-- User Statistics -->
+    <div class="section-header">
+      <h2>User Statistics</h2>
+      <ion-button fill="clear" size="small" (click)="showUserChart = !showUserChart">
+        <ion-icon [name]="showUserChart ? 'chevron-up' : 'chevron-down'"></ion-icon>
+      </ion-button>
+    </div>
+
+    <ion-card *ngIf="showUserChart">
+      <ion-card-header>
+        <ion-card-title>User Breakdown</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <div class="mini-stats">
+          <div class="mini-stat">
+            <div class="mini-stat-value">{{ formatNumber(analytics.newUsersToday) }}</div>
+            <div class="mini-stat-label">New Today</div>
+          </div>
+          <div class="mini-stat">
+            <div class="mini-stat-value">{{ formatNumber(analytics.newUsersThisWeek) }}</div>
+            <div class="mini-stat-label">This Week</div>
+          </div>
+          <div class="mini-stat">
+            <div class="mini-stat-value">{{ formatNumber(analytics.newUsersThisMonth) }}</div>
+            <div class="mini-stat-label">This Month</div>
+          </div>
+        </div>
+
+        <div class="role-distribution">
+          <h4>By Role</h4>
+          <div class="role-item" *ngFor="let role of analytics.roleDistribution">
+            <div class="role-info">
+              <span class="role-name">{{ role.role }}</span>
+              <span class="role-count">{{ formatNumber(role.count) }} ({{ formatPercentage(role.percentage) }})</span>
+            </div>
+            <div class="role-bar">
+              <div class="role-progress" [style.width.%]="role.percentage"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="status-breakdown">
+          <h4>User Status</h4>
+          <div class="status-grid">
+            <div class="status-item active">
+              <ion-icon name="checkmark-circle"></ion-icon>
+              <div>
+                <div class="status-value">{{ formatNumber(analytics.activeUsers) }}</div>
+                <div class="status-label">Active</div>
+              </div>
+            </div>
+            <div class="status-item inactive">
+              <ion-icon name="close-circle"></ion-icon>
+              <div>
+                <div class="status-value">{{ formatNumber(analytics.inactiveUsers) }}</div>
+                <div class="status-label">Inactive</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Store Statistics -->
+    <div class="section-header">
+      <h2>Store Statistics</h2>
+      <ion-button fill="clear" size="small" (click)="showStoreChart = !showStoreChart">
+        <ion-icon [name]="showStoreChart ? 'chevron-up' : 'chevron-down'"></ion-icon>
+      </ion-button>
+    </div>
+
+    <ion-card *ngIf="showStoreChart">
+      <ion-card-header>
+        <ion-card-title>Store Breakdown</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <div class="mini-stats">
+          <div class="mini-stat">
+            <div class="mini-stat-value">{{ formatNumber(analytics.newStoresToday) }}</div>
+            <div class="mini-stat-label">New Today</div>
+          </div>
+          <div class="mini-stat">
+            <div class="mini-stat-value">{{ formatNumber(analytics.newStoresThisWeek) }}</div>
+            <div class="mini-stat-label">This Week</div>
+          </div>
+          <div class="mini-stat">
+            <div class="mini-stat-value">{{ formatNumber(analytics.newStoresThisMonth) }}</div>
+            <div class="mini-stat-label">This Month</div>
+          </div>
+        </div>
+
+        <div class="status-breakdown">
+          <h4>Store Status</h4>
+          <div class="status-grid">
+            <div class="status-item active">
+              <ion-icon name="checkmark-circle"></ion-icon>
+              <div>
+                <div class="status-value">{{ formatNumber(analytics.activeStores) }}</div>
+                <div class="status-label">Active Stores</div>
+              </div>
+            </div>
+            <div class="status-item inactive">
+              <ion-icon name="close-circle"></ion-icon>
+              <div>
+                <div class="status-value">{{ formatNumber(analytics.inactiveStores) }}</div>
+                <div class="status-label">Inactive Stores</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="product-stats">
+          <h4>Product Inventory</h4>
+          <div class="product-grid">
+            <div class="product-item">
+              <ion-icon name="cube-outline"></ion-icon>
+              <div>
+                <div class="product-value">{{ formatNumber(analytics.totalProducts) }}</div>
+                <div class="product-label">Total Products</div>
+              </div>
+            </div>
+            <div class="product-item available">
+              <ion-icon name="checkmark-circle-outline"></ion-icon>
+              <div>
+                <div class="product-value">{{ formatNumber(analytics.availableProducts) }}</div>
+                <div class="product-label">In Stock</div>
+              </div>
+            </div>
+            <div class="product-item out-of-stock">
+              <ion-icon name="alert-circle-outline"></ion-icon>
+              <div>
+                <div class="product-value">{{ formatNumber(analytics.outOfStockProducts) }}</div>
+                <div class="product-label">Out of Stock</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Registration Trends -->
+    <div class="section-header">
+      <h2>Registration Trends</h2>
+      <ion-select [(ngModel)]="selectedTimeRange" (ionChange)="onTimeRangeChange()" interface="popover">
+        <ion-select-option value="7days">Last 7 Days</ion-select-option>
+        <ion-select-option value="30days">Last 30 Days</ion-select-option>
+      </ion-select>
+    </div>
+
+    <ion-card>
+      <ion-card-header>
+        <ion-card-title>User Registrations</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <div class="chart-container">
+          <div class="simple-chart">
+            <div class="chart-bars">
+              <div class="chart-bar" *ngFor="let item of analytics.userRegistrationTrend">
+                <div class="bar" [style.height.px]="getBarHeight(item.count, analytics.userRegistrationTrend)">
+                  <span class="bar-value" *ngIf="item.count > 0">{{ item.count }}</span>
+                </div>
+                <div class="bar-label">{{ item.date }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <ion-card>
+      <ion-card-header>
+        <ion-card-title>Store Registrations</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <div class="chart-container">
+          <div class="simple-chart">
+            <div class="chart-bars">
+              <div class="chart-bar" *ngFor="let item of analytics.storeRegistrationTrend">
+                <div class="bar store" [style.height.px]="getBarHeight(item.count, analytics.storeRegistrationTrend)">
+                  <span class="bar-value" *ngIf="item.count > 0">{{ item.count }}</span>
+                </div>
+                <div class="bar-label">{{ item.date }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Geographic Distribution -->
+    <div class="section-header">
+      <h2>Geographic Distribution</h2>
+      <ion-button fill="clear" size="small" (click)="showLocationChart = !showLocationChart">
+        <ion-icon [name]="showLocationChart ? 'chevron-up' : 'chevron-down'"></ion-icon>
+      </ion-button>
+    </div>
+
+    <ion-card *ngIf="showLocationChart">
+      <ion-card-header>
+        <ion-card-title>Top Regions</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <div class="location-list">
+          <div class="location-item" *ngFor="let region of analytics.topRegions">
+            <div class="location-info">
+              <ion-icon name="location"></ion-icon>
+              <div>
+                <div class="location-name">{{ region.name }}</div>
+                <div class="location-count">{{ formatNumber(region.count) }} users ({{ formatPercentage(region.percentage) }})</div>
+              </div>
+            </div>
+            <div class="location-bar">
+              <div class="location-progress" [style.width.%]="region.percentage"></div>
+            </div>
+          </div>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <ion-card *ngIf="showLocationChart">
+      <ion-card-header>
+        <ion-card-title>Top Provinces</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <div class="location-list">
+          <div class="location-item" *ngFor="let province of analytics.topProvinces">
+            <div class="location-info">
+              <ion-icon name="location"></ion-icon>
+              <div>
+                <div class="location-name">{{ province.name }}</div>
+                <div class="location-count">{{ formatNumber(province.count) }} users ({{ formatPercentage(province.percentage) }})</div>
+              </div>
+            </div>
+            <div class="location-bar">
+              <div class="location-progress" [style.width.%]="province.percentage"></div>
+            </div>
+          </div>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <ion-card *ngIf="showLocationChart">
+      <ion-card-header>
+        <ion-card-title>Top Municipalities</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <div class="location-list">
+          <div class="location-item" *ngFor="let municipality of analytics.topMunicipalities">
+            <div class="location-info">
+              <ion-icon name="location"></ion-icon>
+              <div>
+                <div class="location-name">{{ municipality.name }}</div>
+                <div class="location-count">{{ formatNumber(municipality.count) }} users ({{ formatPercentage(municipality.percentage) }})</div>
+              </div>
+            </div>
+            <div class="location-bar">
+              <div class="location-progress" [style.width.%]="municipality.percentage"></div>
+            </div>
+          </div>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+  </div>
 </ion-content>

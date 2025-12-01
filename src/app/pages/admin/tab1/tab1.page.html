@@ -14,6 +14,22 @@
 
 <ion-content [fullscreen]="true" class="ion-padding">
   
+  <!-- Critical Alerts -->
+  <ion-card *ngIf="criticalAlerts.length > 0" class="alert-card">
+    <ion-card-header>
+      <ion-card-title color="danger">
+        <ion-icon name="warning"></ion-icon>
+        Critical Alerts
+      </ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <div *ngFor="let alert of criticalAlerts" class="alert-item">
+        <ion-icon [name]="alert.icon" [color]="alert.color"></ion-icon>
+        <span>{{ alert.message }}</span>
+      </div>
+    </ion-card-content>
+  </ion-card>
+
   <!-- Platform Overview Cards -->
   <div class="stats-grid">
     
@@ -71,25 +87,166 @@
 
   </div>
 
-  <!-- Quick Actions -->
+  <!-- Financial Overview -->
   <ion-card>
     <ion-card-header>
-      <ion-card-title>Quick Actions</ion-card-title>
+      <ion-card-title>Financial Overview</ion-card-title>
     </ion-card-header>
     <ion-card-content>
-      <div class="actions-grid">
-        <ion-button expand="block" color="primary" routerLink="/admin/tabs/stores">
-          <ion-icon name="business" slot="start"></ion-icon>
-          Manage Stores
-        </ion-button>
-        <ion-button expand="block" color="secondary" routerLink="/admin/tabs/users">
-          <ion-icon name="people" slot="start"></ion-icon>
-          View All Users
-        </ion-button>
-        <ion-button expand="block" color="tertiary" routerLink="/admin/tabs/analytics">
-          <ion-icon name="analytics" slot="start"></ion-icon>
-          View Analytics
-        </ion-button>
+      <div class="stats-grid">
+        <!-- Total Platform Revenue -->
+        <ion-card class="stat-card">
+          <ion-card-content>
+            <div class="stat-item">
+              <ion-icon name="cash" color="success" class="stat-icon"></ion-icon>
+              <div class="stat-info">
+                <h3>{{ financialStats.totalRevenue | currency:'PHP ' }}</h3>
+                <p>Total Revenue</p>
+              </div>
+            </div>
+          </ion-card-content>
+        </ion-card>
+
+        <!-- Total Outstanding Debt -->
+        <ion-card class="stat-card">
+          <ion-card-content>
+            <div class="stat-item">
+              <ion-icon name="card" color="warning" class="stat-icon"></ion-icon>
+              <div class="stat-info">
+                <h3>{{ financialStats.totalOutstanding | currency:'PHP ' }}</h3>
+                <p>Outstanding Debt</p>
+              </div>
+            </div>
+          </ion-card-content>
+        </ion-card>
+
+        <!-- Total Transactions -->
+        <ion-card class="stat-card">
+          <ion-card-content>
+            <div class="stat-item">
+              <ion-icon name="receipt" color="primary" class="stat-icon"></ion-icon>
+              <div class="stat-info">
+                <h3>{{ financialStats.totalTransactions }}</h3>
+                <p>Total Transactions</p>
+              </div>
+            </div>
+          </ion-card-content>
+        </ion-card>
+
+        <!-- Average Store Revenue -->
+        <ion-card class="stat-card">
+          <ion-card-content>
+            <div class="stat-item">
+              <ion-icon name="business" color="tertiary" class="stat-icon"></ion-icon>
+              <div class="stat-info">
+                <h3>{{ financialStats.avgStoreRevenue | currency:'PHP ' }}</h3>
+                <p>Avg Store Revenue</p>
+              </div>
+            </div>
+          </ion-card-content>
+        </ion-card>
+      </div>
+    </ion-card-content>
+  </ion-card>
+
+  <!-- Today's Activity -->
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>Today's Activity</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <div class="activity-grid">
+        <div class="activity-item">
+          <ion-icon name="cart" color="primary"></ion-icon>
+          <span>{{ todayActivity.transactions }} Transactions</span>
+        </div>
+        <div class="activity-item">
+          <ion-icon name="add-circle" color="success"></ion-icon>
+          <span>{{ todayActivity.newDebts }} New Debts</span>
+        </div>
+        <div class="activity-item">
+          <ion-icon name="cash" color="warning"></ion-icon>
+          <span>{{ todayActivity.payments }} Payments</span>
+        </div>
+      </div>
+    </ion-card-content>
+  </ion-card>
+
+  <!-- Two Column Layout -->
+  <div class="two-column-layout">
+    
+    <!-- Top Performing Stores -->
+    <ion-card class="column-card">
+      <ion-card-header>
+        <ion-card-title>Top Performing Stores</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <div class="stores-list" *ngIf="topStores.length > 0; else noStores">
+          <div *ngFor="let store of topStores; let i = index" class="store-item">
+            <div class="store-rank">{{ i + 1 }}</div>
+            <div class="store-info">
+              <strong>{{ store.name }}</strong>
+              <span>{{ store.revenue | currency:'PHP ' }}</span>
+            </div>
+            <div class="store-stats">
+              <small>Employees: {{ store.employeeCount }}</small>
+            </div>
+          </div>
+        </div>
+        <ng-template #noStores>
+          <p class="no-data">No store data available</p>
+        </ng-template>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Debt Health Overview -->
+    <ion-card class="column-card">
+      <ion-card-header>
+        <ion-card-title>Debt Portfolio Health</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <div class="debt-health-grid">
+          <div class="debt-category current">
+            <h4>Current</h4>
+            <p>{{ debtHealth.current | currency:'PHP ' }}</p>
+            <small>On time payments</small>
+          </div>
+          <div class="debt-category overdue-30">
+            <h4>1-30 Days</h4>
+            <p>{{ debtHealth.overdue30 | currency:'PHP ' }}</p>
+            <small>Slightly overdue</small>
+          </div>
+          <div class="debt-category overdue-60">
+            <h4>31-60 Days</h4>
+            <p>{{ debtHealth.overdue60 | currency:'PHP ' }}</p>
+            <small>Moderately overdue</small>
+          </div>
+          <div class="debt-category overdue-90">
+            <h4>61+ Days</h4>
+            <p>{{ debtHealth.overdue90 | currency:'PHP ' }}</p>
+            <small>Seriously overdue</small>
+          </div>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+  </div>
+
+  <!-- Platform Growth Metrics -->
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>Platform Growth (30 Days)</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <div class="growth-metrics">
+        <div class="metric">
+          <strong>+{{ growth.newStores }}</strong>
+          <span>New Stores</span>
+        </div>
+        <div class="metric">
+          <strong>+{{ growth.newUsers }}</strong>
+          <span>New Users</span>
+        </div>
       </div>
     </ion-card-content>
   </ion-card>

@@ -57,7 +57,209 @@
   }
 }
 
-// Responsive design
+// New Styles for Enhanced Dashboard
+.activity-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  
+  .activity-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px;
+    background: var(--ion-color-light);
+    border-radius: 8px;
+    
+    ion-icon {
+      font-size: 20px;
+    }
+    
+    span {
+      font-size: 14px;
+      font-weight: 500;
+    }
+  }
+}
+
+.two-column-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.column-card {
+  margin: 0;
+}
+
+.stores-list {
+  .store-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--ion-color-light);
+    
+    &:last-child {
+      border-bottom: none;
+    }
+    
+    .store-rank {
+      width: 28px;
+      height: 28px;
+      background: var(--ion-color-primary);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: bold;
+      flex-shrink: 0;
+    }
+    
+    .store-info {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      
+      strong {
+        font-size: 14px;
+        margin-bottom: 2px;
+      }
+      
+      span {
+        font-size: 12px;
+        color: var(--ion-color-success);
+        font-weight: 600;
+      }
+    }
+    
+    .store-stats {
+      text-align: right;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      
+      small {
+        font-size: 10px;
+        color: var(--ion-color-medium);
+        
+        &:first-child {
+          color: var(--ion-color-warning);
+        }
+      }
+    }
+  }
+}
+
+.no-data {
+  text-align: center;
+  color: var(--ion-color-medium);
+  font-style: italic;
+  padding: 20px;
+}
+
+.debt-health-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  
+  .debt-category {
+    padding: 16px;
+    border-radius: 8px;
+    text-align: center;
+    
+    &.current { 
+      background: rgba(var(--ion-color-success-rgb), 0.1);
+      border: 1px solid var(--ion-color-success);
+    }
+    &.overdue-30 { 
+      background: rgba(var(--ion-color-warning-rgb), 0.1);
+      border: 1px solid var(--ion-color-warning);
+    }
+    &.overdue-60 { 
+      background: rgba(var(--ion-color-warning-rgb), 0.2);
+      border: 1px solid var(--ion-color-warning);
+    }
+    &.overdue-90 { 
+      background: rgba(var(--ion-color-danger-rgb), 0.1);
+      border: 1px solid var(--ion-color-danger);
+    }
+    
+    h4 {
+      margin: 0 0 8px 0;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    
+    p {
+      margin: 0 0 4px 0;
+      font-size: 16px;
+      font-weight: bold;
+      color: var(--ion-color-dark);
+    }
+    
+    small {
+      color: var(--ion-color-medium);
+      font-size: 10px;
+    }
+  }
+}
+
+.growth-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  text-align: center;
+  
+  .metric {
+    padding: 12px;
+    
+    strong {
+      display: block;
+      font-size: 20px;
+      color: var(--ion-color-success);
+      margin-bottom: 4px;
+    }
+    
+    span {
+      font-size: 12px;
+      color: var(--ion-color-medium);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+  }
+}
+
+.alert-card {
+  border-left: 4px solid var(--ion-color-danger);
+  margin-bottom: 20px;
+  
+  .alert-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+    
+    ion-icon {
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+    
+    span {
+      font-size: 14px;
+    }
+    
+    &:not(:last-child) {
+      border-bottom: 1px solid var(--ion-color-light);
+    }
+  }
+}
+
+// Enhanced responsive design
 @media (min-width: 768px) {
   .stats-grid {
     grid-template-columns: repeat(4, 1fr);
@@ -66,4 +268,74 @@
   .actions-grid {
     grid-template-columns: repeat(3, 1fr);
   }
+  
+  .activity-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  
+  .two-column-layout {
+    grid-template-columns: 1fr 1fr;
+  }
+  
+  .debt-health-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+// Mobile optimizations
+@media (max-width: 480px) {
+  .stat-card .stat-item {
+    gap: 8px;
+    
+    .stat-icon {
+      font-size: 20px;
+    }
+    
+    .stat-info h3 {
+      font-size: 16px;
+    }
+  }
+  
+  .growth-metrics {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  
+  .debt-health-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  // Collection rate styling
+.collection-excellent {
+  color: var(--ion-color-success) !important;
+  font-weight: 600;
+}
+
+.collection-good {
+  color: var(--ion-color-warning) !important;
+}
+
+.collection-fair {
+  color: var(--ion-color-warning) !important;
+  opacity: 0.8;
+}
+
+.collection-poor {
+  color: var(--ion-color-danger) !important;
+  font-weight: 600;
+}
+
+.collection-no-data {
+  color: var(--ion-color-medium) !important;
+  font-style: italic;
+}
+
+.no-data-badge {
+  background: var(--ion-color-light);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 8px;
+  margin-left: 4px;
+  text-transform: uppercase;
+}
 }

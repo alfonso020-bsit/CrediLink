@@ -1,13 +1,119 @@
 <ion-header [translucent]="true">
-  <ion-toolbar>
-    <ion-title>tab5</ion-title>
+  <ion-toolbar color="primary">
+    <ion-title>Admin Profile</ion-title>
   </ion-toolbar>
 </ion-header>
 
 <ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">tab5</ion-title>
-    </ion-toolbar>
-  </ion-header>
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="loading-container">
+    <ion-spinner name="crescent"></ion-spinner>
+    <p>Loading profile...</p>
+  </div>
+
+  <!-- Settings Content -->
+  <div *ngIf="!isLoading && adminProfile" class="settings-container">
+    
+    <!-- Admin Profile Card -->
+    <ion-card class="profile-card">
+      <ion-card-content>
+        <div class="profile-header">
+          <div class="profile-avatar">
+            <span class="avatar-initials">
+              {{ getInitials(adminProfile.full_name) }}
+            </span>
+          </div>
+          <div class="profile-info">
+            <h2>{{ adminProfile.full_name }}</h2>
+            <p class="role-badge">
+              <ion-icon name="shield-checkmark"></ion-icon>
+              {{ adminProfile.role }}
+            </p>
+            <p class="status-badge" [class.active]="adminProfile.status === 'active'">
+              <ion-icon name="ellipse"></ion-icon>
+              {{ adminProfile.status }}
+            </p>
+          </div>
+          <ion-button fill="clear" (click)="toggleEditProfile()">
+            <ion-icon slot="icon-only" [name]="isEditingProfile ? 'close' : 'pencil'"></ion-icon>
+          </ion-button>
+        </div>
+
+        <!-- Profile Details (View Mode) -->
+        <div *ngIf="!isEditingProfile" class="profile-details">
+          <div class="detail-item">
+            <ion-icon name="person-outline"></ion-icon>
+            <div>
+              <label>Username</label>
+              <p>{{ adminProfile.username }}</p>
+            </div>
+          </div>
+          <div class="detail-item">
+            <ion-icon name="mail-outline"></ion-icon>
+            <div>
+              <label>Email</label>
+              <p>{{ adminProfile.email }}</p>
+            </div>
+          </div>
+          <div class="detail-item">
+            <ion-icon name="call-outline"></ion-icon>
+            <div>
+              <label>Phone</label>
+              <p>{{ adminProfile.phone_number }}</p>
+            </div>
+          </div>
+          <div class="detail-item">
+            <ion-icon name="calendar-outline"></ion-icon>
+            <div>
+              <label>Member Since</label>
+              <p>{{ formatDate(adminProfile.created_at) }}</p>
+            </div>
+          </div>
+          <div class="detail-item">
+            <ion-icon name="time-outline"></ion-icon>
+            <div>
+              <label>Last Updated</label>
+              <p>{{ formatDate(adminProfile.updated_at) }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Profile Details (Edit Mode) -->
+        <div *ngIf="isEditingProfile" class="profile-edit">
+          <ion-item lines="full">
+            <ion-label position="stacked">Full Name</ion-label>
+            <ion-input [(ngModel)]="editedProfile.full_name" type="text"></ion-input>
+          </ion-item>
+          <ion-item lines="full">
+            <ion-label position="stacked">Email</ion-label>
+            <ion-input [(ngModel)]="editedProfile.email" type="email"></ion-input>
+          </ion-item>
+          <ion-item lines="full">
+            <ion-label position="stacked">Phone Number</ion-label>
+            <ion-input [(ngModel)]="editedProfile.phone_number" type="tel"></ion-input>
+          </ion-item>
+          <div class="edit-actions">
+            <ion-button expand="block" (click)="saveProfile()">
+              <ion-icon slot="start" name="save"></ion-icon>
+              Save Changes
+            </ion-button>
+            <ion-button expand="block" fill="outline" (click)="toggleEditProfile()">
+              Cancel
+            </ion-button>
+          </div>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Logout Button -->
+    <ion-card>
+      <ion-card-content>
+        <ion-button expand="block" color="danger" (click)="logout()">
+          <ion-icon slot="start" name="log-out-outline"></ion-icon>
+          Logout
+        </ion-button>
+      </ion-card-content>
+    </ion-card>
+
+  </div>
 </ion-content>

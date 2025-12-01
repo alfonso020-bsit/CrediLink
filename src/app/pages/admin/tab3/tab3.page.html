@@ -1,13 +1,461 @@
 <ion-header [translucent]="true">
-  <ion-toolbar>
-    <ion-title>tab3</ion-title>
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-menu-button></ion-menu-button>
+    </ion-buttons>
+    <ion-title>All Users</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="refreshData()">
+        <ion-icon slot="icon-only" name="refresh"></ion-icon>
+      </ion-button>
+      <ion-button (click)="toggleFilters()">
+        <ion-icon slot="icon-only" name="filter"></ion-icon>
+      </ion-button>
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">tab3</ion-title>
-    </ion-toolbar>
-  </ion-header>
+<ion-content [fullscreen]="true" class="ion-padding">
+  
+  <!-- Summary Cards -->
+  <div class="summary-grid">
+    <ion-card class="summary-card">
+      <ion-card-content>
+        <div class="summary-item">
+          <ion-icon name="people" color="primary"></ion-icon>
+          <div>
+            <h3>{{ totalUsers }}</h3>
+            <p>Total Users</p>
+          </div>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <ion-card class="summary-card">
+      <ion-card-content>
+        <div class="summary-item">
+          <ion-icon name="storefront" color="primary"></ion-icon>
+          <div>
+            <h3>{{ totalStoreOwners }}</h3>
+            <p>Store Owners</p>
+          </div>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <ion-card class="summary-card">
+      <ion-card-content>
+        <div class="summary-item">
+          <ion-icon name="briefcase" color="tertiary"></ion-icon>
+          <div>
+            <h3>{{ totalEmployees }}</h3>
+            <p>Employees</p>
+          </div>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <ion-card class="summary-card">
+      <ion-card-content>
+        <div class="summary-item">
+          <ion-icon name="person" color="success"></ion-icon>
+          <div>
+            <h3>{{ totalCustomers }}</h3>
+            <p>Customers</p>
+          </div>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <ion-card class="summary-card">
+      <ion-card-content>
+        <div class="summary-item">
+          <ion-icon name="checkmark-circle" color="success"></ion-icon>
+          <div>
+            <h3>{{ activeUsers }}</h3>
+            <p>Active Users</p>
+          </div>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <ion-card class="summary-card">
+      <ion-card-content>
+        <div class="summary-item">
+          <ion-icon name="time" color="warning"></ion-icon>
+          <div>
+            <h3>{{ newUsersThisMonth }}</h3>
+            <p>New This Month</p>
+          </div>
+        </div>
+      </ion-card-content>
+    </ion-card>
+  </div>
+
+  <!-- Search and Filters -->
+  <ion-card>
+    <ion-card-content>
+      <div class="search-filters">
+        <!-- Search Bar -->
+        <ion-searchbar 
+          [(ngModel)]="searchTerm" 
+          (ionInput)="onSearchChange()"
+          placeholder="Search users by name, username, email, phone..."
+          animated
+          clearable>
+        </ion-searchbar>
+
+        <!-- Active Filters Display -->
+        <div *ngIf="hasActiveFilters()" class="active-filters">
+          <ion-chip *ngIf="selectedRole !== 'all'" color="secondary" (click)="clearRoleFilter()">
+            <ion-label>Role: {{ getRoleLabel(selectedRole) }}</ion-label>
+            <ion-icon name="close"></ion-icon>
+          </ion-chip>
+          <ion-chip *ngIf="selectedRegion && selectedRegion !== 'all'" color="primary" (click)="clearRegionFilter()">
+            <ion-label>Region: {{ getRegionName(selectedRegion) }}</ion-label>
+            <ion-icon name="close"></ion-icon>
+          </ion-chip>
+          <ion-chip *ngIf="selectedProvince && selectedProvince !== 'all'" color="primary" (click)="clearProvinceFilter()">
+            <ion-label>Province: {{ selectedProvince }}</ion-label>
+            <ion-icon name="close"></ion-icon>
+          </ion-chip>
+          <ion-chip *ngIf="selectedMunicipality && selectedMunicipality !== 'all'" color="primary" (click)="clearMunicipalityFilter()">
+            <ion-label>Municipality: {{ selectedMunicipality }}</ion-label>
+            <ion-icon name="close"></ion-icon>
+          </ion-chip>
+          <ion-chip *ngIf="selectedBarangay && selectedBarangay !== 'all'" color="primary" (click)="clearBarangayFilter()">
+            <ion-label>Barangay: {{ selectedBarangay }}</ion-label>
+            <ion-icon name="close"></ion-icon>
+          </ion-chip>
+          <ion-chip *ngIf="statusFilter !== 'all'" color="warning" (click)="clearStatusFilter()">
+            <ion-label>Status: {{ getStatusLabel(statusFilter) }}</ion-label>
+            <ion-icon name="close"></ion-icon>
+          </ion-chip>
+          <ion-chip *ngIf="dateFilter !== 'all'" color="success" (click)="clearDateFilter()">
+            <ion-label>Joined: {{ getDateFilterLabel(dateFilter) }}</ion-label>
+            <ion-icon name="close"></ion-icon>
+          </ion-chip>
+          <ion-button size="small" fill="clear" (click)="clearAllFilters()">
+            Clear All
+          </ion-button>
+        </div>
+
+        <!-- Expandable Filters -->
+        <div *ngIf="showFilters" class="expanded-filters">
+          <ion-grid>
+            <ion-row>
+              <!-- Role Filter -->
+              <ion-col size="12" size-md="6" size-lg="3">
+                <ion-item>
+                  <ion-label>Role</ion-label>
+                  <ion-select 
+                    [(ngModel)]="selectedRole" 
+                    (ionChange)="onFilterChange()" 
+                    placeholder="All Roles"
+                    interface="action-sheet">
+                    <ion-select-option value="all">All Roles</ion-select-option>
+                    <ion-select-option value="StoreOwner">Store Owners</ion-select-option>
+                    <ion-select-option value="Employee">Employees</ion-select-option>
+                    <ion-select-option value="Customer">Customers</ion-select-option>
+                  </ion-select>
+                </ion-item>
+              </ion-col>
+
+              <!-- Region Filter -->
+              <ion-col size="12" size-md="6" size-lg="3">
+                <ion-item>
+                  <ion-label>Region</ion-label>
+                  <ion-select 
+                    [(ngModel)]="selectedRegion" 
+                    (ionChange)="onRegionChange()" 
+                    placeholder="All Regions"
+                    interface="action-sheet">
+                    <ion-select-option value="all">All Regions</ion-select-option>
+                    <ion-select-option *ngFor="let region of regions" [value]="region.code">
+                      {{ region.name }}
+                    </ion-select-option>
+                  </ion-select>
+                </ion-item>
+              </ion-col>
+
+              <!-- Province Filter -->
+              <ion-col size="12" size-md="6" size-lg="3">
+                <ion-item>
+                  <ion-label>Province</ion-label>
+                  <ion-select 
+                    [(ngModel)]="selectedProvince" 
+                    (ionChange)="onProvinceChange()" 
+                    placeholder="All Provinces" 
+                    [disabled]="!selectedRegion || selectedRegion === 'all'"
+                    interface="action-sheet">
+                    <ion-select-option value="all">All Provinces</ion-select-option>
+                    <ion-select-option *ngFor="let province of provinces" [value]="province">
+                      {{ province }}
+                    </ion-select-option>
+                  </ion-select>
+                </ion-item>
+              </ion-col>
+
+              <!-- Municipality Filter -->
+              <ion-col size="12" size-md="6" size-lg="3">
+                <ion-item>
+                  <ion-label>Municipality</ion-label>
+                  <ion-select 
+                    [(ngModel)]="selectedMunicipality" 
+                    (ionChange)="onMunicipalityChange()" 
+                    placeholder="All Municipalities" 
+                    [disabled]="!selectedProvince || selectedProvince === 'all'"
+                    interface="action-sheet">
+                    <ion-select-option value="all">All Municipalities</ion-select-option>
+                    <ion-select-option *ngFor="let municipality of municipalities" [value]="municipality">
+                      {{ municipality }}
+                    </ion-select-option>
+                  </ion-select>
+                </ion-item>
+              </ion-col>
+
+              <!-- Barangay Filter -->
+              <ion-col size="12" size-md="6" size-lg="3">
+                <ion-item>
+                  <ion-label>Barangay</ion-label>
+                  <ion-select 
+                    [(ngModel)]="selectedBarangay" 
+                    (ionChange)="onBarangayChange()" 
+                    placeholder="All Barangays" 
+                    [disabled]="!selectedMunicipality || selectedMunicipality === 'all'"
+                    interface="action-sheet">
+                    <ion-select-option value="all">All Barangays</ion-select-option>
+                    <ion-select-option *ngFor="let barangay of barangays" [value]="barangay">
+                      {{ barangay }}
+                    </ion-select-option>
+                  </ion-select>
+                </ion-item>
+              </ion-col>
+
+              <!-- Status Filter -->
+              <ion-col size="12" size-md="6" size-lg="3">
+                <ion-item>
+                  <ion-label>Status</ion-label>
+                  <ion-select [(ngModel)]="statusFilter" (ionChange)="onFilterChange()">
+                    <ion-select-option value="all">All Status</ion-select-option>
+                    <ion-select-option value="active">Active</ion-select-option>
+                    <ion-select-option value="inactive">Inactive</ion-select-option>
+                  </ion-select>
+                </ion-item>
+              </ion-col>
+
+              <!-- Date Joined Filter -->
+              <ion-col size="12" size-md="6" size-lg="3">
+                <ion-item>
+                  <ion-label>Joined</ion-label>
+                  <ion-select [(ngModel)]="dateFilter" (ionChange)="onFilterChange()">
+                    <ion-select-option value="all">All Time</ion-select-option>
+                    <ion-select-option value="today">Today</ion-select-option>
+                    <ion-select-option value="week">This Week</ion-select-option>
+                    <ion-select-option value="month">This Month</ion-select-option>
+                    <ion-select-option value="year">This Year</ion-select-option>
+                  </ion-select>
+                </ion-item>
+              </ion-col>
+
+              <!-- Sort By -->
+              <ion-col size="12" size-md="6" size-lg="3">
+                <ion-item>
+                  <ion-label>Sort By</ion-label>
+                  <ion-select [(ngModel)]="sortBy" (ionChange)="onSortChange()">
+                    <ion-select-option value="newest">Newest First</ion-select-option>
+                    <ion-select-option value="oldest">Oldest First</ion-select-option>
+                    <ion-select-option value="name">Name</ion-select-option>
+                    <ion-select-option value="role">Role</ion-select-option>
+                    <ion-select-option value="location">Location</ion-select-option>
+                  </ion-select>
+                </ion-item>
+              </ion-col>
+            </ion-row>
+          </ion-grid>
+        </div>
+      </div>
+    </ion-card-content>
+  </ion-card>
+
+  <!-- Users List -->
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>
+        Users ({{ filteredUsers.length }})
+        <small *ngIf="filteredUsers.length !== allUsers.length" class="filtered-count">
+          filtered from {{ allUsers.length }} total
+        </small>
+      </ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <!-- Loading State -->
+      <div *ngIf="isLoading" class="loading-container">
+        <ion-spinner></ion-spinner>
+        <p>Loading users...</p>
+      </div>
+
+      <!-- No Results -->
+      <div *ngIf="!isLoading && filteredUsers.length === 0" class="no-results">
+        <ion-icon name="people-outline" size="large"></ion-icon>
+        <h3>No users found</h3>
+        <p *ngIf="hasActiveFilters()">Try adjusting your filters or search terms</p>
+        <p *ngIf="!hasActiveFilters()">No users are currently registered in the platform</p>
+        <ion-button *ngIf="hasActiveFilters()" (click)="clearAllFilters()" fill="outline">
+          Clear All Filters
+        </ion-button>
+      </div>
+
+      <!-- Users Grid -->
+      <div *ngIf="!isLoading && filteredUsers.length > 0" class="users-grid">
+        <ion-card *ngFor="let user of filteredUsers" class="user-card" (click)="viewUserDetails(user)">
+          <ion-card-content>
+            <!-- User Header -->
+            <div class="user-header">
+              <div class="user-avatar" [style.background-color]="user.color">
+                {{ user.initials }}
+                <img *ngIf="user.profile_image" [src]="user.profile_image" (error)="handleImageError($event)" />
+              </div>
+              <div class="user-info">
+                <h3 class="user-name">{{ user.full_name }}</h3>
+                <p class="user-username">@{{ user.username }}</p>
+                <div class="user-badges">
+                  <ion-badge [color]="getRoleBadgeColor(user.role)" class="role-badge">
+                    {{ getRoleLabel(user.role) }}
+                  </ion-badge>
+                  <ion-badge [color]="user.status === 'active' ? 'success' : 'medium'" class="status-badge">
+                    {{ user.status === 'active' ? 'Active' : 'Inactive' }}
+                  </ion-badge>
+                </div>
+              </div>
+            </div>
+
+            <!-- User Details -->
+            <div class="user-details">
+              <div class="detail-item" *ngIf="user.store_name">
+                <ion-icon name="storefront"></ion-icon>
+                <span class="truncate">{{ user.store_name }}</span>
+              </div>
+              <div class="detail-item">
+                <ion-icon name="location"></ion-icon>
+                <span class="truncate">{{ user.address }}</span>
+              </div>
+              <div class="detail-item">
+                <ion-icon name="mail"></ion-icon>
+                <span>{{ user.email || 'No email' }}</span>
+              </div>
+              <div class="detail-item">
+                <ion-icon name="call"></ion-icon>
+                <span>{{ user.phone_number || 'No phone' }}</span>
+              </div>
+              <div class="detail-item">
+                <ion-icon name="calendar"></ion-icon>
+                <span>Joined {{ formatJoinDate(user.created_at) }}</span>
+              </div>
+            </div>
+
+            <!-- User Actions -->
+            <div class="user-actions">
+              <ion-button size="small" fill="outline" (click)="toggleUserStatus(user); $event.stopPropagation()">
+                <ion-icon [name]="user.status === 'active' ? 'pause' : 'play'" slot="start"></ion-icon>
+                {{ user.status === 'active' ? 'Deactivate' : 'Activate' }}
+              </ion-button>
+            </div>
+          </ion-card-content>
+        </ion-card>
+      </div>
+    </ion-card-content>
+  </ion-card>
+
+  <!-- User Details Modal -->
+  <ion-modal [isOpen]="showUserModal" (ionModalDidDismiss)="closeUserModal()">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar>
+          <ion-buttons slot="start">
+            <ion-button (click)="closeUserModal()">Close</ion-button>
+          </ion-buttons>
+          <ion-title>User Details</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="toggleUserStatus(selectedUserDetail!)" [color]="selectedUserDetail?.status === 'active' ? 'warning' : 'success'">
+              {{ selectedUserDetail?.status === 'active' ? 'Deactivate' : 'Activate' }}
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content class="ion-padding" *ngIf="selectedUserDetail">
+        <!-- User Details Content -->
+        <div class="user-detail-content">
+          <!-- User Header -->
+          <div class="user-detail-header">
+            <div class="user-avatar-large" [style.background-color]="selectedUserDetail.color">
+              {{ selectedUserDetail.initials }}
+              <img *ngIf="selectedUserDetail.profile_image" [src]="selectedUserDetail.profile_image" (error)="handleImageError($event)" />
+            </div>
+            <div class="user-detail-info">
+              <h1>{{ selectedUserDetail.full_name }}</h1>
+              <p class="user-username">@{{ selectedUserDetail.username }}</p>
+              <div class="user-meta">
+                <ion-badge [color]="getRoleBadgeColor(selectedUserDetail.role)">
+                  {{ getRoleLabel(selectedUserDetail.role) }}
+                </ion-badge>
+                <ion-badge [color]="selectedUserDetail.status === 'active' ? 'success' : 'medium'">
+                  {{ selectedUserDetail.status === 'active' ? 'Active' : 'Inactive' }}
+                </ion-badge>
+                <span class="join-date">Joined {{ formatJoinDate(selectedUserDetail.created_at) }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- User Information -->
+          <ion-list>
+            <ion-list-header>
+              <ion-label>User Information</ion-label>
+            </ion-list-header>
+
+            <ion-item *ngIf="selectedUserDetail.store_name">
+              <ion-icon name="storefront" slot="start"></ion-icon>
+              <ion-label>
+                <h3>Store Name</h3>
+                <p>{{ selectedUserDetail.store_name }}</p>
+              </ion-label>
+            </ion-item>
+
+            <ion-item>
+              <ion-icon name="location" slot="start"></ion-icon>
+              <ion-label>
+                <h3>Address</h3>
+                <p>{{ selectedUserDetail.address }}</p>
+              </ion-label>
+            </ion-item>
+
+            <ion-item>
+              <ion-icon name="mail" slot="start"></ion-icon>
+              <ion-label>
+                <h3>Email</h3>
+                <p>{{ selectedUserDetail.email || 'Not provided' }}</p>
+              </ion-label>
+            </ion-item>
+
+            <ion-item>
+              <ion-icon name="call" slot="start"></ion-icon>
+              <ion-label>
+                <h3>Phone</h3>
+                <p>{{ selectedUserDetail.phone_number || 'Not provided' }}</p>
+              </ion-label>
+            </ion-item>
+
+            <ion-item>
+              <ion-icon name="calendar" slot="start"></ion-icon>
+              <ion-label>
+                <h3>Account Created</h3>
+                <p>{{ formatDate(selectedUserDetail.created_at) }}</p>
+              </ion-label>
+            </ion-item>
+          </ion-list>
+        </div>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+
 </ion-content>
