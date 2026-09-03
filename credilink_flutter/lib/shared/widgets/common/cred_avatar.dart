@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/utils/store_image.dart';
+
 class CredAvatar extends StatelessWidget {
   const CredAvatar({
     super.key,
@@ -12,6 +14,7 @@ class CredAvatar extends StatelessWidget {
   final String name;
   final double size;
   final double? radius;
+  /// HTTP URL, data URI, or raw base64 (`store_image` / `profile_image`).
   final String? imageUrl;
 
   double get _radius => radius ?? size / 2;
@@ -28,15 +31,23 @@ class CredAvatar extends StatelessWidget {
     return Colors.primaries[hash % Colors.primaries.length];
   }
 
+  ImageProvider? get _image {
+    final raw = imageUrl?.trim();
+    if (raw == null || raw.isEmpty) return null;
+    if (isNetworkStoreImage(raw)) return NetworkImage(raw);
+    final bytes = decodeStoreImageBytes(raw);
+    if (bytes != null) return MemoryImage(bytes);
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
-    final url = imageUrl;
-    if (url != null && url.isNotEmpty) {
+    final image = _image;
+    if (image != null) {
       return CircleAvatar(
         radius: _radius,
-        backgroundImage: NetworkImage(url),
-        onBackgroundImageError: (_, __) {},
-        child: null,
+        backgroundImage: image,
+        onBackgroundImageError: (_, _) {},
       );
     }
 

@@ -8,11 +8,15 @@ import '../../../core/utils/currency_formatter.dart';
 import '../../../models/debt_record.dart';
 import '../../../models/user_profile.dart';
 import '../../../repositories/repositories.dart';
+import '../../../services/debt_report_pdf_service.dart';
+import '../../../shared/widgets/common/cred_async_view.dart';
 import '../../../shared/widgets/common/empty_state.dart';
+import '../../../shared/widgets/filters/cred_search_field.dart';
+import '../../../shared/widgets/filters/cred_segmented_filter.dart';
 import '../../../shared/widgets/layout/cred_metric_card.dart';
 import '../../../shared/widgets/layout/cred_section.dart';
-import '../../../shared/widgets/filters/cred_segmented_filter.dart';
-import '../../../services/debt_report_pdf_service.dart';
+import '../../../shared/widgets/layout/cred_status_chip.dart';
+import '../../../shared/widgets/layout/cred_surface_tile.dart';
 import '../../../shared/widgets/receipts/payment_sheet.dart';
 
 enum _DebtView { overview, all, customers, employees }
@@ -37,21 +41,40 @@ class _StoreOwnerDebtsTabState extends ConsumerState<StoreOwnerDebtsTab> {
 
   @override
   Widget build(BuildContext context) {
-    final profile = ref.watch(currentProfileProvider);
-    return profile.when(
-      data: (p) {
+    final profileAsync = ref.watch(currentProfileProvider);
+
+    return CredAsyncView<UserProfile?>(
+      asyncValue: profileAsync,
+      emptyMessage: 'No profile',
+      builder: (p) {
         if (p == null) return const EmptyState(message: 'No profile');
         final debts = ref.watch(storeDebtsProvider(p.id));
-        return debts.when(
-          data: (items) => Column(
+        final employees = ref.watch(storeEmployeesProvider(p.id));
+        final employeeNames = {
+          for (final e in employees.value ?? <UserProfile>[]) e.id: e.fullName,
+        };
+
+        return CredAsyncView<List<DebtRecord>>(
+          asyncValue: debts,
+          builder: (items) => Column(
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(CredTheme.spaceMd, CredTheme.spaceMd, CredTheme.spaceMd, CredTheme.spaceXs),
+                padding: const EdgeInsets.fromLTRB(
+                  CredTheme.spaceMd,
+                  CredTheme.spaceMd,
+                  CredTheme.spaceMd,
+                  CredTheme.spaceXs,
+                ),
                 child: Row(
                   children: [
                     Expanded(
                       child: CredSegmentedFilter<_DebtView>(
-                        options: const [_DebtView.overview, _DebtView.all, _DebtView.customers, _DebtView.employees],
+                        options: const [
+                          _DebtView.overview,
+                          _DebtView.all,
+                          _DebtView.customers,
+                          _DebtView.employees,
+                        ],
                         selected: _view,
                         onChanged: (v) => setState(() => _view = v),
                         labelBuilder: (v) => switch (v) {
@@ -78,72 +101,80 @@ class _StoreOwnerDebtsTabState extends ConsumerState<StoreOwnerDebtsTab> {
               ),
               if (_view != _DebtView.overview) ...[
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: TextField(
+                  padding: const EdgeInsets.symmetric(horizontal: CredTheme.spaceMd),
+                  child: CredSearchField(
                     controller: _searchController,
-                    decoration: const InputDecoration(
-                      hintText: 'Search customer or phone',
-                      prefixIcon: Icon(Icons.search),
-                      isDense: true,
-                    ),
+                    hint: 'Search customer or phone',
                     onChanged: (_) => setState(() {}),
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: CredTheme.spaceXs),
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: CredTheme.spaceMd),
                   child: Row(
                     children: ['all', 'unpaid', 'partially_paid', 'paid', 'overdue']
-                        .map((status) => Padding(
-                              padding: const EdgeInsets.only(right: 8),
-                              child: FilterChip(
-                                label: Text(_statusLabel(status)),
-                                selected: _statusFilter == status,
-                                onSelected: (_) => setState(() => _statusFilter = status),
-                              ),
-                            ))
+                        .map(
+                          (status) => Padding(
+                            padding: const EdgeInsets.only(right: CredTheme.spaceXs),
+                            child: FilterChip(
+                              label: Text(_statusLabel(status)),
+                              selected: _statusFilter == status,
+                              onSelected: (_) => setState(() => _statusFilter = status),
+                            ),
+                          ),
+                        )
                         .toList(),
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: CredTheme.spaceXs),
               ],
               Expanded(
                 child: RefreshIndicator(
                   onRefresh: () async {
                     ref.invalidate(storeDebtsProvider(p.id));
-                    await ref.read(storeDebtsProvider(p.id).future);
+                    ref.invalidate(storeEmployeesProvider(p.id));
+                    await Future.wait([
+                      ref.read(storeDebtsProvider(p.id).future),
+                      ref.read(storeEmployeesProvider(p.id).future),
+                    ]);
                   },
-                  child: _buildBody(context, items, p),
+                  child: _buildBody(context, items, p, employeeNames),
                 ),
               ),
             ],
           ),
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => EmptyState(message: '$e'),
         );
       },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => EmptyState(message: '$e'),
     );
   }
 
-  Widget _buildBody(BuildContext context, List<DebtRecord> debts, UserProfile profile) {
+  Widget _buildBody(
+    BuildContext context,
+    List<DebtRecord> debts,
+    UserProfile profile,
+    Map<String, String> employeeNames,
+  ) {
     return switch (_view) {
-      _DebtView.overview => _OverviewView(debts: debts),
+      _DebtView.overview => _OverviewView(
+          debts: debts,
+          onOverdueTap: () => setState(() {
+                _view = _DebtView.all;
+                _statusFilter = 'overdue';
+              }),
+          onPay: (debt) => _recordPayment(context, debt, profile),
+        ),
       _DebtView.all => _DebtListView(
           debts: _filteredDebts(debts),
-          profile: profile,
           onPay: (debt) => _recordPayment(context, debt, profile),
         ),
       _DebtView.customers => _CustomersView(
           debts: _filteredDebts(debts),
-          profile: profile,
           onPay: (debt) => _recordPayment(context, debt, profile),
         ),
       _DebtView.employees => _EmployeesView(
           debts: _filteredDebts(debts),
-          profile: profile,
+          employeeNames: employeeNames,
           onPay: (debt) => _recordPayment(context, debt, profile),
         ),
     };
@@ -154,9 +185,11 @@ class _StoreOwnerDebtsTabState extends ConsumerState<StoreOwnerDebtsTab> {
     final term = _searchController.text.trim().toLowerCase();
     if (term.isNotEmpty) {
       filtered = filtered
-          .where((d) =>
-              (d.customerName ?? '').toLowerCase().contains(term) ||
-              (d.customerPhone ?? '').contains(term))
+          .where(
+            (d) =>
+                (d.customerName ?? '').toLowerCase().contains(term) ||
+                (d.customerPhone ?? '').contains(term),
+          )
           .toList();
     }
     if (_statusFilter != 'all') {
@@ -205,14 +238,21 @@ class _StoreOwnerDebtsTabState extends ConsumerState<StoreOwnerDebtsTab> {
 }
 
 class _OverviewView extends StatelessWidget {
-  const _OverviewView({required this.debts});
+  const _OverviewView({
+    required this.debts,
+    required this.onOverdueTap,
+    required this.onPay,
+  });
 
   final List<DebtRecord> debts;
+  final VoidCallback onOverdueTap;
+  final void Function(DebtRecord debt) onPay;
 
   @override
   Widget build(BuildContext context) {
     final outstanding = debts.fold<double>(0, (s, d) => s + d.remainingBalance);
     final overdue = debts.where((d) => d.isOverdue && !d.isPaid).length;
+    final pending = debts.where((d) => !d.isPaid).length;
     final unpaid = debts.where((d) => d.paymentStatus == 'unpaid').length;
     final partial = debts.where((d) => d.paymentStatus == 'partially_paid').length;
     final paid = debts.where((d) => d.isPaid).length;
@@ -221,66 +261,80 @@ class _OverviewView extends StatelessWidget {
     return ListView(
       padding: CredTheme.pagePadding,
       children: [
-        CredMetricGrid(
-          metrics: [
-            CredMetricCard(
-              label: 'Outstanding',
-              value: CurrencyFormatter.format(outstanding),
-              icon: Icons.account_balance_wallet,
-              accentColor: CredTheme.warning,
-            ),
-            CredMetricCard(
-              label: 'Overdue',
-              value: '$overdue',
-              icon: Icons.warning,
-              accentColor: CredTheme.danger,
-            ),
-            CredMetricCard(
-              label: 'Unpaid',
-              value: '$unpaid',
-              icon: Icons.pending,
-              accentColor: CredTheme.danger,
-            ),
-            CredMetricCard(
-              label: 'Paid',
-              value: '$paid',
-              icon: Icons.check_circle,
-              accentColor: CredTheme.success,
-            ),
-          ],
+        CredSection(
+          title: 'Summary',
+          subtitle: overdue > 0 ? '$overdue overdue need attention' : 'All clear on overdue',
+          child: Column(
+            children: [
+              CredMetricCard(
+                label: 'Outstanding',
+                value: CurrencyFormatter.format(outstanding),
+                icon: Icons.account_balance_wallet,
+                accentColor: CredTheme.danger,
+                style: CredMetricStyle.featured,
+              ),
+              const SizedBox(height: CredTheme.spaceSm),
+              CredMetricGrid(
+                metrics: [
+                  CredMetricCard(
+                    label: 'Pending',
+                    value: '$pending',
+                    icon: Icons.schedule,
+                    accentColor: CredTheme.warning,
+                  ),
+                  CredMetricCard(
+                    label: 'Overdue',
+                    value: '$overdue',
+                    icon: Icons.warning_amber,
+                    accentColor: CredTheme.danger,
+                    subtitle: overdue > 0 ? 'Tap to view' : null,
+                    onTap: overdue > 0 ? onOverdueTap : null,
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
-        const SizedBox(height: CredTheme.spaceMd),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(CredTheme.spaceMd),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Status Breakdown', style: CredTheme.sectionTitle(context)),
-                const SizedBox(height: CredTheme.spaceSm),
-                _BreakdownRow(label: 'Unpaid', count: unpaid, color: CredTheme.danger),
-                _BreakdownRow(label: 'Partially Paid', count: partial, color: CredTheme.warning),
-                _BreakdownRow(label: 'Paid', count: paid, color: CredTheme.success),
-                _BreakdownRow(label: 'Overdue', count: overdue, color: CredTheme.danger),
-              ],
+        const SizedBox(height: CredTheme.spaceLg),
+        CredSection(
+          title: 'Status breakdown',
+          child: Material(
+            color: CredTheme.cardBackground,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(CredTheme.radiusCard),
+              side: const BorderSide(color: CredTheme.border),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(CredTheme.spaceMd),
+              child: Column(
+                children: [
+                  _BreakdownRow(label: 'Unpaid', count: unpaid, color: CredTheme.info),
+                  _BreakdownRow(label: 'Partially paid', count: partial, color: CredTheme.warning),
+                  _BreakdownRow(label: 'Paid', count: paid, color: CredTheme.success),
+                  _BreakdownRow(label: 'Overdue', count: overdue, color: CredTheme.danger),
+                ],
+              ),
             ),
           ),
         ),
         if (overdueDebts.isNotEmpty) ...[
-          const SizedBox(height: CredTheme.spaceMd),
+          const SizedBox(height: CredTheme.spaceLg),
           CredSection(
-            title: 'Overdue Alerts',
+            title: 'Overdue alerts',
+            trailing: TextButton(
+              onPressed: onOverdueTap,
+              child: Text('View all ($overdue)'),
+            ),
             child: Column(
-              children: overdueDebts.take(5).map((d) => Card(
-                    child: ListTile(
-                      leading: const Icon(Icons.warning, color: CredTheme.danger),
-                      title: Text(d.customerName ?? d.customerId),
-                      subtitle: Text(
-                        'Due ${d.dueDate != null ? DateFormat.yMMMd().format(d.dueDate!) : '—'}',
-                      ),
-                      trailing: Text(CurrencyFormatter.format(d.remainingBalance)),
-                    ),
-                  )).toList(),
+              children: [
+                for (var i = 0; i < overdueDebts.take(5).length; i++) ...[
+                  if (i > 0) const SizedBox(height: CredTheme.spaceXs),
+                  _DebtTile(
+                    debt: overdueDebts[i],
+                    onPay: () => onPay(overdueDebts[i]),
+                  ),
+                ],
+              ],
             ),
           ),
         ],
@@ -303,11 +357,11 @@ class _BreakdownRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
           Icon(Icons.circle, size: 10, color: color),
-          const SizedBox(width: 8),
+          const SizedBox(width: CredTheme.spaceXs),
           Expanded(child: Text(label)),
           Text('$count', style: const TextStyle(fontWeight: FontWeight.w600)),
         ],
@@ -319,19 +373,26 @@ class _BreakdownRow extends StatelessWidget {
 class _DebtListView extends StatelessWidget {
   const _DebtListView({
     required this.debts,
-    required this.profile,
     required this.onPay,
   });
 
   final List<DebtRecord> debts;
-  final UserProfile profile;
   final void Function(DebtRecord debt) onPay;
 
   @override
   Widget build(BuildContext context) {
-    if (debts.isEmpty) return const EmptyState(message: 'No debts match filters');
-    return ListView.builder(
+    if (debts.isEmpty) {
+      return ListView(
+        children: const [
+          SizedBox(height: 80),
+          EmptyState(message: 'No debts match filters'),
+        ],
+      );
+    }
+    return ListView.separated(
+      padding: CredTheme.pagePadding,
       itemCount: debts.length,
+      separatorBuilder: (_, _) => const SizedBox(height: CredTheme.spaceXs),
       itemBuilder: (_, i) => _DebtTile(debt: debts[i], onPay: () => onPay(debts[i])),
     );
   }
@@ -340,12 +401,10 @@ class _DebtListView extends StatelessWidget {
 class _CustomersView extends StatelessWidget {
   const _CustomersView({
     required this.debts,
-    required this.profile,
     required this.onPay,
   });
 
   final List<DebtRecord> debts;
-  final UserProfile profile;
   final void Function(DebtRecord debt) onPay;
 
   @override
@@ -363,26 +422,56 @@ class _CustomersView extends StatelessWidget {
         return bTotal.compareTo(aTotal);
       });
 
-    if (customers.isEmpty) return const EmptyState(message: 'No customers with outstanding debt');
+    if (customers.isEmpty) {
+      return ListView(
+        children: const [
+          SizedBox(height: 80),
+          EmptyState(message: 'No customers with outstanding debt'),
+        ],
+      );
+    }
 
-    return ListView.builder(
+    return ListView.separated(
+      padding: CredTheme.pagePadding,
       itemCount: customers.length,
+      separatorBuilder: (_, _) => const SizedBox(height: CredTheme.spaceXs),
       itemBuilder: (_, i) {
         final entry = customers[i];
         final total = entry.value.fold<double>(0, (s, d) => s + d.remainingBalance);
         final name = entry.value.first.customerName ?? 'Customer';
-        return Card(
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        final hasOverdue = entry.value.any((d) => d.isOverdue && !d.isPaid);
+
+        return Material(
+          color: CredTheme.cardBackground,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(CredTheme.radiusCard),
+            side: BorderSide(
+              color: hasOverdue
+                  ? CredTheme.danger.withValues(alpha: 0.35)
+                  : CredTheme.border,
+            ),
+          ),
+          clipBehavior: Clip.antiAlias,
           child: ExpansionTile(
-            title: Text(name),
-            subtitle: Text('${entry.value.length} debt(s) • ${entry.key}'),
+            tilePadding: const EdgeInsets.symmetric(horizontal: CredTheme.spaceMd),
+            childrenPadding: const EdgeInsets.fromLTRB(
+              CredTheme.spaceSm,
+              0,
+              CredTheme.spaceSm,
+              CredTheme.spaceSm,
+            ),
+            title: Text(name, style: const TextStyle(fontWeight: FontWeight.w600)),
+            subtitle: Text('${entry.value.length} debt(s) · ${entry.key}'),
             trailing: Text(
               CurrencyFormatter.format(total),
-              style: const TextStyle(fontWeight: FontWeight.w600),
+              style: const TextStyle(fontWeight: FontWeight.w700),
             ),
-            children: entry.value
-                .map((d) => _DebtTile(debt: d, onPay: () => onPay(d)))
-                .toList(),
+            children: [
+              for (var j = 0; j < entry.value.length; j++) ...[
+                if (j > 0) const SizedBox(height: CredTheme.spaceXs),
+                _DebtTile(debt: entry.value[j], onPay: () => onPay(entry.value[j])),
+              ],
+            ],
           ),
         );
       },
@@ -393,12 +482,12 @@ class _CustomersView extends StatelessWidget {
 class _EmployeesView extends StatelessWidget {
   const _EmployeesView({
     required this.debts,
-    required this.profile,
+    required this.employeeNames,
     required this.onPay,
   });
 
   final List<DebtRecord> debts;
-  final UserProfile profile;
+  final Map<String, String> employeeNames;
   final void Function(DebtRecord debt) onPay;
 
   @override
@@ -409,7 +498,14 @@ class _EmployeesView extends StatelessWidget {
       grouped.putIfAbsent(key, () => []).add(debt);
     }
 
-    if (grouped.isEmpty) return const EmptyState(message: 'No employee-linked debts');
+    if (grouped.isEmpty) {
+      return ListView(
+        children: const [
+          SizedBox(height: 80),
+          EmptyState(message: 'No employee-linked debts'),
+        ],
+      );
+    }
 
     final entries = grouped.entries.toList()
       ..sort((a, b) {
@@ -418,23 +514,47 @@ class _EmployeesView extends StatelessWidget {
         return bTotal.compareTo(aTotal);
       });
 
-    return ListView.builder(
+    return ListView.separated(
+      padding: CredTheme.pagePadding,
       itemCount: entries.length,
+      separatorBuilder: (_, _) => const SizedBox(height: CredTheme.spaceXs),
       itemBuilder: (_, i) {
         final entry = entries[i];
         final total = entry.value.fold<double>(0, (s, d) => s + d.remainingBalance);
-        return Card(
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        final name = employeeNames[entry.key] ?? 'Unassigned';
+        final hasOverdue = entry.value.any((d) => d.isOverdue && !d.isPaid);
+
+        return Material(
+          color: CredTheme.cardBackground,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(CredTheme.radiusCard),
+            side: BorderSide(
+              color: hasOverdue
+                  ? CredTheme.danger.withValues(alpha: 0.35)
+                  : CredTheme.border,
+            ),
+          ),
+          clipBehavior: Clip.antiAlias,
           child: ExpansionTile(
-            title: Text('Employee ${entry.key.substring(0, entry.key.length.clamp(0, 8))}'),
+            tilePadding: const EdgeInsets.symmetric(horizontal: CredTheme.spaceMd),
+            childrenPadding: const EdgeInsets.fromLTRB(
+              CredTheme.spaceSm,
+              0,
+              CredTheme.spaceSm,
+              CredTheme.spaceSm,
+            ),
+            title: Text(name, style: const TextStyle(fontWeight: FontWeight.w600)),
             subtitle: Text('${entry.value.length} debt(s)'),
             trailing: Text(
               CurrencyFormatter.format(total),
-              style: const TextStyle(fontWeight: FontWeight.w600),
+              style: const TextStyle(fontWeight: FontWeight.w700),
             ),
-            children: entry.value
-                .map((d) => _DebtTile(debt: d, onPay: () => onPay(d)))
-                .toList(),
+            children: [
+              for (var j = 0; j < entry.value.length; j++) ...[
+                if (j > 0) const SizedBox(height: CredTheme.spaceXs),
+                _DebtTile(debt: entry.value[j], onPay: () => onPay(entry.value[j])),
+              ],
+            ],
           ),
         );
       },
@@ -450,35 +570,50 @@ class _DebtTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cred = CredThemeExtension.of(context);
     final isOverdue = debt.isOverdue && !debt.isPaid;
-    final iconColor = debt.isPaid
-        ? cred.success
-        : isOverdue
-            ? cred.danger
-            : cred.warning;
-    return ListTile(
+    final due = debt.dueDate != null ? DateFormat.MMMd().format(debt.dueDate!) : null;
+
+    return CredSurfaceTile(
+      onTap: () => DebtReceiptSheet.show(context, debt),
+      emphasized: isOverdue,
       leading: Icon(
         debt.isPaid ? Icons.check_circle : Icons.receipt_long,
-        color: iconColor,
+        color: debt.isPaid
+            ? CredTheme.success
+            : isOverdue
+                ? CredTheme.danger
+                : CredTheme.warning,
       ),
       title: Text(debt.customerName ?? debt.customerId),
-      subtitle: Text(
-        '${debt.paymentStatus}${debt.dueDate != null ? ' • Due ${DateFormat.MMMd().format(debt.dueDate!)}' : ''}',
-      ),
+      subtitle: Text(due != null ? 'Due $due' : 'No due date'),
       trailing: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.end,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Text(
             CurrencyFormatter.format(debt.remainingBalance),
-            style: const TextStyle(fontWeight: FontWeight.w600),
+            style: const TextStyle(fontWeight: FontWeight.w700),
           ),
-          if (!debt.isPaid)
-            TextButton(onPressed: onPay, child: const Text('Pay')),
+          const SizedBox(height: 4),
+          CredStatusChip.debt(
+            paymentStatus: debt.paymentStatus,
+            isOverdue: isOverdue,
+            compact: true,
+          ),
+          if (!debt.isPaid) ...[
+            const SizedBox(height: 4),
+            TextButton(
+              onPressed: onPay,
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.zero,
+                minimumSize: const Size(0, 28),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: const Text('Pay'),
+            ),
+          ],
         ],
       ),
-      onTap: () => DebtReceiptSheet.show(context, debt),
     );
   }
 }

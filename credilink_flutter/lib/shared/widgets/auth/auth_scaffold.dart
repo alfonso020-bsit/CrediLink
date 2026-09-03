@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/auth_theme.dart';
+import '../../../core/theme/cred_theme.dart';
 
 class AuthScaffold extends StatelessWidget {
   const AuthScaffold({
     super.key,
-    required this.appBarTitle,
     required this.welcomeTitle,
     required this.child,
     this.welcomeSubtitle,
@@ -14,37 +14,33 @@ class AuthScaffold extends StatelessWidget {
     this.formFooter,
   });
 
-  /// App bar label: "Login", "Registration", etc.
-  final String appBarTitle;
   final String welcomeTitle;
   final String? welcomeSubtitle;
   final Widget child;
   final bool showBack;
   final VoidCallback? onBack;
-  /// Optional content below the form inside the white card (login role footer).
   final Widget? formFooter;
 
   @override
   Widget build(BuildContext context) {
-    final primary = Theme.of(context).colorScheme.primary;
-
     return Scaffold(
       backgroundColor: AuthTheme.background,
-      appBar: AppBar(
-        title: Text(appBarTitle),
-        backgroundColor: primary,
-        foregroundColor: Colors.white,
-        leading: showBack
-            ? IconButton(
+      appBar: showBack
+          ? AppBar(
+              backgroundColor: AuthTheme.background,
+              foregroundColor: AuthTheme.titleText,
+              elevation: 0,
+              scrolledUnderElevation: 0,
+              leading: IconButton(
                 icon: const Icon(Icons.arrow_back),
                 onPressed: onBack ?? () => Navigator.of(context).maybePop(),
-              )
-            : null,
-      ),
+              ),
+            )
+          : null,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+            padding: const EdgeInsets.symmetric(horizontal: CredTheme.spaceMd, vertical: CredTheme.spaceMd),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: AuthTheme.maxWidth),
               child: Column(
@@ -53,7 +49,7 @@ class AuthScaffold extends StatelessWidget {
                     welcomeTitle: welcomeTitle,
                     welcomeSubtitle: welcomeSubtitle,
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: CredTheme.spaceLg),
                   Container(
                     width: double.infinity,
                     padding: AuthTheme.cardPadding,
@@ -67,7 +63,7 @@ class AuthScaffold extends StatelessWidget {
                       children: [
                         child,
                         if (formFooter != null) ...[
-                          const SizedBox(height: 24),
+                          const SizedBox(height: CredTheme.spaceLg),
                           formFooter!,
                         ],
                       ],
@@ -108,14 +104,14 @@ class _LogoHeader extends StatelessWidget {
           child: Image.asset(
             'assets/images/logo.jpg',
             fit: BoxFit.contain,
-            errorBuilder: (_, __, ___) => Icon(
+            errorBuilder: (context, error, stackTrace) => Icon(
               Icons.storefront_rounded,
               size: 48,
               color: Theme.of(context).colorScheme.primary,
             ),
           ),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: CredTheme.spaceMd),
         Text(
           welcomeTitle,
           style: const TextStyle(

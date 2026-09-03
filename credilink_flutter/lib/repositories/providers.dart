@@ -5,7 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/utils/store_scope.dart';
 import '../models/debt_record.dart';
 import '../models/product.dart';
+import '../models/receipt_store_info.dart';
 import '../models/sale_record.dart';
+import '../models/store_profile.dart';
 import '../models/user_profile.dart';
 import 'admin_repository.dart';
 import 'auth_repository.dart';
@@ -29,7 +31,9 @@ final authStateProvider = StreamProvider<User?>((ref) {
 });
 
 final currentProfileProvider = FutureProvider<UserProfile?>((ref) async {
-  return ref.watch(authRepositoryProvider).getCurrentProfile();
+  final user = await ref.watch(authStateProvider.future);
+  if (user == null) return null;
+  return ref.read(authRepositoryProvider).getCurrentProfile();
 });
 
 final authServiceProvider = authRepositoryProvider;
@@ -118,4 +122,42 @@ final currentStoreEmployeesProvider = FutureProvider<List<UserProfile>>((ref) as
   final profile = await ref.watch(currentProfileProvider.future);
   if (profile == null) return [];
   return ref.read(employeeRepositoryProvider).getEmployeesByStore(resolveStoreOwnerId(profile));
+});
+
+/// Store name + logo for receipts (owner `store_name` + `store_profiles.store_image`).
+final receiptStoreInfoProvider =
+    FutureProvider.family<ReceiptStoreInfo, String>((ref, storeOwnerId) async {
+  if (storeOwnerId.isEmpty) return ReceiptStoreInfo.fallback;
+
+  final owner = await ref.read(authRepositoryProvider).getUserProfileById(storeOwnerId);
+  final store = await ref.watch(storeProfileProvider(storeOwnerId).future);
+
+  final ownerName = owner?.storeName?.trim();
+  final profileName = store?.storeName.trim();
+  final name = (ownerName != null && ownerName.isNotEmpty)
+      ? ownerName
+      : (profileName != null && profileName.isNotEmpty)
+          ? profileName
+          : (owner != null && owner.fullName.trim().isNotEmpty)
+              ? "${owner.fullName.trim()}'s Store"
+              : 'Store';
+
+  final logo = store?.storeImage?.trim();
+  final header = store?.description?.trim();
+
+  return ReceiptStoreInfo(
+    name: name,
+    logoUrl: (logo != null && logo.isNotEmpty) ? logo : null,
+    receiptHeader: (header != null && header.isNotEmpty) ? header : null,
+  );
+});
+
+final storeProfileProvider = FutureProvider.family<StoreProfile?, String>((ref, storeOwnerId) async {
+  if (storeOwnerId.isEmpty) return null;
+  return ref.read(storeRepositoryProvider).getStore(storeOwnerId);
+});
+
+final userProfileByIdProvider = FutureProvider.family<UserProfile?, String>((ref, userId) async {
+  if (userId.isEmpty) return null;
+  return ref.read(authRepositoryProvider).getUserProfileById(userId);
 });

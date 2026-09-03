@@ -4,9 +4,10 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/utils/cred_snackbar.dart';
+import '../../../core/utils/cred_validators.dart';
 import '../../../models/user_profile.dart';
 import '../../../repositories/repositories.dart';
-import '../../../shared/widgets/auth/cred_text_field.dart';
+import '../../../shared/widgets/forms/cred_form_field.dart';
 import '../../../shared/widgets/common/cred_avatar.dart';
 import '../../../shared/widgets/common/empty_state.dart';
 import '../../../shared/widgets/common/info_banner.dart';
@@ -163,19 +164,16 @@ class _AdminSystemTabState extends ConsumerState<AdminSystemTab> {
                 key: _formKey,
                 child: Column(
                   children: [
-                    CredTextField(controller: _fullName, label: 'Full Name', required: true),
-                    const SizedBox(height: 12),
                     CredTextField(
-                      controller: _email,
-                      label: 'Email',
-                      keyboardType: TextInputType.emailAddress,
+                      controller: _fullName,
+                      label: 'Full Name',
+                      required: true,
+                      validator: (v) => CredValidators.required(v, message: 'Enter your name'),
                     ),
                     const SizedBox(height: 12),
-                    CredTextField(
-                      controller: _phone,
-                      label: 'Phone',
-                      keyboardType: TextInputType.phone,
-                    ),
+                    CredEmailField(controller: _email, required: false),
+                    const SizedBox(height: 12),
+                    CredPhoneField(controller: _phone),
                     const SizedBox(height: 12),
                     CredTextField(controller: _region, label: 'Region'),
                     const SizedBox(height: 12),

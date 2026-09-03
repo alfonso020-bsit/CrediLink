@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/cred_theme.dart';
+import '../../../core/utils/cred_validators.dart';
 import '../../../models/ph_address.dart';
 import '../address/ph_address_picker.dart';
-import '../auth/cred_text_field.dart';
+import '../forms/cred_form_field.dart';
 import '../layout/cred_sheet_scaffold.dart';
 
 class DebtCustomerRegisterResult {
@@ -72,28 +73,13 @@ class _DebtCustomerRegisterSheetState extends State<DebtCustomerRegisterSheet> {
               label: 'Full Name',
               icon: Icons.person_outline,
               required: true,
-              validator: (v) => (v == null || v.trim().isEmpty) ? 'Name is required' : null,
+              textInputAction: TextInputAction.next,
+              validator: (v) => CredValidators.required(v, message: 'Enter your name'),
             ),
             const SizedBox(height: CredTheme.spaceSm),
-            CredTextField(
-              controller: _emailController,
-              label: 'Email',
-              icon: Icons.email_outlined,
-              keyboardType: TextInputType.emailAddress,
-              required: true,
-              validator: (v) {
-                if (v == null || v.trim().isEmpty) return 'Email is required';
-                if (!v.contains('@')) return 'Enter a valid email';
-                return null;
-              },
-            ),
+            CredEmailField(controller: _emailController),
             const SizedBox(height: CredTheme.spaceSm),
-            CredTextField(
-              controller: _phoneController,
-              label: 'Phone',
-              icon: Icons.phone_outlined,
-              keyboardType: TextInputType.phone,
-            ),
+            CredPhoneField(controller: _phoneController),
             const SizedBox(height: CredTheme.spaceMd),
             PhAddressPicker(
               sitioController: _sitioController,

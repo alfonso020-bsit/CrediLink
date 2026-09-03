@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/theme/cred_theme.dart';
 import '../../../models/ph_address.dart';
 import '../../../repositories/repositories.dart';
 
@@ -31,21 +32,99 @@ class _PhAddressPickerState extends ConsumerState<PhAddressPicker> {
   List<String> _provinces = [];
   List<String> _municipalities = [];
   List<String> _barangays = [];
+  bool _hydrating = false;
 
   @override
   void initState() {
     super.initState();
-    _loadRegions();
-    if (widget.initial != null) {
-      _province = widget.initial!.province;
-      _municipality = widget.initial!.municipality;
-      _barangay = widget.initial!.barangay;
-    }
+    _bootstrap();
   }
 
-  Future<void> _loadRegions() async {
+  Future<void> _bootstrap() async {
     final regions = await ref.read(locationRepositoryProvider).getRegions();
-    if (mounted) setState(() => _regions = regions);
+    if (!mounted) return;
+    setState(() => _regions = regions);
+    await _hydrateFromInitial(widget.initial);
+  }
+
+  String? _matchName(List<String> items, String? needle) {
+    final target = needle?.trim();
+    if (target == null || target.isEmpty) return null;
+    for (final item in items) {
+      if (item.toLowerCase() == target.toLowerCase()) return item;
+    }
+    return null;
+  }
+
+  PhRegion? _matchRegion(String? needle) {
+    final target = needle?.trim();
+    if (target == null || target.isEmpty) return null;
+    for (final r in _regions) {
+      if (r.name.toLowerCase() == target.toLowerCase() || r.code == target) {
+        return r;
+      }
+    }
+    return null;
+  }
+
+  Future<void> _hydrateFromInitial(PhAddress? initial) async {
+    if (initial == null || _hydrating) return;
+    final hasAddress = initial.province.trim().isNotEmpty ||
+        initial.municipality.trim().isNotEmpty ||
+        initial.barangay.trim().isNotEmpty;
+    if (!hasAddress && (initial.region == null || initial.region!.trim().isEmpty)) {
+      return;
+    }
+
+    _hydrating = true;
+    final location = ref.read(locationRepositoryProvider);
+
+    try {
+      var region = _matchRegion(initial.region);
+
+      // If region missing/mismatched, find which region contains the province.
+      if (region == null && initial.province.trim().isNotEmpty) {
+        for (final candidate in _regions) {
+          final provinces = await location.getProvinces(candidate.code);
+          final matched = _matchName(provinces, initial.province);
+          if (matched != null) {
+            region = candidate;
+            _provinces = provinces;
+            _province = matched;
+            break;
+          }
+        }
+      }
+
+      if (region == null) return;
+
+      _regionCode = region.code;
+      _regionName = region.name;
+
+      if (_provinces.isEmpty) {
+        _provinces = await location.getProvinces(region.code);
+      }
+      _province ??= _matchName(_provinces, initial.province);
+
+      if (_province != null) {
+        _municipalities = await location.getMunicipalities(region.code, _province!);
+        _municipality = _matchName(_municipalities, initial.municipality);
+
+        if (_municipality != null) {
+          _barangays = await location.getBarangays(
+            region.code,
+            _province!,
+            _municipality!,
+          );
+          _barangay = _matchName(_barangays, initial.barangay);
+        }
+      }
+
+      if (mounted) setState(() {});
+      _notify();
+    } finally {
+      _hydrating = false;
+    }
   }
 
   void _notify() {
@@ -89,7 +168,7 @@ class _PhAddressPickerState extends ConsumerState<PhAddressPicker> {
             _notify();
           },
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: CredTheme.spaceSm),
         _dropdown<String>(
           label: 'Province',
           value: _province,
@@ -110,7 +189,7 @@ class _PhAddressPickerState extends ConsumerState<PhAddressPicker> {
             _notify();
           },
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: CredTheme.spaceSm),
         _dropdown<String>(
           label: 'Municipality / City',
           value: _municipality,
@@ -133,7 +212,7 @@ class _PhAddressPickerState extends ConsumerState<PhAddressPicker> {
             _notify();
           },
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: CredTheme.spaceSm),
         _dropdown<String>(
           label: 'Barangay',
           value: _barangay,
@@ -155,13 +234,43 @@ class _PhAddressPickerState extends ConsumerState<PhAddressPicker> {
     required String Function(T) itemLabel,
     required ValueChanged<T?> onChanged,
   }) {
-    return DropdownButtonFormField<T>(
-      decoration: InputDecoration(labelText: label),
-      value: items.contains(value) ? value : null,
-      items: items
-          .map((e) => DropdownMenuItem(value: e, child: Text(itemLabel(e))))
-          .toList(),
-      onChanged: onChanged,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: CredTheme.titleText,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            color: CredTheme.inputBackground,
+            borderRadius: BorderRadius.circular(CredTheme.radiusInput),
+            border: Border.all(color: CredTheme.border),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<T>(
+              icon: const Icon(Icons.keyboard_arrow_down, color: CredTheme.subtitleText),
+              style: const TextStyle(fontSize: 14, color: CredTheme.titleText),
+              value: items.contains(value) ? value : null,
+              isExpanded: true,
+              hint: const Text(
+                'Select',
+                style: TextStyle(fontSize: 14, color: CredTheme.placeholder),
+              ),
+              items: items
+                  .map((e) => DropdownMenuItem(value: e, child: Text(itemLabel(e))))
+                  .toList(),
+              onChanged: onChanged,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

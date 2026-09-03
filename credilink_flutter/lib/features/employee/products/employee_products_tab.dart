@@ -20,8 +20,8 @@ import '../../../shared/widgets/common/cred_async_view.dart';
 import '../../../shared/widgets/common/empty_state.dart';
 import '../../../shared/widgets/filters/cred_search_field.dart';
 import '../../../shared/widgets/products/barcode_scan_result_card.dart';
+import '../../../shared/widgets/products/cred_product_card.dart';
 import '../../../shared/widgets/products/inventory_filter_panel.dart';
-import '../../../shared/widgets/products/inventory_product_list_tile.dart';
 import '../../../shared/widgets/products/inventory_summary_cards.dart';
 import '../../../shared/widgets/products/low_stock_modal.dart';
 import '../../../shared/widgets/products/out_of_stock_modal.dart';
@@ -262,188 +262,211 @@ class _EmployeeProductsTabState extends ConsumerState<EmployeeProductsTab> {
                 physics: const AlwaysScrollableScrollPhysics(),
                 slivers: [
                   SliverToBoxAdapter(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        InventorySummaryCards(
-                          stats: stats,
-                          onLowStockTap: lowStock.isEmpty
-                              ? null
-                              : () => LowStockModal.show(
-                                    context,
-                                    products: lowStock,
-                                    onViewProduct: (p) {
-                                      Navigator.pop(context);
-                                      _openProductDetail(p, profile, storeOwnerId);
-                                    },
-                                    onAdjustStock: (p) {
-                                      Navigator.pop(context);
-                                      _adjustStock(p, profile, storeOwnerId);
-                                    },
-                                    onFilterList: () {
-                                      Navigator.pop(context);
-                                      setState(() => _filters = _filters.copyWith(stockStatus: StockStatus.lowStock));
-                                    },
-                                  ),
-                          onOutOfStockTap: outOfStock.isEmpty
-                              ? null
-                              : () => OutOfStockModal.show(
-                                    context,
-                                    products: outOfStock,
-                                    onViewProduct: (p) {
-                                      Navigator.pop(context);
-                                      _openProductDetail(p, profile, storeOwnerId);
-                                    },
-                                    onAdjustStock: (p) {
-                                      Navigator.pop(context);
-                                      _adjustStock(p, profile, storeOwnerId);
-                                    },
-                                    onFilterList: () {
-                                      Navigator.pop(context);
-                                      setState(() => _filters = _filters.copyWith(stockStatus: StockStatus.outOfStock));
-                                    },
-                                  ),
-                        ),
-                        CredSection(
-                          title: 'Quick Actions',
-                          child: CredQuickActionGrid(
-                            actions: [
-                              CredQuickAction(
-                                label: 'Add Product',
-                                icon: Icons.add,
-                                onPressed: () => _addProduct(profile, storeOwnerId),
-                              ),
-                              CredQuickAction(
-                                label: 'Scan Barcode',
-                                icon: Icons.qr_code_scanner,
-                                onPressed: () async {
-                                  final code = await scanBarcode(context);
-                                  if (code != null) {
-                                    _barcodeInputController.text = code;
-                                    await _handleBarcodeLookup(code, storeOwnerId);
-                                  }
-                                },
-                              ),
-                              CredQuickAction(
-                                label: 'Low Stock',
-                                icon: Icons.warning_amber,
-                                onPressed: lowStock.isEmpty
-                                    ? null
-                                    : () => LowStockModal.show(
-                                          context,
-                                          products: lowStock,
-                                          onViewProduct: (p) {
-                                            Navigator.pop(context);
-                                            _openProductDetail(p, profile, storeOwnerId);
-                                          },
-                                          onAdjustStock: (p) {
-                                            Navigator.pop(context);
-                                            _adjustStock(p, profile, storeOwnerId);
-                                          },
-                                          onFilterList: () {
-                                            Navigator.pop(context);
-                                            setState(() => _filters = _filters.copyWith(stockStatus: StockStatus.lowStock));
-                                          },
-                                        ),
-                              ),
-                              CredQuickAction(
-                                label: 'Out of Stock',
-                                icon: Icons.remove_shopping_cart,
-                                onPressed: outOfStock.isEmpty
-                                    ? null
-                                    : () => setState(
-                                          () => _filters = _filters.copyWith(stockStatus: StockStatus.outOfStock),
-                                        ),
-                              ),
-                              CredQuickAction(
-                                label: 'Camera',
-                                icon: Icons.camera_alt,
-                                onPressed: () => _captureImage(profile, storeOwnerId),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: CredTheme.spaceMd),
-                          child: Card(
-                            child: Padding(
-                              padding: const EdgeInsets.all(12),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: TextField(
-                                      controller: _barcodeInputController,
-                                      decoration: const InputDecoration(
-                                        hintText: 'Enter barcode manually',
-                                        isDense: true,
-                                        border: InputBorder.none,
+                    child: Padding(
+                      padding: CredTheme.pagePadding.copyWith(bottom: 0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          CredSection(
+                            title: 'Overview',
+                            subtitle: 'Inventory at a glance',
+                            child: InventorySummaryCards(
+                              stats: stats,
+                              onLowStockTap: lowStock.isEmpty
+                                  ? null
+                                  : () => LowStockModal.show(
+                                        context,
+                                        products: lowStock,
+                                        onViewProduct: (p) {
+                                          Navigator.pop(context);
+                                          _openProductDetail(p, profile, storeOwnerId);
+                                        },
+                                        onAdjustStock: (p) {
+                                          Navigator.pop(context);
+                                          _adjustStock(p, profile, storeOwnerId);
+                                        },
+                                        onFilterList: () {
+                                          Navigator.pop(context);
+                                          setState(() =>
+                                              _filters = _filters.copyWith(stockStatus: StockStatus.lowStock));
+                                        },
                                       ),
-                                      onSubmitted: (v) => _handleBarcodeLookup(v, storeOwnerId),
-                                    ),
-                                  ),
-                                  if (_lookingUp)
-                                    const Padding(
-                                      padding: EdgeInsets.all(8),
-                                      child: SizedBox(
-                                        width: 20,
-                                        height: 20,
-                                        child: CircularProgressIndicator(strokeWidth: 2),
+                              onOutOfStockTap: outOfStock.isEmpty
+                                  ? null
+                                  : () => OutOfStockModal.show(
+                                        context,
+                                        products: outOfStock,
+                                        onViewProduct: (p) {
+                                          Navigator.pop(context);
+                                          _openProductDetail(p, profile, storeOwnerId);
+                                        },
+                                        onAdjustStock: (p) {
+                                          Navigator.pop(context);
+                                          _adjustStock(p, profile, storeOwnerId);
+                                        },
+                                        onFilterList: () {
+                                          Navigator.pop(context);
+                                          setState(() =>
+                                              _filters = _filters.copyWith(stockStatus: StockStatus.outOfStock));
+                                        },
                                       ),
-                                    )
-                                  else
-                                    BarcodeScannerButton(
-                                      onScanned: (code) {
-                                        _barcodeInputController.text = code;
-                                        _handleBarcodeLookup(code, storeOwnerId);
-                                      },
-                                    ),
-                                  IconButton(
-                                    icon: const Icon(Icons.search),
-                                    onPressed: () => _handleBarcodeLookup(_barcodeInputController.text, storeOwnerId),
-                                  ),
-                                ],
-                              ),
                             ),
                           ),
-                        ),
-                        if (_scannedBarcode != null)
-                          BarcodeScanResultCard(
-                            barcode: _scannedBarcode!,
-                            localProduct: _scannedLocalProduct,
-                            lookupResult: _scannedLookupResult,
-                            onDismiss: _clearScanResult,
-                            onView: () {
-                              if (_scannedLocalProduct != null) {
-                                _openProductDetail(_scannedLocalProduct!, profile, storeOwnerId);
-                              }
-                            },
-                            onAdd: () {
-                              final prefill = _scannedLookupResult?.product;
-                              _addProduct(
-                                profile,
-                                storeOwnerId,
-                                prefill: prefill,
-                                barcode: _scannedBarcode,
-                              );
-                            },
+                          const SizedBox(height: CredTheme.spaceLg),
+                          CredSection(
+                            title: 'Quick Actions',
+                            child: CredQuickActionGrid(
+                              actions: [
+                                CredQuickAction(
+                                  label: 'Add Product',
+                                  icon: Icons.add,
+                                  onPressed: () => _addProduct(profile, storeOwnerId),
+                                ),
+                                CredQuickAction(
+                                  label: 'Scan Barcode',
+                                  icon: Icons.qr_code_scanner,
+                                  onPressed: () async {
+                                    final code = await scanBarcode(context);
+                                    if (code != null) {
+                                      _barcodeInputController.text = code;
+                                      await _handleBarcodeLookup(code, storeOwnerId);
+                                    }
+                                  },
+                                ),
+                                CredQuickAction(
+                                  label: 'Low Stock',
+                                  icon: Icons.warning_amber,
+                                  onPressed: lowStock.isEmpty
+                                      ? null
+                                      : () => LowStockModal.show(
+                                            context,
+                                            products: lowStock,
+                                            onViewProduct: (p) {
+                                              Navigator.pop(context);
+                                              _openProductDetail(p, profile, storeOwnerId);
+                                            },
+                                            onAdjustStock: (p) {
+                                              Navigator.pop(context);
+                                              _adjustStock(p, profile, storeOwnerId);
+                                            },
+                                            onFilterList: () {
+                                              Navigator.pop(context);
+                                              setState(() =>
+                                                  _filters = _filters.copyWith(stockStatus: StockStatus.lowStock));
+                                            },
+                                          ),
+                                ),
+                                CredQuickAction(
+                                  label: 'Out of Stock',
+                                  icon: Icons.remove_shopping_cart,
+                                  onPressed: outOfStock.isEmpty
+                                      ? null
+                                      : () => setState(
+                                            () => _filters =
+                                                _filters.copyWith(stockStatus: StockStatus.outOfStock),
+                                          ),
+                                ),
+                                CredQuickAction(
+                                  label: 'Camera',
+                                  icon: Icons.camera_alt,
+                                  onPressed: () => _captureImage(profile, storeOwnerId),
+                                ),
+                              ],
+                            ),
                           ),
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                          child: CredSearchField(
-                            controller: _searchController,
-                            hint: 'Search products…',
-                            onChanged: (_) => setState(() {}),
+                          const SizedBox(height: CredTheme.spaceLg),
+                          CredSection(
+                            title: 'Catalog',
+                            subtitle: '${filtered.length} shown',
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Material(
+                                  color: CredTheme.cardBackground,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(CredTheme.radiusCard),
+                                    side: const BorderSide(color: CredTheme.border),
+                                  ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: CredTheme.spaceSm),
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          child: TextField(
+                                            controller: _barcodeInputController,
+                                            decoration: const InputDecoration(
+                                              hintText: 'Enter barcode manually',
+                                              isDense: true,
+                                              border: InputBorder.none,
+                                            ),
+                                            onSubmitted: (v) => _handleBarcodeLookup(v, storeOwnerId),
+                                          ),
+                                        ),
+                                        if (_lookingUp)
+                                          const Padding(
+                                            padding: EdgeInsets.all(8),
+                                            child: SizedBox(
+                                              width: 20,
+                                              height: 20,
+                                              child: CircularProgressIndicator(strokeWidth: 2),
+                                            ),
+                                          )
+                                        else
+                                          BarcodeScannerButton(
+                                            onScanned: (code) {
+                                              _barcodeInputController.text = code;
+                                              _handleBarcodeLookup(code, storeOwnerId);
+                                            },
+                                          ),
+                                        IconButton(
+                                          icon: const Icon(Icons.search),
+                                          onPressed: () =>
+                                              _handleBarcodeLookup(_barcodeInputController.text, storeOwnerId),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                if (_scannedBarcode != null)
+                                  BarcodeScanResultCard(
+                                    barcode: _scannedBarcode!,
+                                    localProduct: _scannedLocalProduct,
+                                    lookupResult: _scannedLookupResult,
+                                    onDismiss: _clearScanResult,
+                                    onView: () {
+                                      if (_scannedLocalProduct != null) {
+                                        _openProductDetail(_scannedLocalProduct!, profile, storeOwnerId);
+                                      }
+                                    },
+                                    onAdd: () {
+                                      final prefill = _scannedLookupResult?.product;
+                                      _addProduct(
+                                        profile,
+                                        storeOwnerId,
+                                        prefill: prefill,
+                                        barcode: _scannedBarcode,
+                                      );
+                                    },
+                                  ),
+                                const SizedBox(height: CredTheme.spaceSm),
+                                CredSearchField(
+                                  controller: _searchController,
+                                  hint: 'Search products…',
+                                  onChanged: (_) => setState(() {}),
+                                ),
+                                InventoryFilterPanel(
+                                  categories: categories,
+                                  filters: filters,
+                                  showAdvanced: true,
+                                  onChanged: (f) =>
+                                      setState(() => _filters = f.copyWith(searchTerm: _searchController.text)),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                        InventoryFilterPanel(
-                          categories: categories,
-                          filters: filters,
-                          showAdvanced: true,
-                          onChanged: (f) => setState(() => _filters = f.copyWith(searchTerm: _searchController.text)),
-                        ),
-                        const SizedBox(height: 8),
-                      ],
+                          const SizedBox(height: CredTheme.spaceSm),
+                        ],
+                      ),
                     ),
                   ),
                   if (filtered.isEmpty)
@@ -452,23 +475,49 @@ class _EmployeeProductsTabState extends ConsumerState<EmployeeProductsTab> {
                       child: EmptyState(message: 'No matching products'),
                     )
                   else
-                    SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, i) {
-                          final product = filtered[i];
-                          return InventoryProductListTile(
-                            product: product,
-                            showBrand: false,
-                            showRowActions: true,
-                            enableSlideActions: true,
-                            onTap: () => _openProductDetail(product, profile, storeOwnerId),
-                            onView: () => _openProductDetail(product, profile, storeOwnerId),
-                            onEdit: () => _editProduct(product, storeOwnerId),
-                            onAdjustStock: () => _adjustStock(product, profile, storeOwnerId),
-                            onDelete: () => _deleteProduct(product),
-                          );
-                        },
-                        childCount: filtered.length,
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(
+                        CredTheme.spaceMd,
+                        0,
+                        CredTheme.spaceMd,
+                        CredTheme.spaceLg,
+                      ),
+                      sliver: SliverGrid(
+                        gridDelegate: CredProductGrid.gridDelegate(),
+                        delegate: SliverChildBuilderDelegate(
+                          (context, i) {
+                            final product = filtered[i];
+                            return CredProductCard(
+                              product: product,
+                              onTap: () => _openProductDetail(product, profile, storeOwnerId),
+                              actions: [
+                                CredProductAction(
+                                  label: 'View',
+                                  icon: Icons.visibility_outlined,
+                                  onSelected: () =>
+                                      _openProductDetail(product, profile, storeOwnerId),
+                                ),
+                                CredProductAction(
+                                  label: 'Edit',
+                                  icon: Icons.edit_outlined,
+                                  onSelected: () => _editProduct(product, storeOwnerId),
+                                ),
+                                CredProductAction(
+                                  label: 'Adjust stock',
+                                  icon: Icons.inventory_outlined,
+                                  onSelected: () =>
+                                      _adjustStock(product, profile, storeOwnerId),
+                                ),
+                                CredProductAction(
+                                  label: 'Deactivate',
+                                  icon: Icons.delete_outline,
+                                  onSelected: () => _deleteProduct(product),
+                                ),
+                              ],
+                            );
+                          },
+                          childCount: filtered.length,
+                        ),
                       ),
                     ),
                 ],

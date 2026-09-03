@@ -10,12 +10,14 @@ class CredTabPageLayout extends StatelessWidget {
     this.onRefresh,
     this.padding = const EdgeInsets.symmetric(horizontal: CredTheme.spaceMd),
     this.bottomPadding = CredTheme.spaceMd,
+    this.floatingActionButton,
   });
 
   final List<Widget> children;
   final Future<void> Function()? onRefresh;
   final EdgeInsets padding;
   final double bottomPadding;
+  final Widget? floatingActionButton;
 
   @override
   Widget build(BuildContext context) {
@@ -27,16 +29,24 @@ class CredTabPageLayout extends StatelessWidget {
           sliver: SliverList(
             delegate: SliverChildListDelegate([
               ...children,
-              SizedBox(height: bottomPadding),
+              SizedBox(height: bottomPadding + (floatingActionButton != null ? 72 : 0)),
             ]),
           ),
         ),
       ],
     );
 
-    if (onRefresh == null) return scrollView;
+    Widget body = onRefresh == null
+        ? scrollView
+        : RefreshIndicator(onRefresh: onRefresh!, child: scrollView);
 
-    return RefreshIndicator(onRefresh: onRefresh!, child: scrollView);
+    if (floatingActionButton == null) return body;
+
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      floatingActionButton: floatingActionButton,
+      body: body,
+    );
   }
 }
 
@@ -48,12 +58,14 @@ class CredTabPageLayoutBuilder extends StatelessWidget {
     required this.slivers,
     this.onRefresh,
     this.padding = const EdgeInsets.symmetric(horizontal: CredTheme.spaceMd),
+    this.floatingActionButton,
   });
 
   final Widget header;
   final List<Widget> slivers;
   final Future<void> Function()? onRefresh;
   final EdgeInsets padding;
+  final Widget? floatingActionButton;
 
   @override
   Widget build(BuildContext context) {
@@ -68,7 +80,16 @@ class CredTabPageLayoutBuilder extends StatelessWidget {
       ],
     );
 
-    if (onRefresh == null) return scrollView;
-    return RefreshIndicator(onRefresh: onRefresh!, child: scrollView);
+    Widget body = onRefresh == null
+        ? scrollView
+        : RefreshIndicator(onRefresh: onRefresh!, child: scrollView);
+
+    if (floatingActionButton == null) return body;
+
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      floatingActionButton: floatingActionButton,
+      body: body,
+    );
   }
 }

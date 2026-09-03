@@ -17,6 +17,8 @@ class ReportFilterBar extends StatefulWidget {
     this.onTypeChanged,
     this.showSearch = false,
     this.searchHint = 'Search transactions…',
+    this.trailing,
+    this.applyInitialRange = true,
   });
 
   final ValueChanged<ReportPeriod>? onPeriodChanged;
@@ -27,6 +29,9 @@ class ReportFilterBar extends StatefulWidget {
   final ValueChanged<String>? onTypeChanged;
   final bool showSearch;
   final String searchHint;
+  /// Optional action beside the period filter (e.g. PDF export).
+  final Widget? trailing;
+  final bool applyInitialRange;
 
   @override
   State<ReportFilterBar> createState() => _ReportFilterBarState();
@@ -36,6 +41,17 @@ class _ReportFilterBarState extends State<ReportFilterBar> {
   ReportPeriod _period = ReportPeriod.month;
   DateTimeRange? _customRange;
   final _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.applyInitialRange) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        widget.onDateRangeChanged?.call(_rangeForPeriod(_period));
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -54,7 +70,8 @@ class _ReportFilterBarState extends State<ReportFilterBar> {
       case ReportPeriod.month:
         return DateTimeRange(start: DateTime(now.year, now.month, 1), end: today.add(const Duration(days: 1)));
       case ReportPeriod.custom:
-        return _customRange ?? DateTimeRange(start: today.subtract(const Duration(days: 30)), end: today.add(const Duration(days: 1)));
+        return _customRange ??
+            DateTimeRange(start: today.subtract(const Duration(days: 30)), end: today.add(const Duration(days: 1)));
     }
   }
 
@@ -112,33 +129,43 @@ class _ReportFilterBarState extends State<ReportFilterBar> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          CredSegmentedFilter<ReportPeriod>(
-            options: const [
-              ReportPeriod.today,
-              ReportPeriod.week,
-              ReportPeriod.month,
-              ReportPeriod.custom,
+          Row(
+            children: [
+              Expanded(
+                child: CredSegmentedFilter<ReportPeriod>(
+                  options: const [
+                    ReportPeriod.today,
+                    ReportPeriod.week,
+                    ReportPeriod.month,
+                    ReportPeriod.custom,
+                  ],
+                  selected: _period,
+                  onChanged: (p) {
+                    if (p == ReportPeriod.custom) {
+                      _pickCustomRange();
+                    } else {
+                      _setPeriod(p);
+                    }
+                  },
+                  labelBuilder: _periodLabel,
+                ),
+              ),
+              if (widget.trailing != null) ...[
+                const SizedBox(width: 4),
+                widget.trailing!,
+              ],
             ],
-            selected: _period,
-            onChanged: (p) {
-              if (p == ReportPeriod.custom) {
-                _pickCustomRange();
-              } else {
-                _setPeriod(p);
-              }
-            },
-            labelBuilder: _periodLabel,
           ),
-          if (widget.typeOptions.length > 1) ...[
+          if (widget.typeOptions.length > 1 && widget.onTypeChanged != null) ...[
             const SizedBox(height: 12),
             CredSegmentedFilter<String>(
               options: widget.typeOptions,
               selected: widget.selectedType,
-              onChanged: (v) => widget.onTypeChanged?.call(v),
+              onChanged: widget.onTypeChanged!,
               labelBuilder: _typeLabel,
             ),
           ],

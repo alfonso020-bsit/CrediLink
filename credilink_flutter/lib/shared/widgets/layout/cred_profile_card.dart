@@ -24,41 +24,109 @@ class CredProfileCard extends StatelessWidget {
   final String? imageUrl;
   final VoidCallback? onTap;
 
+  bool get _isStoreOwner => role == UserRole.storeOwner;
+
+  String get _title {
+    if (_isStoreOwner) {
+      final name = storeName?.trim();
+      if (name != null && name.isNotEmpty) return name;
+      return 'My Store';
+    }
+    return fullName;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Card(
+    final radius = BorderRadius.circular(CredTheme.radiusCard);
+
+    return Material(
+      color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(CredTheme.radiusCard),
-        child: Padding(
-          padding: const EdgeInsets.all(CredTheme.spaceMd),
-          child: Row(
-            children: [
-              CredAvatar(name: fullName, imageUrl: imageUrl, radius: 28),
-              const SizedBox(width: CredTheme.spaceMd),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(fullName, style: Theme.of(context).textTheme.titleMedium),
-                    if (role != null) ...[
-                      const SizedBox(height: 4),
-                      _RoleBadge(label: role!.displayName),
+        borderRadius: radius,
+        child: Ink(
+          decoration: BoxDecoration(
+            borderRadius: radius,
+            border: Border.all(
+              color: _isStoreOwner
+                  ? CredTheme.primary.withValues(alpha: 0.18)
+                  : CredTheme.border,
+            ),
+            gradient: _isStoreOwner
+                ? LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      CredTheme.primary.withValues(alpha: 0.14),
+                      CredTheme.primary.withValues(alpha: 0.04),
+                      CredTheme.cardBackground,
                     ],
-                    if (storeName != null && storeName!.isNotEmpty) ...[
-                      const SizedBox(height: 4),
+                  )
+                : null,
+            color: _isStoreOwner ? null : CredTheme.cardBackground,
+          ),
+          child: Padding(
+            padding: EdgeInsets.all(
+              _isStoreOwner ? CredTheme.spaceLg : CredTheme.spaceMd,
+            ),
+            child: Row(
+              children: [
+                CredAvatar(name: _title, imageUrl: imageUrl, radius: _isStoreOwner ? 32 : 28),
+                const SizedBox(width: CredTheme.spaceMd),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Text(
-                        'Working at $storeName',
-                        style: CredTheme.bodyMutedStyle(context),
+                        _title,
+                        style: _isStoreOwner
+                            ? CredTheme.pageTitle(context)
+                            : Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: CredTheme.titleText,
+                                ),
                       ),
+                      if (_isStoreOwner) ...[
+                        const SizedBox(height: 6),
+                        Text(
+                          'Welcome back, $fullName',
+                          style: CredTheme.bodyMutedStyle(context),
+                        ),
+                      ] else ...[
+                        if (role != null) ...[
+                          const SizedBox(height: 4),
+                          _RoleBadge(label: role!.displayName),
+                        ],
+                        if (storeName != null && storeName!.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            'Working at $storeName',
+                            style: CredTheme.bodyMutedStyle(context),
+                          ),
+                        ],
+                        if (position != null && position!.isNotEmpty)
+                          Text(position!, style: CredTheme.bodyMutedStyle(context)),
+                      ],
+                      if (subtitle != null && subtitle!.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          subtitle!,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: CredTheme.subtitleText,
+                              ),
+                        ),
+                      ],
                     ],
-                    if (position != null && position!.isNotEmpty)
-                      Text(position!, style: CredTheme.bodyMutedStyle(context)),
-                    if (subtitle != null) Text(subtitle!, style: CredTheme.bodyMutedStyle(context)),
-                  ],
+                  ),
                 ),
-              ),
-            ],
+                if (onTap != null)
+                  Icon(
+                    Icons.settings_outlined,
+                    size: 20,
+                    color: CredTheme.primary.withValues(alpha: 0.7),
+                  ),
+              ],
+            ),
           ),
         ),
       ),

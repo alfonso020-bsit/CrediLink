@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/utils/currency_formatter.dart';
+import '../../../core/theme/cred_theme.dart';
 import '../../../models/product.dart';
+import 'cred_product_card.dart';
 
 class OutOfStockModal extends StatelessWidget {
   const OutOfStockModal({
@@ -51,7 +52,7 @@ class OutOfStockModal extends StatelessWidget {
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(CredTheme.spaceMd),
           child: Row(
             children: [
               Expanded(
@@ -65,28 +66,33 @@ class OutOfStockModal extends StatelessWidget {
         Expanded(
           child: products.isEmpty
               ? const Center(child: Text('No out of stock products'))
-              : ListView.builder(
-                  itemCount: products.length,
-                  itemBuilder: (_, i) => ListTile(
-                    leading: const Icon(Icons.error_outline, color: Colors.red),
-                    title: Text(products[i].name),
-                    subtitle: Text('Out of stock (min ${products[i].minStockLevel})'),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(CurrencyFormatter.format(products[i].sellingPrice)),
-                        if (onViewProduct != null)
-                          IconButton(
-                            icon: const Icon(Icons.visibility_outlined),
-                            onPressed: () => onViewProduct!(products[i]),
-                          ),
-                        if (!readOnly && onAdjustStock != null)
-                          IconButton(
-                            icon: const Icon(Icons.add_box_outlined),
-                            onPressed: () => onAdjustStock!(products[i]),
-                          ),
-                      ],
-                    ),
+              : CredProductGrid(
+                  products: products,
+                  mainAxisExtent: 168,
+                  padding: const EdgeInsets.fromLTRB(
+                    CredTheme.spaceMd,
+                    0,
+                    CredTheme.spaceMd,
+                    CredTheme.spaceMd,
+                  ),
+                  itemBuilder: (context, product, _) => CredProductCard(
+                    product: product,
+                    compact: true,
+                    onTap: onViewProduct != null ? () => onViewProduct!(product) : null,
+                    actions: [
+                      if (onViewProduct != null)
+                        CredProductAction(
+                          label: 'View',
+                          icon: Icons.visibility_outlined,
+                          onSelected: () => onViewProduct!(product),
+                        ),
+                      if (!readOnly && onAdjustStock != null)
+                        CredProductAction(
+                          label: 'Adjust',
+                          icon: Icons.add_box_outlined,
+                          onSelected: () => onAdjustStock!(product),
+                        ),
+                    ],
                   ),
                 ),
         ),

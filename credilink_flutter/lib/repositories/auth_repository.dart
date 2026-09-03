@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../core/errors/app_exception.dart';
+import '../core/utils/profile_resolver.dart';
 import '../models/user_profile.dart';
 import '../models/user_role.dart';
 
@@ -51,31 +52,25 @@ class AuthRepository {
   Future<UserProfile> signIn({
     required String email,
     required String password,
-    required UserRole selectedRole,
   }) async {
     final normalizedEmail = email.trim();
     try {
       return await _finishSignIn(
         email: normalizedEmail,
         password: password,
-        selectedRole: selectedRole,
       );
     } on FirebaseAuthException catch (e) {
       if (e.code == 'user-not-found') {
         final migrated = await _tryMigrateLegacyUser(
           email: normalizedEmail,
           password: password,
-          selectedRole: selectedRole,
         );
         if (migrated != null) return migrated;
       }
       if (e.code == 'wrong-password' || e.code == 'invalid-credential') {
         final legacy = await _findLegacyUserByEmail(normalizedEmail);
         if (legacy != null && _verifyLegacyPassword(password, legacy.data)) {
-          throw const AuthException(
-            'Your v1 password is correct, but Firebase Auth uses a different password. '
-            'Tap Forgot Password to reset, then log in again with the same role.',
-          );
+          throw const AuthException('Incorrect email or password.');
         }
       }
       throw AuthException(_mapAuthError(e));
@@ -85,7 +80,6 @@ class AuthRepository {
   Future<UserProfile> _finishSignIn({
     required String email,
     required String password,
-    required UserRole selectedRole,
   }) async {
     final credential = await _auth.signInWithEmailAndPassword(
       email: email,
@@ -93,29 +87,22 @@ class AuthRepository {
     );
     final user = credential.user;
     final uid = user?.uid;
-    if (uid == null) throw const AuthException('Login failed.');
+    if (uid == null) throw const AuthException('Incorrect email or password.');
 
     final profile = await _requireUserProfile(
       uid,
       email: user?.email ?? email,
     );
-    if (profile.id != uid) {
+    if (profile.id != uid && emailsCompatible(profile.email, email)) {
       await _linkLegacyProfile(legacyDocId: profile.id, firebaseUid: uid, email: email);
     }
-    return _validateProfileForRole(profile, selectedRole);
+    return _validateActiveProfile(profile);
   }
 
-  Future<UserProfile> _validateProfileForRole(UserProfile profile, UserRole selectedRole) async {
+  Future<UserProfile> _validateActiveProfile(UserProfile profile) async {
     if (!profile.isActive) {
       await _auth.signOut();
       throw const AuthException('Your account is inactive.');
-    }
-    if (profile.role != selectedRole) {
-      await _auth.signOut();
-      throw AuthException(
-        'Wrong role selected. This account is a ${profile.role.displayName}. '
-        'Tap ${profile.role.displayName} on the role grid and try again.',
-      );
     }
     return profile;
   }
@@ -123,14 +110,14 @@ class AuthRepository {
   Future<UserProfile?> _tryMigrateLegacyUser({
     required String email,
     required String password,
-    required UserRole selectedRole,
   }) async {
     final legacy = await _findLegacyUserByEmail(email);
     if (legacy == null) return null;
     if (!_verifyLegacyPassword(password, legacy.data)) return null;
 
     final profile = UserProfile.fromFirestore(legacy.id, legacy.data);
-    await _validateProfileForRole(profile, selectedRole);
+    if (!emailsCompatible(profile.email, email)) return null;
+    await _validateActiveProfile(profile);
 
     UserCredential credential;
     try {
@@ -140,16 +127,13 @@ class AuthRepository {
       );
     } on FirebaseAuthException catch (e) {
       if (e.code == 'email-already-in-use') {
-        throw const AuthException(
-          'This email already exists in Firebase Auth with a different password. '
-          'Use Forgot Password, then log in with your correct role.',
-        );
+        throw const AuthException('Incorrect email or password.');
       }
       throw AuthException(_mapAuthError(e));
     }
 
     final uid = credential.user?.uid;
-    if (uid == null) throw const AuthException('Migration failed.');
+    if (uid == null) throw const AuthException("Couldn't sign you in. Try again.");
     await _linkLegacyProfile(legacyDocId: legacy.id, firebaseUid: uid, email: email);
     return profile;
   }
@@ -167,18 +151,24 @@ class AuthRepository {
   }
 
   Future<({String id, Map<String, dynamic> data})?> _findLegacyUserByEmail(String email) async {
-    for (final candidate in {email, email.toLowerCase()}) {
-      final query = await _firestore
-          .collection('all_users')
-          .where('email', isEqualTo: candidate)
-          .limit(1)
-          .get();
-      if (query.docs.isNotEmpty) {
-        final doc = query.docs.first;
-        return (id: doc.id, data: doc.data());
+    final matches = await _findUsersByEmail(email);
+    if (matches.length != 1) return null;
+    return matches.first;
+  }
+
+  Future<List<({String id, Map<String, dynamic> data})>> _findUsersByEmail(String email) async {
+    final seen = <String>{};
+    final results = <({String id, Map<String, dynamic> data})>[];
+    for (final candidate in {email.trim(), email.trim().toLowerCase()}) {
+      if (candidate.isEmpty) continue;
+      final query = await _firestore.collection('all_users').where('email', isEqualTo: candidate).get();
+      for (final doc in query.docs) {
+        if (seen.add(doc.id)) {
+          results.add((id: doc.id, data: doc.data()));
+        }
       }
     }
-    return null;
+    return results;
   }
 
   bool _verifyLegacyPassword(String password, Map<String, dynamic> data) {
@@ -193,10 +183,10 @@ class AuthRepository {
     }
     if (data.role == UserRole.storeOwner &&
         (data.storeName == null || data.storeName!.trim().isEmpty)) {
-      throw const AuthException('Store name is required.');
+      throw const AuthException('Enter your store name.');
     }
     if (await _isUsernameTaken(data.username.trim())) {
-      throw const AuthException('Username is already taken.');
+      throw const AuthException('This username is taken');
     }
 
     UserCredential? credential;
@@ -224,7 +214,10 @@ class AuthRepository {
         createdAt: now,
         updatedAt: now,
       );
-      await _firestore.collection('all_users').doc(uid).set(profile.toFirestore());
+      await _firestore.collection('all_users').doc(uid).set({
+        ...profile.toFirestore(),
+        'firebase_uid': uid,
+      });
       if (data.role == UserRole.customer) {
         await _firestore.collection('customer_profiles').doc(uid).set({
           'user_id': uid,
@@ -261,7 +254,7 @@ class AuthRepository {
     required StoreEmployeeData data,
   }) async {
     if (await _isUsernameTaken(data.username.trim())) {
-      throw const AuthException('Username is already taken.');
+      throw const AuthException('This username is taken');
     }
 
     final email = (data.email?.trim().isNotEmpty ?? false)
@@ -270,7 +263,7 @@ class AuthRepository {
 
     if (data.email != null && data.email!.trim().isNotEmpty) {
       final emailTaken = await _isEmailTaken(email);
-      if (emailTaken) throw const AuthException('Email already in use.');
+      if (emailTaken) throw const AuthException('This email is already registered');
     }
 
     UserCredential? credential;
@@ -301,7 +294,10 @@ class AuthRepository {
         updatedAt: now,
       );
 
-      await _firestore.collection('all_users').doc(uid).set(profile.toFirestore());
+      await _firestore.collection('all_users').doc(uid).set({
+        ...profile.toFirestore(),
+        'firebase_uid': uid,
+      });
       await _firestore.collection('employee_profiles').doc(uid).set({
         'employee_id': uid,
         'store_owner_id': storeOwnerId,
@@ -419,41 +415,39 @@ class AuthRepository {
     final profile = await _fetchUserProfile(uid, email: email);
     if (profile == null) {
       await _auth.signOut();
-      throw const AuthException(
-        'No Firestore profile found for this account. '
-        'Ensure your all_users record has an email field matching this login, '
-        'or register again in the app.',
-      );
+      throw const AuthException("Couldn't sign you in. Try again.");
     }
     return profile;
   }
 
   Future<UserProfile?> _fetchUserProfile(String uid, {String? email}) async {
-    // Prefer explicit legacy link — avoids wrong role from a stray all_users/{uid} doc.
-    final linked = await _firestore
+    final doc = await _firestore.collection('all_users').doc(uid).get();
+    final docByUid = doc.exists && doc.data() != null
+        ? UserProfile.fromFirestore(doc.id, doc.data()!)
+        : null;
+
+    final linkedSnap = await _firestore
         .collection('all_users')
         .where('firebase_uid', isEqualTo: uid)
-        .limit(1)
         .get();
-    if (linked.docs.isNotEmpty) {
-      final match = linked.docs.first;
-      return UserProfile.fromFirestore(match.id, match.data());
-    }
+    final linkedByFirebaseUid = linkedSnap.docs
+        .map((d) => UserProfile.fromFirestore(d.id, d.data()))
+        .toList();
 
-    final doc = await _firestore.collection('all_users').doc(uid).get();
-    if (doc.exists && doc.data() != null) {
-      return UserProfile.fromFirestore(doc.id, doc.data()!);
-    }
-
+    var byEmail = <UserProfile>[];
     final normalizedEmail = email?.trim();
-    if (normalizedEmail == null || normalizedEmail.isEmpty) return null;
-
-    final legacy = await _findLegacyUserByEmail(normalizedEmail);
-    if (legacy != null) {
-      return UserProfile.fromFirestore(legacy.id, legacy.data);
+    if (normalizedEmail != null && normalizedEmail.isNotEmpty) {
+      final matches = await _findUsersByEmail(normalizedEmail);
+      byEmail = matches.map((m) => UserProfile.fromFirestore(m.id, m.data)).toList();
     }
 
-    return null;
+    return resolveUserProfile(
+      uid: uid,
+      authEmail: normalizedEmail,
+      docByUid: docByUid,
+      linkedByFirebaseUid: linkedByFirebaseUid,
+      byEmail: byEmail,
+    );
   }
 
   Future<bool> _isUsernameTaken(String username) async {
@@ -482,15 +476,15 @@ class AuthRepository {
       case 'user-not-found':
       case 'wrong-password':
       case 'invalid-credential':
-        return 'Invalid email or password.';
+        return 'Incorrect email or password.';
       case 'email-already-in-use':
-        return 'Email already in use.';
+        return 'This email is already registered';
       case 'weak-password':
-        return 'Password must be at least 6 characters.';
+        return 'Use at least 6 characters';
       case 'invalid-email':
         return 'Enter a valid email.';
       default:
-        return e.message ?? 'Authentication failed.';
+        return 'Something went wrong. Try again.';
     }
   }
 }

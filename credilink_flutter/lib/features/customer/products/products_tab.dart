@@ -77,7 +77,7 @@ class _CustomerProductsTabState extends ConsumerState<CustomerProductsTab> {
                       (store) => Card(
                         margin: const EdgeInsets.only(bottom: CredTheme.spaceXs),
                         child: ListTile(
-                          leading: CredAvatar(name: store.storeName),
+                          leading: CredAvatar(name: store.storeName, imageUrl: store.storeImage),
                           title: Text(store.storeName),
                           subtitle: Text(CustomerHelpers.storeLocation(store)),
                           trailing: const Icon(Icons.chevron_right),

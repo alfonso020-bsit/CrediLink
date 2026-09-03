@@ -14,11 +14,9 @@ import '../../../models/sale_record.dart';
 import '../../../models/user_profile.dart';
 import '../../../repositories/repositories.dart';
 import '../../../shared/widgets/barcode/barcode_input_card.dart';
-import '../../../shared/widgets/barcode/barcode_scanner_button.dart';
 import '../../../shared/widgets/barcode/barcode_scanner_screen.dart'
     if (dart.library.html) '../../../shared/widgets/barcode/barcode_scanner_screen_web.dart';
 import '../../../shared/widgets/commerce/checkout_sheet.dart';
-import '../../../shared/widgets/commerce/product_tile.dart';
 import '../../../shared/widgets/commerce/sale_cart_panel.dart';
 import '../../../shared/widgets/common/cred_async_view.dart';
 import '../../../shared/widgets/common/empty_state.dart';
@@ -26,6 +24,7 @@ import '../../../shared/widgets/customers/customer_picker_sheet.dart';
 import '../../../shared/widgets/customers/debt_customer_register_sheet.dart';
 import '../../../shared/widgets/filters/cred_search_field.dart';
 import '../../../shared/widgets/layout/cred_sheet_scaffold.dart';
+import '../../../shared/widgets/products/cred_product_card.dart';
 import '../../../shared/widgets/receipts/pdf_export_button.dart';
 import '../../../shared/widgets/receipts/receipt_view.dart';
 
@@ -80,7 +79,19 @@ class _EmployeePosScreenState extends ConsumerState<EmployeePosScreen> {
 
   Future<void> _addProductToCart(Product product) async {
     if (product.bulkOptions.isEmpty) {
-      setState(() => _cart.add(CartItem(product: product)));
+      setState(() {
+        final existing = _cart.indexWhere(
+          (c) =>
+              c.product.id == product.id &&
+              c.pricingOption == 'piece' &&
+              c.bulkOption == null,
+        );
+        if (existing >= 0) {
+          _cart[existing].quantity += 1;
+        } else {
+          _cart.add(CartItem(product: product));
+        }
+      });
       return;
     }
 
@@ -90,29 +101,41 @@ class _EmployeePosScreenState extends ConsumerState<EmployeePosScreen> {
     );
 
     if (item != null) {
-      setState(() => _cart.add(item));
+      setState(() {
+        final existing = _cart.indexWhere(
+          (c) =>
+              c.product.id == item.product.id &&
+              c.pricingOption == item.pricingOption &&
+              c.bulkOption?.label == item.bulkOption?.label,
+        );
+        if (existing >= 0) {
+          _cart[existing].quantity += item.quantity;
+        } else {
+          _cart.add(item);
+        }
+      });
     }
-  }
-
-  void _updateQuantity(int index, int quantity) {
-    setState(() => _cart[index].quantity = quantity);
-  }
-
-  void _removeItem(int index) {
-    setState(() => _cart.removeAt(index));
   }
 
   Future<void> _checkout(UserProfile profile, String storeOwnerId) async {
     if (_cart.isEmpty) return;
 
-    final cartSnapshot = List<CartItem>.from(_cart);
-    final type = await CheckoutSheet.show(context, items: cartSnapshot);
-    if (!mounted || type == null) return;
+    final result = await CheckoutSheet.show(context, items: _cart);
+    if (!mounted || result == null) return;
 
-    if (type == CheckoutType.cash) {
-      await _completeCashSale(profile, storeOwnerId, cartSnapshot);
+    // Sync any qty/remove edits from the sheet back into the live cart.
+    setState(() {
+      _cart
+        ..clear()
+        ..addAll(result.items);
+    });
+    if (_cart.isEmpty) return;
+
+    final items = List<CartItem>.from(_cart);
+    if (result.type == CheckoutType.cash) {
+      await _completeCashSale(profile, storeOwnerId, items);
     } else {
-      await _startDebtSale(profile, storeOwnerId, cartSnapshot);
+      await _startDebtSale(profile, storeOwnerId, items);
     }
   }
 
@@ -317,8 +340,12 @@ class _EmployeePosScreenState extends ConsumerState<EmployeePosScreen> {
     }
   }
 
-  Future<void> _showReceipt(SaleRecord sale, UserProfile profile) {
-    return showModalBottomSheet(
+  Future<void> _showReceipt(SaleRecord sale, UserProfile profile) async {
+    final storeOwnerId = resolveStoreOwnerId(profile);
+    final storeInfo = await ref.read(receiptStoreInfoProvider(storeOwnerId).future);
+    if (!mounted) return;
+
+    await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       builder: (ctx) => CredSheetScaffold(
@@ -329,12 +356,18 @@ class _EmployeePosScreenState extends ConsumerState<EmployeePosScreen> {
           children: [
             ReceiptView(
               sale: sale,
-              storeName: profile.storeName,
+              storeName: storeInfo.name,
+              storeLogoUrl: storeInfo.logoUrl,
+              receiptHeader: storeInfo.receiptHeader,
+              receiptFooter: storeInfo.receiptFooter,
               employeeName: profile.fullName,
             ),
             PdfExportButton(
               sale: sale,
-              storeName: profile.storeName,
+              storeName: storeInfo.name,
+              storeLogoUrl: storeInfo.logoUrl,
+              receiptHeader: storeInfo.receiptHeader,
+              receiptFooter: storeInfo.receiptFooter,
               employeeName: profile.fullName,
             ),
             ElevatedButton(
@@ -362,42 +395,42 @@ class _EmployeePosScreenState extends ConsumerState<EmployeePosScreen> {
         return Column(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(CredTheme.spaceMd, CredTheme.spaceMd, CredTheme.spaceMd, CredTheme.spaceXs),
-              child: CredSearchField(
-                controller: _searchController,
-                hint: 'Search products…',
-                onChanged: (v) => setState(() => _searchQuery = v),
+              padding: const EdgeInsets.fromLTRB(
+                CredTheme.spaceMd,
+                CredTheme.spaceMd,
+                CredTheme.spaceMd,
+                CredTheme.spaceXs,
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: CredTheme.spaceMd),
-              child: BarcodeInputCard(
-                controller: _barcodeController,
-                onSubmit: () => _lookupBarcode(storeOwnerId),
-                onScan: () async {
-                  final code = await scanBarcode(context);
-                  if (code != null) {
-                    _barcodeController.text = code;
-                    await _lookupBarcode(storeOwnerId);
-                  }
-                },
-              ),
-            ),
-            Align(
-              alignment: Alignment.centerRight,
-              child: Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: BarcodeScannerOutlinedButton(
-                  label: 'Scan Barcode',
-                  onScanned: (code) {
-                    _barcodeController.text = code;
-                    _lookupBarcode(storeOwnerId);
-                  },
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text('Retail Sales', style: CredTheme.pageTitle(context)),
+                  Text(
+                    'Search or scan products — review the cart at checkout',
+                    style: CredTheme.bodyMutedStyle(context),
+                  ),
+                  const SizedBox(height: CredTheme.spaceSm),
+                  CredSearchField(
+                    controller: _searchController,
+                    hint: 'Search products…',
+                    onChanged: (v) => setState(() => _searchQuery = v),
+                  ),
+                  const SizedBox(height: CredTheme.spaceSm),
+                  BarcodeInputCard(
+                    controller: _barcodeController,
+                    onSubmit: () => _lookupBarcode(storeOwnerId),
+                    onScan: () async {
+                      final code = await scanBarcode(context);
+                      if (code != null) {
+                        _barcodeController.text = code;
+                        await _lookupBarcode(storeOwnerId);
+                      }
+                    },
+                  ),
+                ],
               ),
             ),
             Expanded(
-              flex: 3,
               child: CredAsyncView<List<Product>>(
                 asyncValue: productsAsync,
                 emptyMessage: 'No products available',
@@ -407,26 +440,25 @@ class _EmployeePosScreenState extends ConsumerState<EmployeePosScreen> {
                   if (filtered.isEmpty) {
                     return const EmptyState(message: 'No matching products');
                   }
-                  return ListView.builder(
-                    itemCount: filtered.length,
-                    itemBuilder: (_, i) => ProductTile(
-                      product: filtered[i],
-                      onTap: () => _addProductToCart(filtered[i]),
+                  return CredProductGrid(
+                    products: filtered,
+                    padding: const EdgeInsets.fromLTRB(
+                      CredTheme.spaceMd,
+                      CredTheme.spaceXs,
+                      CredTheme.spaceMd,
+                      CredTheme.spaceSm,
+                    ),
+                    itemBuilder: (context, product, _) => CredProductCard(
+                      product: product,
+                      onTap: () => _addProductToCart(product),
                     ),
                   );
                 },
               ),
             ),
-            const Divider(height: 1),
-            Expanded(
-              flex: 2,
-              child: SaleCartPanel(
-                items: _cart,
-                onQuantityChanged: _updateQuantity,
-                onRemove: _removeItem,
-                onCheckout: _cart.isEmpty ? null : () => _checkout(profile, storeOwnerId),
-                checkoutLabel: 'Checkout',
-              ),
+            SaleCartSummaryBar(
+              items: _cart,
+              onCheckout: _cart.isEmpty ? null : () => _checkout(profile, storeOwnerId),
             ),
           ],
         );

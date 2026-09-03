@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/utils/currency_formatter.dart';
+import '../../../core/theme/cred_theme.dart';
 import '../../../models/product.dart';
+import 'cred_product_card.dart';
 
 class LowStockModal extends StatelessWidget {
   const LowStockModal({
@@ -51,7 +52,7 @@ class LowStockModal extends StatelessWidget {
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(CredTheme.spaceMd),
           child: Row(
             children: [
               Expanded(
@@ -65,48 +66,37 @@ class LowStockModal extends StatelessWidget {
         Expanded(
           child: products.isEmpty
               ? const Center(child: Text('No low stock products'))
-              : ListView.builder(
-                  controller: PrimaryScrollController.of(context),
-                  itemCount: products.length,
-                  itemBuilder: (_, i) => _AlertProductTile(
-                    product: products[i],
-                    onView: onViewProduct != null ? () => onViewProduct!(products[i]) : null,
-                    onAdjust: !readOnly && onAdjustStock != null
-                        ? () => onAdjustStock!(products[i])
-                        : null,
+              : CredProductGrid(
+                  products: products,
+                  mainAxisExtent: 168,
+                  padding: const EdgeInsets.fromLTRB(
+                    CredTheme.spaceMd,
+                    0,
+                    CredTheme.spaceMd,
+                    CredTheme.spaceMd,
+                  ),
+                  itemBuilder: (context, product, _) => CredProductCard(
+                    product: product,
+                    compact: true,
+                    onTap: onViewProduct != null ? () => onViewProduct!(product) : null,
+                    actions: [
+                      if (onViewProduct != null)
+                        CredProductAction(
+                          label: 'View',
+                          icon: Icons.visibility_outlined,
+                          onSelected: () => onViewProduct!(product),
+                        ),
+                      if (!readOnly && onAdjustStock != null)
+                        CredProductAction(
+                          label: 'Adjust',
+                          icon: Icons.add_box_outlined,
+                          onSelected: () => onAdjustStock!(product),
+                        ),
+                    ],
                   ),
                 ),
         ),
       ],
-    );
-  }
-}
-
-class _AlertProductTile extends StatelessWidget {
-  const _AlertProductTile({required this.product, this.onView, this.onAdjust});
-
-  final Product product;
-  final VoidCallback? onView;
-  final VoidCallback? onAdjust;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      leading: const Icon(Icons.warning_amber, color: Colors.orange),
-      title: Text(product.name),
-      subtitle: Text(
-        'Stock ${product.stockQuantity} ${product.unitOfMeasure} / min ${product.minStockLevel}',
-      ),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(CurrencyFormatter.format(product.sellingPrice)),
-          if (onView != null)
-            IconButton(icon: const Icon(Icons.visibility_outlined), onPressed: onView),
-          if (onAdjust != null)
-            IconButton(icon: const Icon(Icons.add_box_outlined), onPressed: onAdjust),
-        ],
-      ),
     );
   }
 }

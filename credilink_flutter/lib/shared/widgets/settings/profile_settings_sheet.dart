@@ -3,11 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/cred_theme.dart';
 import '../../../core/utils/cred_snackbar.dart';
+import '../../../core/utils/cred_validators.dart';
 import '../../../models/ph_address.dart';
 import '../../../models/user_profile.dart';
 import '../../../repositories/repositories.dart';
 import '../address/ph_address_picker.dart';
-import '../auth/cred_text_field.dart';
+import '../forms/cred_form_field.dart';
 import '../layout/cred_sheet_scaffold.dart';
 
 class ProfileSettingsSheet extends ConsumerStatefulWidget {
@@ -75,27 +76,25 @@ class _ProfileSettingsSheetState extends ConsumerState<ProfileSettingsSheet> {
               label: 'Full Name',
               icon: Icons.person_outline,
               required: true,
-              validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+              textInputAction: TextInputAction.next,
+              autofillHints: const [AutofillHints.name],
+              validator: (v) => CredValidators.required(v, message: 'Enter your name'),
             ),
             const SizedBox(height: CredTheme.spaceSm),
-            CredTextField(
-              controller: _email,
-              label: 'Email',
-              icon: Icons.email_outlined,
-              keyboardType: TextInputType.emailAddress,
-            ),
+            CredEmailField(controller: _email, required: false),
             const SizedBox(height: CredTheme.spaceSm),
-            CredTextField(
-              controller: _phone,
-              label: 'Phone',
-              icon: Icons.phone_outlined,
-              keyboardType: TextInputType.phone,
-            ),
+            CredPhoneField(controller: _phone),
             const SizedBox(height: CredTheme.spaceMd),
             PhAddressPicker(
               sitioController: _sitio,
               initial: _address,
               onChanged: (a) => _address = a,
+            ),
+            const SizedBox(height: CredTheme.spaceMd),
+            CredTextField(
+              controller: _sitio,
+              label: 'Sitio / Purok',
+              icon: Icons.place_outlined,
             ),
             const SizedBox(height: CredTheme.spaceMd),
             ElevatedButton(

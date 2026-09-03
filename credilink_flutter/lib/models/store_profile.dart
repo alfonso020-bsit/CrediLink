@@ -12,6 +12,7 @@ class StoreProfile {
     this.businessPermitNumber,
     this.businessHours,
     this.facebookPage,
+    this.storeImage,
   });
 
   final String? id;
@@ -26,6 +27,8 @@ class StoreProfile {
   final String? businessPermitNumber;
   final String? businessHours;
   final String? facebookPage;
+  /// Logo image — often a data URI / base64 string (Ionic `store_image`).
+  final String? storeImage;
 
   factory StoreProfile.fromFirestore(String id, Map<String, dynamic> data) {
     return StoreProfile(
@@ -41,6 +44,7 @@ class StoreProfile {
       businessPermitNumber: data['business_permit_number'] as String?,
       businessHours: data['business_hours'] as String?,
       facebookPage: data['facebook_page'] as String?,
+      storeImage: data['store_image'] as String?,
     );
   }
 }

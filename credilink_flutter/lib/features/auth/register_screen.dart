@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/errors/app_exception.dart';
+import '../../core/theme/cred_theme.dart';
 import '../../core/utils/cred_snackbar.dart';
+import '../../core/utils/cred_validators.dart';
 import '../../models/ph_address.dart';
 import '../../models/user_profile.dart';
 import '../../models/user_role.dart';
@@ -11,9 +13,8 @@ import '../../repositories/repositories.dart';
 import '../../shared/widgets/address/ph_address_picker.dart';
 import '../../shared/widgets/auth/auth_scaffold.dart';
 import '../../shared/widgets/auth/cred_buttons.dart';
-import '../../shared/widgets/auth/cred_password_field.dart';
-import '../../shared/widgets/auth/cred_text_field.dart';
 import '../../shared/widgets/auth/role_selector.dart';
+import '../../shared/widgets/forms/cred_form_field.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key, this.initialRole});
@@ -76,8 +77,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           ));
       if (!mounted) return;
       CredSnackBar.show(context, 'Account created! Please log in.');
-      final roleParam = _role == UserRole.storeOwner ? 'storeowner' : 'customer';
-      context.go('/login?role=$roleParam');
+      context.go('/login');
     } on AuthException catch (e) {
       if (mounted) CredSnackBar.show(context, e.message, isError: true);
     } finally {
@@ -88,75 +88,118 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return AuthScaffold(
-      appBarTitle: 'Registration',
-      welcomeTitle: 'Create Account',
-      welcomeSubtitle: 'Register as Customer or Store Owner',
+      welcomeTitle: 'Create account',
+      welcomeSubtitle: 'Register as a Customer or Store Owner',
       showBack: true,
       onBack: () => context.go('/login'),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            RoleSelector(
-              roles: const [UserRole.customer, UserRole.storeOwner],
-              selectedRole: _role,
-              style: RoleSelectorStyle.toggle,
-              onChanged: (r) => setState(() => _role = r),
-            ),
-            const SizedBox(height: 20),
-            CredTextField(controller: _username, label: 'Username', icon: Icons.alternate_email, validator: _req, required: true),
-            const SizedBox(height: 16),
-            CredTextField(controller: _fullName, label: 'Full Name', icon: Icons.person, validator: _req, required: true),
-            const SizedBox(height: 16),
-            CredTextField(
-              controller: _email,
-              label: 'Email',
-              icon: Icons.email_outlined,
-              keyboardType: TextInputType.emailAddress,
-              validator: (v) => v != null && v.contains('@') ? null : 'Valid email required',
-              required: true,
-            ),
-            const SizedBox(height: 16),
-            CredTextField(controller: _phone, label: 'Phone', icon: Icons.phone_outlined),
-            const SizedBox(height: 16),
-            CredPasswordField(
-              controller: _password,
-              validator: (v) => v != null && v.length >= 6 ? null : 'Min 6 characters',
-            ),
-            const SizedBox(height: 16),
-            CredPasswordField(
-              controller: _confirm,
-              label: 'Confirm Password',
-              validator: (v) => v == _password.text ? null : 'Passwords do not match',
-            ),
-            if (_role == UserRole.storeOwner) ...[
-              const SizedBox(height: 16),
-              CredTextField(controller: _storeName, label: 'Store Name', icon: Icons.storefront_outlined, validator: _req, required: true),
+      child: AutofillGroup(
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const _SectionLabel('Account type'),
+              RoleSelector(
+                roles: const [UserRole.customer, UserRole.storeOwner],
+                selectedRole: _role,
+                onChanged: (r) => setState(() => _role = r),
+              ),
+              const SizedBox(height: CredTheme.spaceLg),
+              const _SectionLabel('Account'),
+              CredTextField(
+                controller: _username,
+                label: 'Username',
+                icon: Icons.alternate_email,
+                required: true,
+                textInputAction: TextInputAction.next,
+                autofillHints: const [AutofillHints.username],
+                validator: (v) => CredValidators.required(v, message: 'Enter your username'),
+              ),
+              const SizedBox(height: CredTheme.spaceMd),
+              CredEmailField(controller: _email),
+              const SizedBox(height: CredTheme.spaceMd),
+              CredPasswordField(
+                controller: _password,
+                newPassword: true,
+                textInputAction: TextInputAction.next,
+              ),
+              const SizedBox(height: CredTheme.spaceMd),
+              CredPasswordField(
+                controller: _confirm,
+                label: 'Confirm password',
+                newPassword: true,
+                validator: (v) => CredValidators.confirmPassword(v, _password.text),
+              ),
+              const SizedBox(height: CredTheme.spaceLg),
+              const _SectionLabel('Your details'),
+              CredTextField(
+                controller: _fullName,
+                label: 'Full name',
+                icon: Icons.person_outline,
+                required: true,
+                textInputAction: TextInputAction.next,
+                autofillHints: const [AutofillHints.name],
+                validator: (v) => CredValidators.required(v, message: 'Enter your name'),
+              ),
+              const SizedBox(height: CredTheme.spaceMd),
+              CredPhoneField(controller: _phone),
+              if (_role == UserRole.storeOwner) ...[
+                const SizedBox(height: CredTheme.spaceMd),
+                CredTextField(
+                  controller: _storeName,
+                  label: 'Store name',
+                  icon: Icons.storefront_outlined,
+                  required: true,
+                  textInputAction: TextInputAction.next,
+                  validator: (v) => CredValidators.required(v, message: 'Enter your store name'),
+                ),
+              ],
+              const SizedBox(height: CredTheme.spaceLg),
+              const _SectionLabel('Address'),
+              PhAddressPicker(
+                onChanged: (PhAddress a) => _address = a,
+                sitioController: _sitio,
+              ),
+              const SizedBox(height: CredTheme.spaceMd),
+              CredTextField(
+                controller: _sitio,
+                label: 'Sitio / Purok',
+                icon: Icons.place_outlined,
+                textInputAction: TextInputAction.done,
+                onFieldSubmitted: (_) => _register(),
+              ),
+              const SizedBox(height: CredTheme.spaceLg),
+              CredPrimaryButton(
+                label: 'Create account',
+                icon: Icons.person_add_outlined,
+                onPressed: _loading ? null : _register,
+                isLoading: _loading,
+              ),
+              const SizedBox(height: CredTheme.spaceMd),
+              TextButton(
+                onPressed: _loading ? null : () => context.go('/login'),
+                child: const Text('Already have an account? Log in'),
+              ),
             ],
-            const SizedBox(height: 20),
-            const Text(
-              'Address',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 8),
-            PhAddressPicker(onChanged: (PhAddress a) => _address = a, sitioController: _sitio),
-            const SizedBox(height: 12),
-            CredTextField(controller: _sitio, label: 'Sitio / Purok (optional)', icon: Icons.place_outlined),
-            const SizedBox(height: 24),
-            CredPrimaryButton(
-              label: 'Create Account',
-              icon: Icons.person_add_outlined,
-              onPressed: _loading ? null : _register,
-              isLoading: _loading,
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
+}
 
-  String? _req(String? v) => v == null || v.trim().isEmpty ? 'Required' : null;
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: CredTheme.spaceSm),
+      child: Text(text, style: CredTheme.sectionTitle(context)),
+    );
+  }
 }
 
 UserRole? roleFromQuery(String? role) {

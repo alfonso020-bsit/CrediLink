@@ -11,15 +11,16 @@ import '../../../services/inventory_pdf_service.dart';
 import '../../../shared/widgets/common/cred_async_view.dart';
 import '../../../shared/widgets/common/empty_state.dart';
 import '../../../shared/widgets/filters/cred_search_field.dart';
+import '../../../shared/widgets/layout/cred_filter_chips.dart';
+import '../../../shared/widgets/layout/cred_quick_action_grid.dart';
+import '../../../shared/widgets/layout/cred_section.dart';
+import '../../../shared/widgets/layout/cred_tab_page_layout.dart';
+import '../../../shared/widgets/products/cred_product_card.dart';
 import '../../../shared/widgets/products/inventory_filter_panel.dart';
-import '../../../shared/widgets/products/inventory_product_list_tile.dart';
 import '../../../shared/widgets/products/inventory_summary_cards.dart';
 import '../../../shared/widgets/products/low_stock_modal.dart';
 import '../../../shared/widgets/products/out_of_stock_modal.dart';
 import '../../../shared/widgets/products/product_detail_sheet.dart';
-import '../../../shared/widgets/layout/cred_filter_chips.dart';
-import '../../../shared/widgets/layout/cred_quick_action_grid.dart';
-import '../../../shared/widgets/layout/cred_section.dart';
 
 class StoreOwnerInventoryTab extends ConsumerStatefulWidget {
   const StoreOwnerInventoryTab({super.key});
@@ -45,11 +46,13 @@ class _StoreOwnerInventoryTabState extends ConsumerState<StoreOwnerInventoryTab>
     final term = _searchController.text.trim().toLowerCase();
     if (term.isNotEmpty) {
       result = result
-          .where((p) =>
-              p.name.toLowerCase().contains(term) ||
-              p.barcode.toLowerCase().contains(term) ||
-              p.category.toLowerCase().contains(term) ||
-              p.brand.toLowerCase().contains(term))
+          .where(
+            (p) =>
+                p.name.toLowerCase().contains(term) ||
+                p.barcode.toLowerCase().contains(term) ||
+                p.category.toLowerCase().contains(term) ||
+                p.brand.toLowerCase().contains(term),
+          )
           .toList();
     }
     if (_categoryFilter != null && _categoryFilter!.isNotEmpty) {
@@ -112,22 +115,61 @@ class _StoreOwnerInventoryTabState extends ConsumerState<StoreOwnerInventoryTab>
                 _stockFilter != null ||
                 _searchController.text.trim().isNotEmpty;
 
-            return RefreshIndicator(
+            return CredTabPageLayoutBuilder(
               onRefresh: () async {
                 ref.invalidate(currentStoreProductsProvider);
                 await ref.read(currentStoreProductsProvider.future);
               },
-              child: CustomScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                slivers: [
-                  SliverToBoxAdapter(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        const SizedBox(height: CredTheme.spaceMd),
-                        InventorySummaryCards(
-                          stats: stats,
-                          onLowStockTap: lowStock.isEmpty
+              header: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const SizedBox(height: CredTheme.spaceMd),
+                  CredSection(
+                    title: 'Overview',
+                    subtitle: 'Stock health at a glance',
+                    child: InventorySummaryCards(
+                      stats: stats,
+                      onLowStockTap: lowStock.isEmpty
+                          ? null
+                          : () => LowStockModal.show(
+                                context,
+                                products: lowStock,
+                                readOnly: true,
+                                onViewProduct: (p) {
+                                  Navigator.pop(context);
+                                  ProductDetailSheet.show(context, product: p, readOnly: true);
+                                },
+                                onFilterList: () {
+                                  Navigator.pop(context);
+                                  setState(() => _stockFilter = StockStatus.lowStock);
+                                },
+                              ),
+                      onOutOfStockTap: outOfStock.isEmpty
+                          ? null
+                          : () => OutOfStockModal.show(
+                                context,
+                                products: outOfStock,
+                                readOnly: true,
+                                onViewProduct: (p) {
+                                  Navigator.pop(context);
+                                  ProductDetailSheet.show(context, product: p, readOnly: true);
+                                },
+                                onFilterList: () {
+                                  Navigator.pop(context);
+                                  setState(() => _stockFilter = StockStatus.outOfStock);
+                                },
+                              ),
+                    ),
+                  ),
+                  const SizedBox(height: CredTheme.spaceLg),
+                  CredSection(
+                    title: 'Quick Actions',
+                    child: CredQuickActionGrid(
+                      actions: [
+                        CredQuickAction(
+                          label: 'Low Stock',
+                          icon: Icons.warning_amber,
+                          onPressed: lowStock.isEmpty
                               ? null
                               : () => LowStockModal.show(
                                     context,
@@ -142,84 +184,43 @@ class _StoreOwnerInventoryTabState extends ConsumerState<StoreOwnerInventoryTab>
                                       setState(() => _stockFilter = StockStatus.lowStock);
                                     },
                                   ),
-                          onOutOfStockTap: outOfStock.isEmpty
+                        ),
+                        CredQuickAction(
+                          label: 'Out of Stock',
+                          icon: Icons.remove_shopping_cart,
+                          onPressed: outOfStock.isEmpty
                               ? null
-                              : () => OutOfStockModal.show(
+                              : () {
+                                  setState(() => _stockFilter = StockStatus.outOfStock);
+                                  CredSnackBar.show(
                                     context,
-                                    products: outOfStock,
-                                    readOnly: true,
-                                    onViewProduct: (p) {
-                                      Navigator.pop(context);
-                                      ProductDetailSheet.show(context, product: p, readOnly: true);
-                                    },
-                                    onFilterList: () {
-                                      Navigator.pop(context);
-                                      setState(() => _stockFilter = StockStatus.outOfStock);
-                                    },
-                                  ),
+                                    'Showing ${outOfStock.length} out of stock products',
+                                  );
+                                },
                         ),
-                        const SizedBox(height: 12),
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                          child: CredSection(
-                            title: 'Quick Actions',
-                            child: CredQuickActionGrid(
-                              itemWidth: 160,
-                              actions: [
-                                CredQuickAction(
-                                  label: 'Low Stock',
-                                  icon: Icons.warning_amber,
-                                  onPressed: lowStock.isEmpty
-                                      ? null
-                                      : () => LowStockModal.show(
-                                            context,
-                                            products: lowStock,
-                                            readOnly: true,
-                                            onViewProduct: (p) {
-                                              Navigator.pop(context);
-                                              ProductDetailSheet.show(context, product: p, readOnly: true);
-                                            },
-                                            onFilterList: () {
-                                              Navigator.pop(context);
-                                              setState(() => _stockFilter = StockStatus.lowStock);
-                                            },
-                                          ),
-                                ),
-                                CredQuickAction(
-                                  label: 'Out of Stock',
-                                  icon: Icons.remove_shopping_cart,
-                                  onPressed: outOfStock.isEmpty
-                                      ? null
-                                      : () {
-                                          setState(() => _stockFilter = StockStatus.outOfStock);
-                                          CredSnackBar.show(
-                                            context,
-                                            'Showing ${outOfStock.length} out of stock products',
-                                          );
-                                        },
-                                ),
-                                CredQuickAction(
-                                  label: _exporting ? 'Exporting…' : 'Export PDF',
-                                  icon: Icons.picture_as_pdf,
-                                  onPressed: _exporting ? null : () => _exportPdf(active, profile),
-                                ),
-                                CredQuickAction(
-                                  label: 'Show All',
-                                  icon: Icons.list,
-                                  onPressed: hasFilter ? _clearFilters : null,
-                                ),
-                              ],
-                            ),
-                          ),
+                        CredQuickAction(
+                          label: _exporting ? 'Exporting…' : 'Export PDF',
+                          icon: Icons.picture_as_pdf,
+                          onPressed: _exporting ? null : () => _exportPdf(active, profile),
                         ),
-                        const SizedBox(height: 12),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: CredSearchField(
-                            controller: _searchController,
-                            hint: 'Search name, barcode, category, brand',
-                            onChanged: (_) => setState(() {}),
-                          ),
+                        CredQuickAction(
+                          label: 'Show All',
+                          icon: Icons.list,
+                          onPressed: hasFilter ? _clearFilters : null,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: CredTheme.spaceLg),
+                  CredSection(
+                    title: 'Products',
+                    subtitle: '${filtered.length} shown',
+                    child: Column(
+                      children: [
+                        CredSearchField(
+                          controller: _searchController,
+                          hint: 'Search name, barcode, category, brand',
+                          onChanged: (_) => setState(() {}),
                         ),
                         StoreOwnerCategoryFilter(
                           categories: categories,
@@ -228,13 +229,15 @@ class _StoreOwnerInventoryTabState extends ConsumerState<StoreOwnerInventoryTab>
                         ),
                         if (hasFilter)
                           Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                            padding: const EdgeInsets.only(top: CredTheme.spaceXs),
                             child: CredFilterChips(
                               onClearAll: _clearFilters,
                               chips: [
                                 if (_stockFilter != null)
                                   CredFilterChipData(
-                                    label: _stockFilter == StockStatus.lowStock ? 'Low Stock' : 'Out of Stock',
+                                    label: _stockFilter == StockStatus.lowStock
+                                        ? 'Low Stock'
+                                        : 'Out of Stock',
                                     onDeleted: () => setState(() => _stockFilter = null),
                                   ),
                                 if (_categoryFilter != null && _categoryFilter!.isNotEmpty)
@@ -245,32 +248,42 @@ class _StoreOwnerInventoryTabState extends ConsumerState<StoreOwnerInventoryTab>
                               ],
                             ),
                           ),
-                        const SizedBox(height: 8),
                       ],
                     ),
                   ),
-                  if (filtered.isEmpty)
-                    const SliverFillRemaining(
-                      hasScrollBody: false,
-                      child: EmptyState(message: 'No products found'),
-                    )
-                  else
-                    SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, i) => InventoryProductListTile(
-                          product: filtered[i],
-                          showBrand: true,
-                          onTap: () => ProductDetailSheet.show(
-                            context,
-                            product: filtered[i],
-                            readOnly: true,
-                          ),
-                        ),
-                        childCount: filtered.length,
-                      ),
-                    ),
+                  const SizedBox(height: CredTheme.spaceSm),
                 ],
               ),
+              slivers: [
+                if (filtered.isEmpty)
+                  const SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: EmptyState(message: 'No products found'),
+                  )
+                  else
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(
+                        CredTheme.spaceMd,
+                        0,
+                        CredTheme.spaceMd,
+                        CredTheme.spaceLg,
+                      ),
+                      sliver: SliverGrid(
+                        gridDelegate: CredProductGrid.gridDelegate(),
+                        delegate: SliverChildBuilderDelegate(
+                          (context, i) => CredProductCard(
+                            product: filtered[i],
+                            onTap: () => ProductDetailSheet.show(
+                              context,
+                              product: filtered[i],
+                              readOnly: true,
+                            ),
+                          ),
+                          childCount: filtered.length,
+                        ),
+                      ),
+                    ),
+              ],
             );
           },
         );

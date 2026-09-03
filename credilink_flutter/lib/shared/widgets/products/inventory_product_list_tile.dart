@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/cred_theme.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../models/product.dart';
 import 'inventory_status_badge.dart';
@@ -16,6 +17,7 @@ class InventoryProductListTile extends StatelessWidget {
     this.showBrand = true,
     this.showRowActions = false,
     this.enableSlideActions = false,
+    this.margin = const EdgeInsets.fromLTRB(16, 0, 16, 8),
   });
 
   final Product product;
@@ -27,6 +29,7 @@ class InventoryProductListTile extends StatelessWidget {
   final bool showBrand;
   final bool showRowActions;
   final bool enableSlideActions;
+  final EdgeInsetsGeometry margin;
 
   String get _bulkLine {
     if (product.bulkOptions.isNotEmpty) {
@@ -41,10 +44,19 @@ class InventoryProductListTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tile = Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+    final tile = Material(
+      color: CredTheme.cardBackground,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(CredTheme.radiusCard),
+        side: const BorderSide(color: CredTheme.border),
+      ),
+      clipBehavior: Clip.antiAlias,
       child: ListTile(
         onTap: onTap,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: CredTheme.spaceMd,
+          vertical: CredTheme.spaceXs,
+        ),
         leading: _ProductAvatar(product: product),
         title: Text(product.name, style: const TextStyle(fontWeight: FontWeight.w600)),
         subtitle: Column(
@@ -88,7 +100,12 @@ class InventoryProductListTile extends StatelessWidget {
       ),
     );
 
-    if (!enableSlideActions) return tile;
+    final padded = Padding(
+      padding: margin,
+      child: tile,
+    );
+
+    if (!enableSlideActions) return padded;
 
     return Dismissible(
       key: ValueKey(product.id ?? product.barcode),
@@ -126,7 +143,7 @@ class InventoryProductListTile extends StatelessWidget {
         padding: const EdgeInsets.only(right: 20),
         child: const Icon(Icons.delete_outline, color: Colors.red),
       ),
-      child: tile,
+      child: padded,
     );
   }
 }

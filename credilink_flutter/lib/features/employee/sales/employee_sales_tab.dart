@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../core/theme/cred_theme.dart';
 import '../../../core/utils/cred_snackbar.dart';
 import '../../../core/utils/currency_formatter.dart';
+import '../../../core/utils/sale_filters.dart';
 import '../../../core/utils/store_scope.dart';
 import '../../../models/debt_record.dart';
 import '../../../models/sale_record.dart';
@@ -12,7 +13,9 @@ import '../../../models/user_profile.dart';
 import '../../../repositories/repositories.dart';
 import '../../../shared/widgets/common/cred_async_view.dart';
 import '../../../shared/widgets/common/empty_state.dart';
-import '../../../shared/widgets/filters/cred_segmented_filter.dart';
+import '../../../shared/widgets/layout/cred_section.dart';
+import '../../../shared/widgets/layout/cred_status_chip.dart';
+import '../../../shared/widgets/layout/cred_surface_tile.dart';
 import '../../../shared/widgets/layout/cred_sheet_scaffold.dart';
 import '../../../shared/widgets/receipts/payment_sheet.dart';
 import '../../../shared/widgets/receipts/pdf_export_button.dart';
@@ -27,8 +30,16 @@ class EmployeeSalesTab extends ConsumerStatefulWidget {
 }
 
 class _EmployeeSalesTabState extends ConsumerState<EmployeeSalesTab> {
-  SaleType _filter = SaleType.cash;
+  String _typeFilter = 'all';
   DateTimeRange? _dateRange;
+
+  SaleType? get _saleType {
+    return switch (_typeFilter) {
+      'cash' => SaleType.cash,
+      'debt' => SaleType.debt,
+      _ => null,
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -46,32 +57,24 @@ class _EmployeeSalesTabState extends ConsumerState<EmployeeSalesTab> {
         return Column(
           children: [
             ReportFilterBar(
+              selectedType: _typeFilter,
+              onTypeChanged: (v) => setState(() => _typeFilter = v),
               onDateRangeChanged: (range) => setState(() => _dateRange = range),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(CredTheme.spaceMd, 0, CredTheme.spaceMd, CredTheme.spaceXs),
-              child: CredSegmentedFilter<SaleType>(
-                options: const [SaleType.cash, SaleType.debt],
-                selected: _filter,
-                onChanged: (v) => setState(() => _filter = v),
-                labelBuilder: (v) => v == SaleType.cash ? 'Cash' : 'Debt',
-              ),
             ),
             Expanded(
               child: CredAsyncView<List<SaleRecord>>(
                 asyncValue: salesAsync,
-                emptyMessage: 'No ${_filter == SaleType.cash ? 'cash' : 'debt'} sales',
+                emptyMessage: 'No sales',
                 onRetry: () => ref.invalidate(storeSalesProvider(storeOwnerId)),
                 builder: (items) {
-                  final filtered = items
-                      .where((s) => s.type == _filter)
-                      .where(_matchesDateRange)
-                      .toList();
+                  final filtered = filterSales(
+                    items,
+                    type: _saleType,
+                    dateRange: _dateRange,
+                  );
 
                   if (filtered.isEmpty) {
-                    return EmptyState(
-                      message: 'No ${_filter == SaleType.cash ? 'cash' : 'debt'} sales in this period',
-                    );
+                    return const EmptyState(message: 'No sales in this period');
                   }
 
                   return RefreshIndicator(
@@ -79,13 +82,25 @@ class _EmployeeSalesTabState extends ConsumerState<EmployeeSalesTab> {
                       ref.invalidate(storeSalesProvider(storeOwnerId));
                       await ref.read(storeSalesProvider(storeOwnerId).future);
                     },
-                    child: ListView.builder(
-                      itemCount: filtered.length,
-                      itemBuilder: (_, i) => _SaleTile(
-                        sale: filtered[i],
-                        profile: profile,
-                        onTap: () => _showReceipt(context, filtered[i], profile),
-                      ),
+                    child: ListView(
+                      padding: CredTheme.pagePadding,
+                      children: [
+                        CredSection(
+                          title: 'Store sales',
+                          subtitle: 'All transactions at your store',
+                          child: Column(
+                            children: [
+                              for (var i = 0; i < filtered.length; i++) ...[
+                                if (i > 0) const SizedBox(height: CredTheme.spaceXs),
+                                _SaleTile(
+                                  sale: filtered[i],
+                                  onTap: () => _showReceipt(context, filtered[i], profile),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   );
                 },
@@ -97,13 +112,11 @@ class _EmployeeSalesTabState extends ConsumerState<EmployeeSalesTab> {
     );
   }
 
-  bool _matchesDateRange(SaleRecord sale) {
-    if (_dateRange == null || sale.createdAt == null) return true;
-    final created = sale.createdAt!;
-    return !created.isBefore(_dateRange!.start) && created.isBefore(_dateRange!.end);
-  }
+  Future<void> _showReceipt(BuildContext context, SaleRecord sale, UserProfile profile) async {
+    final storeOwnerId = resolveStoreOwnerId(profile);
+    final storeInfo = await ref.read(receiptStoreInfoProvider(storeOwnerId).future);
+    if (!context.mounted) return;
 
-  void _showReceipt(BuildContext context, SaleRecord sale, UserProfile profile) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -115,10 +128,14 @@ class _EmployeeSalesTabState extends ConsumerState<EmployeeSalesTab> {
           children: [
             ReceiptView(
               sale: sale,
-              storeName: profile.storeName,
+              storeName: storeInfo.name,
+              storeLogoUrl: storeInfo.logoUrl,
+              receiptHeader: storeInfo.receiptHeader,
+              receiptFooter: storeInfo.receiptFooter,
               employeeName: profile.fullName,
             ),
-            if (sale.type == SaleType.debt && (sale.remainingBalance ?? 0) > 0)
+            const SizedBox(height: CredTheme.spaceMd),
+            if (sale.type == SaleType.debt && (sale.remainingBalance ?? 0) > 0) ...[
               ElevatedButton.icon(
                 onPressed: () {
                   Navigator.pop(ctx);
@@ -127,11 +144,14 @@ class _EmployeeSalesTabState extends ConsumerState<EmployeeSalesTab> {
                 icon: const Icon(Icons.payment),
                 label: const Text('Record Payment'),
               ),
-            if (sale.type == SaleType.debt && (sale.remainingBalance ?? 0) > 0)
               const SizedBox(height: CredTheme.spaceXs),
+            ],
             PdfExportButton(
               sale: sale,
-              storeName: profile.storeName,
+              storeName: storeInfo.name,
+              storeLogoUrl: storeInfo.logoUrl,
+              receiptHeader: storeInfo.receiptHeader,
+              receiptFooter: storeInfo.receiptFooter,
               employeeName: profile.fullName,
             ),
           ],
@@ -188,47 +208,63 @@ class _EmployeeSalesTabState extends ConsumerState<EmployeeSalesTab> {
 class _SaleTile extends StatelessWidget {
   const _SaleTile({
     required this.sale,
-    required this.profile,
     required this.onTap,
   });
 
   final SaleRecord sale;
-  final UserProfile profile;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final cred = CredThemeExtension.of(context);
-    final accent = sale.type == SaleType.cash ? cred.success : cred.warning;
+    final isCash = sale.type == SaleType.cash;
+    final isOverdue = !isCash && sale.status == 'overdue';
     final dateStr = sale.createdAt != null
-        ? DateFormat('MMM d, yyyy h:mm a').format(sale.createdAt!)
+        ? DateFormat('MMM d, yyyy · h:mm a').format(sale.createdAt!)
         : '—';
+    final shortId = sale.id.length > 8 ? sale.id.substring(0, 8) : sale.id;
+    final itemCount = sale.items.length;
+    final itemLabel = itemCount == 1 ? '1 item' : '$itemCount items';
 
-    return ListTile(
+    return CredSurfaceTile(
+      onTap: onTap,
+      emphasized: isOverdue,
       leading: CircleAvatar(
-        backgroundColor: accent.withValues(alpha: 0.15),
+        backgroundColor: (isCash ? CredTheme.success : CredTheme.info).withValues(alpha: 0.15),
         child: Icon(
-          sale.type == SaleType.cash ? Icons.payments : Icons.receipt_long,
-          color: accent,
+          isCash ? Icons.payments : Icons.receipt_long,
+          color: isCash ? CredTheme.success : CredTheme.info,
+          size: 20,
         ),
       ),
-      title: Text(sale.customerName?.isNotEmpty == true ? sale.customerName! : 'Walk-in Customer'),
-      subtitle: Text(dateStr),
+      title: Text(
+        (sale.customerName != null && sale.customerName!.trim().isNotEmpty)
+            ? sale.customerName!
+            : 'Walk-in',
+      ),
+      subtitle: Text('$dateStr · #$shortId · $itemLabel'),
       trailing: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.end,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Text(
             CurrencyFormatter.format(sale.total),
-            style: const TextStyle(fontWeight: FontWeight.w600),
+            style: const TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 15,
+              color: CredTheme.titleText,
+            ),
           ),
-          Text(
-            sale.type == SaleType.cash ? 'Cash' : (sale.paymentStatus ?? 'Debt'),
-            style: CredTheme.bodyMutedStyle(context).copyWith(fontSize: 12),
-          ),
+          const SizedBox(height: 4),
+          if (isCash)
+            CredStatusChip.saleType(isCash: true, compact: true)
+          else
+            CredStatusChip.debt(
+              paymentStatus: sale.paymentStatus ?? 'unpaid',
+              isOverdue: isOverdue,
+              compact: true,
+            ),
         ],
       ),
-      onTap: onTap,
     );
   }
 }

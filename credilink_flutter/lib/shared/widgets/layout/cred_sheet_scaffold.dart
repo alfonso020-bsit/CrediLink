@@ -18,45 +18,54 @@ class CredSheetScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final content = scrollable
-        ? SingleChildScrollView(
-            child: child,
-          )
-        : child;
+    final media = MediaQuery.of(context);
+    final maxHeight = media.size.height * 0.92;
 
-    return Padding(
-      padding: EdgeInsets.only(
-        left: CredTheme.spaceLg,
-        right: CredTheme.spaceLg,
-        top: CredTheme.spaceMd,
-        bottom: MediaQuery.of(context).viewInsets.bottom + CredTheme.spaceLg,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.only(bottom: CredTheme.spaceMd),
-              decoration: BoxDecoration(
-                color: CredTheme.border,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
-          Row(
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: CredTheme.spaceLg,
+          right: CredTheme.spaceLg,
+          top: CredTheme.spaceMd,
+          bottom: media.viewInsets.bottom + CredTheme.spaceLg,
+        ),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: maxHeight),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(
-                child: Text(title, style: CredTheme.pageTitle(context)),
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: CredTheme.spaceMd),
+                  decoration: BoxDecoration(
+                    color: CredTheme.border,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
               ),
-              if (actions != null) ...actions!,
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(title, style: CredTheme.pageTitle(context)),
+                  ),
+                  if (actions != null) ...actions!,
+                ],
+              ),
+              const SizedBox(height: CredTheme.spaceMd),
+              if (scrollable)
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: child,
+                  ),
+                )
+              else
+                child,
             ],
           ),
-          const SizedBox(height: CredTheme.spaceMd),
-          content,
-        ],
+        ),
       ),
     );
   }

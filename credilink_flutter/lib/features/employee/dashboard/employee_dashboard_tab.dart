@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/cred_theme.dart';
 import '../../../core/utils/currency_formatter.dart';
+import '../../../core/utils/store_scope.dart';
 import '../../../models/debt_record.dart';
 import '../../../models/user_profile.dart';
 import '../../../models/user_role.dart';
@@ -13,6 +14,7 @@ import '../../../shared/widgets/common/cred_async_view.dart';
 import '../../../shared/widgets/common/empty_state.dart';
 import '../../../shared/widgets/layout/cred_metric_card.dart';
 import '../../../shared/widgets/layout/cred_profile_card.dart';
+import '../../../shared/widgets/layout/cred_quick_action_grid.dart';
 import '../../../shared/widgets/layout/cred_section.dart';
 import '../../../shared/widgets/layout/cred_tab_page_layout.dart';
 import '../../../shared/widgets/receipts/payment_sheet.dart';
@@ -29,6 +31,8 @@ class EmployeeDashboardTab extends ConsumerWidget {
       emptyMessage: 'No profile',
       builder: (profile) {
         if (profile == null) return const EmptyState(message: 'No profile');
+        final storeOwnerId = resolveStoreOwnerId(profile);
+        final storeInfo = ref.watch(receiptStoreInfoProvider(storeOwnerId)).value;
 
         return CredTabPageLayout(
           onRefresh: () => _refresh(ref),
@@ -37,28 +41,53 @@ class EmployeeDashboardTab extends ConsumerWidget {
               fullName: profile.fullName,
               role: UserRole.employee,
               position: profile.position,
-              storeName: profile.storeName,
+              storeName: storeInfo?.name ?? profile.storeName,
               imageUrl: profile.profileImage,
             ),
-            const SizedBox(height: CredTheme.spaceMd),
+            const SizedBox(height: CredTheme.spaceLg),
             CredSection(
-              title: "Today's Activity",
+              title: 'Today',
+              subtitle: 'Store activity so far',
               child: _TodayStatsSection(),
             ),
-            const SizedBox(height: CredTheme.spaceMd),
+            const SizedBox(height: CredTheme.spaceLg),
             CredSection(
-              title: 'Debt Summary',
+              title: 'Debts',
               child: _DebtSummarySection(),
             ),
-            const SizedBox(height: CredTheme.spaceMd),
+            const SizedBox(height: CredTheme.spaceLg),
+            CredSection(
+              title: 'Quick Actions',
+              child: CredQuickActionGrid(
+                actions: [
+                  CredQuickAction(
+                    label: 'Retail Sales',
+                    icon: Icons.point_of_sale,
+                    onPressed: () => context.go('/employee/tab3'),
+                  ),
+                  CredQuickAction(
+                    label: 'Products',
+                    icon: Icons.inventory_2,
+                    onPressed: () => context.go('/employee/tab4'),
+                  ),
+                  CredQuickAction(
+                    label: 'Sales',
+                    icon: Icons.receipt_long,
+                    onPressed: () => context.go('/employee/tab2'),
+                  ),
+                  CredQuickAction(
+                    label: 'Reports',
+                    icon: Icons.assessment,
+                    onPressed: () => context.go('/employee/tab5'),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: CredTheme.spaceLg),
             CredSection(
               title: 'Debt Calendar',
+              subtitle: 'Upcoming due dates',
               child: _DebtCalendarSection(),
-            ),
-            const SizedBox(height: CredTheme.spaceMd),
-            CredSection(
-              title: 'Quick Links',
-              child: _QuickLinksSection(),
             ),
           ],
         );
@@ -70,6 +99,12 @@ class EmployeeDashboardTab extends ConsumerWidget {
     ref.invalidate(currentStoreTodayActivityProvider);
     ref.invalidate(currentStoreDebtsProvider);
     ref.invalidate(currentStoreProductsProvider);
+    final profile = ref.read(currentProfileProvider).value;
+    if (profile != null) {
+      final storeOwnerId = resolveStoreOwnerId(profile);
+      ref.invalidate(storeProfileProvider(storeOwnerId));
+      ref.invalidate(receiptStoreInfoProvider(storeOwnerId));
+    }
     await Future.wait([
       ref.read(currentStoreTodayActivityProvider.future),
       ref.read(currentStoreDebtsProvider.future),
@@ -82,34 +117,37 @@ class _TodayStatsSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final activity = ref.watch(currentStoreTodayActivityProvider);
+    final lowStock = _lowStockCount(ref);
 
     return CredAsyncView<Map<String, int>>(
       asyncValue: activity,
       builder: (stats) => CredMetricGrid(
         metrics: [
           CredMetricCard(
-            label: 'Cash Sales Today',
+            label: 'Cash txns',
             value: '${stats['transactions'] ?? 0}',
             icon: Icons.point_of_sale,
             accentColor: CredTheme.success,
+            onTap: () => context.go('/employee/tab2'),
           ),
           CredMetricCard(
-            label: 'New Debts Today',
+            label: 'New debts',
             value: '${stats['newDebts'] ?? 0}',
             icon: Icons.receipt_long,
             accentColor: CredTheme.info,
           ),
           CredMetricCard(
-            label: 'Payments Today',
+            label: 'Payments',
             value: '${stats['payments'] ?? 0}',
             icon: Icons.payments,
             accentColor: CredTheme.primary,
           ),
           CredMetricCard(
-            label: 'Low Stock Items',
-            value: '${_lowStockCount(ref)}',
+            label: 'Low stock',
+            value: '$lowStock',
             icon: Icons.warning_amber,
             accentColor: CredTheme.warning,
+            onTap: lowStock > 0 ? () => context.go('/employee/tab4') : null,
           ),
         ],
       ),
@@ -134,19 +172,31 @@ class _DebtSummarySection extends ConsumerWidget {
         final overdue = items.where((d) => d.isOverdue && !d.isPaid).length;
         final pending = items.where((d) => !d.isPaid).length;
 
-        return CredMetricGrid(
-          metrics: [
+        return Column(
+          children: [
             CredMetricCard(
               label: 'Outstanding',
               value: CurrencyFormatter.format(outstanding),
               icon: Icons.account_balance_wallet,
               accentColor: CredTheme.danger,
+              style: CredMetricStyle.featured,
             ),
-            CredMetricCard(
-              label: 'Pending / Overdue',
-              value: '$pending / $overdue',
-              icon: Icons.schedule,
-              accentColor: CredTheme.warning,
+            const SizedBox(height: CredTheme.spaceSm),
+            CredMetricGrid(
+              metrics: [
+                CredMetricCard(
+                  label: 'Pending',
+                  value: '$pending',
+                  icon: Icons.schedule,
+                  accentColor: CredTheme.warning,
+                ),
+                CredMetricCard(
+                  label: 'Overdue',
+                  value: '$overdue',
+                  icon: Icons.error_outline,
+                  accentColor: CredTheme.danger,
+                ),
+              ],
             ),
           ],
         );
@@ -166,38 +216,6 @@ class _DebtCalendarSection extends ConsumerWidget {
       builder: (items) => DebtCalendar(
         debts: items,
         onDebtTap: (debt) => DebtReceiptSheet.show(context, debt),
-      ),
-    );
-  }
-}
-
-class _QuickLinksSection extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Column(
-        children: [
-          ListTile(
-            leading: const Icon(Icons.shopping_cart),
-            title: const Text('Retail Sales (POS)'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => context.go('/employee/tab3'),
-          ),
-          const Divider(height: 1),
-          ListTile(
-            leading: const Icon(Icons.inventory_2),
-            title: const Text('Products Inventory'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => context.go('/employee/tab4'),
-          ),
-          const Divider(height: 1),
-          ListTile(
-            leading: const Icon(Icons.assessment),
-            title: const Text('Reports'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => context.go('/employee/tab5'),
-          ),
-        ],
       ),
     );
   }

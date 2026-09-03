@@ -13,13 +13,11 @@ import '../../features/shared/role_tab_shell.dart';
 import '../../repositories/repositories.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authStateProvider);
-
   return GoRouter(
     initialLocation: '/home',
     refreshListenable: _AuthRefreshListenable(ref),
     redirect: (context, state) async {
-      final isLoggedIn = authState.value != null;
+      final isLoggedIn = ref.read(authRepositoryProvider).currentUser != null;
       final path = state.matchedLocation;
       final publicRoutes = ['/home', '/login', '/register', '/forgot-password'];
       final isPublic = publicRoutes.contains(path) || path.startsWith('/reset-password');
@@ -33,6 +31,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         final profile = await ref.read(authRepositoryProvider).getCurrentProfile();
         if (profile == null) {
           await ref.read(authRepositoryProvider).signOut();
+          ref.invalidate(currentProfileProvider);
           return path == '/login' ? null : '/login';
         }
         if (isAuthRoute || path == '/home') {
@@ -47,20 +46,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
-      GoRoute(path: '/home', builder: (_, __) => const LandingScreen()),
-      GoRoute(
-        path: '/login',
-        builder: (_, state) => LoginScreen(
-          initialRole: roleFromQuery(state.uri.queryParameters['role']),
-        ),
-      ),
+      GoRoute(path: '/home', builder: (_, _) => const LandingScreen()),
+      GoRoute(path: '/login', builder: (_, _) => const LoginScreen()),
       GoRoute(
         path: '/register',
         builder: (_, state) => RegisterScreen(
           initialRole: roleFromQuery(state.uri.queryParameters['role']),
         ),
       ),
-      GoRoute(path: '/forgot-password', builder: (_, __) => const ForgotPasswordScreen()),
+      GoRoute(path: '/forgot-password', builder: (_, _) => const ForgotPasswordScreen()),
       GoRoute(
         path: '/reset-password',
         builder: (_, state) => ResetPasswordScreen(
@@ -80,7 +74,7 @@ List<RouteBase> _roleRoutes(String prefix, RoleTabConfig config) {
     final tab = i + 1;
     return GoRoute(
       path: '$prefix/tab$tab',
-      builder: (_, __) => RoleTabShell(config: config, currentIndex: i),
+      builder: (_, _) => RoleTabShell(config: config, currentIndex: i),
     );
   });
 }

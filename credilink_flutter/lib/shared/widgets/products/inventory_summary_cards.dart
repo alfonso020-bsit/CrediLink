@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/cred_theme.dart';
 import '../../../core/utils/inventory_stats.dart';
-import '../common/stat_card.dart';
+import '../layout/cred_metric_card.dart';
 
 class InventorySummaryCards extends StatelessWidget {
   const InventorySummaryCards({
@@ -17,59 +18,35 @@ class InventorySummaryCards extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: StatCard(
-                  label: 'Total',
-                  value: '${stats.total}',
-                  icon: Icons.inventory_2,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: StatCard(
-                  label: 'In Stock',
-                  value: '${stats.inStock}',
-                  icon: Icons.check_circle_outline,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: InkWell(
-                  onTap: stats.lowStock > 0 ? onLowStockTap : null,
-                  borderRadius: BorderRadius.circular(12),
-                  child: StatCard(
-                    label: 'Low Stock',
-                    value: '${stats.lowStock}',
-                    icon: Icons.warning_amber,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: InkWell(
-                  onTap: stats.outOfStock > 0 ? onOutOfStockTap : null,
-                  borderRadius: BorderRadius.circular(12),
-                  child: StatCard(
-                    label: 'Out of Stock',
-                    value: '${stats.outOfStock}',
-                    icon: Icons.remove_shopping_cart,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+    return CredMetricGrid(
+      metrics: [
+        CredMetricCard(
+          label: 'Total',
+          value: '${stats.total}',
+          icon: Icons.inventory_2,
+          accentColor: CredTheme.info,
+        ),
+        CredMetricCard(
+          label: 'In stock',
+          value: '${stats.inStock}',
+          icon: Icons.check_circle_outline,
+          accentColor: CredTheme.success,
+        ),
+        CredMetricCard(
+          label: 'Low stock',
+          value: '${stats.lowStock}',
+          icon: Icons.warning_amber,
+          accentColor: CredTheme.warning,
+          onTap: stats.lowStock > 0 ? onLowStockTap : null,
+        ),
+        CredMetricCard(
+          label: 'Out of stock',
+          value: '${stats.outOfStock}',
+          icon: Icons.remove_shopping_cart,
+          accentColor: CredTheme.danger,
+          onTap: stats.outOfStock > 0 ? onOutOfStockTap : null,
+        ),
+      ],
     );
   }
 }

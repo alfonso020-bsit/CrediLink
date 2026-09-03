@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/cred_theme.dart';
-import '../../../core/utils/currency_formatter.dart';
 import '../../../models/product.dart';
 import '../../../models/store_profile.dart';
+import '../../../shared/widgets/common/cred_avatar.dart';
+import '../../../shared/widgets/products/cred_product_card.dart';
 import '../customer_helpers.dart';
 
 enum _ProductSort { name, priceLow, priceHigh, category }
@@ -106,9 +107,22 @@ class _StoreDetailSheetState extends State<StoreDetailSheet> {
           controller: controller,
           padding: CredTheme.pagePadding,
           children: [
-            Text(widget.store.storeName, style: Theme.of(context).textTheme.titleLarge),
-            if (widget.store.ownerName != null) Text('Owner: ${widget.store.ownerName}'),
-            Text(CustomerHelpers.storeLocation(widget.store)),
+            Row(
+              children: [
+                CredAvatar(name: widget.store.storeName, imageUrl: widget.store.storeImage, radius: 28),
+                const SizedBox(width: CredTheme.spaceMd),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(widget.store.storeName, style: Theme.of(context).textTheme.titleLarge),
+                      if (widget.store.ownerName != null) Text('Owner: ${widget.store.ownerName}'),
+                      Text(CustomerHelpers.storeLocation(widget.store)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: CredTheme.spaceMd),
             TextField(
               controller: _searchController,
@@ -186,20 +200,18 @@ class _StoreDetailSheetState extends State<StoreDetailSheet> {
               '${products.length} product${products.length == 1 ? '' : 's'}',
               style: Theme.of(context).textTheme.titleMedium,
             ),
-            const SizedBox(height: CredTheme.spaceXs),
+            const SizedBox(height: CredTheme.spaceSm),
             if (products.isEmpty)
               const Padding(
                 padding: EdgeInsets.all(CredTheme.spaceLg),
                 child: Center(child: Text('No products found')),
               )
             else
-              ...products.map(
-                (product) => ListTile(
-                  leading: const Icon(Icons.inventory_2_outlined),
-                  title: Text(product.name),
-                  subtitle: Text('${product.category} • Stock: ${product.stockQuantity}'),
-                  trailing: Text(CurrencyFormatter.format(product.sellingPrice)),
-                ),
+              CredProductGrid(
+                products: products,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemBuilder: (context, product, _) => CredProductCard(product: product),
               ),
           ],
         );
