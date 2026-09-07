@@ -281,7 +281,37 @@ class AdminRepository {
 
   Future<List<StoreProfile>> getAllStores() async {
     final snap = await _firestore.collection('store_profiles').get();
-    return snap.docs.map((d) => StoreProfile.fromFirestore(d.id, d.data())).toList();
+    final owners = await getUsersByRole('StoreOwner');
+    final ownerById = {for (final o in owners) o.id: o};
+
+    return snap.docs.map((d) {
+      final profile = StoreProfile.fromFirestore(d.id, d.data());
+      final owner = ownerById[profile.storeOwnerId];
+      final profileName = profile.storeName.trim();
+      final ownerStoreName = owner?.storeName?.trim() ?? '';
+      final fullName = owner?.fullName.trim() ?? '';
+      final resolvedName = profileName.isNotEmpty
+          ? profileName
+          : ownerStoreName.isNotEmpty
+              ? ownerStoreName
+              : (fullName.isNotEmpty ? "$fullName's Store" : 'Store');
+
+      String? pick(String? fromProfile, String? fromOwner) {
+        final p = fromProfile?.trim();
+        if (p != null && p.isNotEmpty) return p;
+        final o = fromOwner?.trim();
+        if (o != null && o.isNotEmpty) return o;
+        return null;
+      }
+
+      return profile.copyWith(
+        storeName: resolvedName,
+        ownerName: profile.ownerName ?? (fullName.isNotEmpty ? fullName : null),
+        province: pick(profile.province, owner?.province),
+        municipality: pick(profile.municipality, owner?.municipality),
+        barangay: pick(profile.barangay, owner?.barangay),
+      );
+    }).toList();
   }
 
   Future<Map<String, int>> getRoleDistribution() async {

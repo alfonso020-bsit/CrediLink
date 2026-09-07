@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/cred_theme.dart';
+
 class CredSegmentedFilter<T> extends StatelessWidget {
   const CredSegmentedFilter({
     super.key,
@@ -20,8 +22,9 @@ class CredSegmentedFilter<T> extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFF4F5F8),
+        color: CredTheme.inputBackground,
         borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: CredTheme.border),
       ),
       padding: const EdgeInsets.all(4),
       child: Row(

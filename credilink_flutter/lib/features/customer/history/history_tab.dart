@@ -8,13 +8,16 @@ import '../../../models/debt_record.dart';
 import '../../../models/sale_record.dart';
 import '../../../models/store_profile.dart';
 import '../../../repositories/repositories.dart';
+import '../../../shared/widgets/common/cred_async_view.dart';
 import '../../../shared/widgets/common/cred_avatar.dart';
 import '../../../shared/widgets/common/empty_state.dart';
 import '../../../shared/widgets/layout/cred_sheet_scaffold.dart';
+import '../../../shared/widgets/layout/cred_status_chip.dart';
+import '../../../shared/widgets/layout/cred_surface_tile.dart';
+import '../../../shared/widgets/layout/cred_tab_page_layout.dart';
 import '../../../shared/widgets/receipts/payment_sheet.dart';
 import '../../../shared/widgets/receipts/pdf_export_button.dart';
 import '../../../shared/widgets/receipts/receipt_view.dart';
-import '../customer_helpers.dart';
 
 class CustomerHistoryTab extends ConsumerStatefulWidget {
   const CustomerHistoryTab({super.key});
@@ -24,8 +27,11 @@ class CustomerHistoryTab extends ConsumerStatefulWidget {
 }
 
 class _CustomerHistoryTabState extends ConsumerState<CustomerHistoryTab> {
+  static const _pageSize = 20;
+
   String _typeFilter = 'all';
   String _dateFilter = 'all';
+  int _visibleCount = _pageSize;
   final _searchController = TextEditingController();
 
   @override
@@ -36,103 +42,140 @@ class _CustomerHistoryTabState extends ConsumerState<CustomerHistoryTab> {
 
   @override
   Widget build(BuildContext context) {
-    final profile = ref.watch(currentProfileProvider);
+    final bundleAsync = ref.watch(currentCustomerHistoryBundleProvider);
 
-    return profile.when(
-      data: (p) {
-        if (p == null) return const EmptyState(message: 'No profile');
-        return FutureBuilder<({List<SaleRecord> sales, Map<String, StoreProfile> stores})>(
-          future: _loadHistory(ref, p.id, p.fullName),
-          builder: (context, snap) {
-            if (!snap.hasData) return const Center(child: CircularProgressIndicator());
-            final filtered = _filterSales(snap.data!.sales);
+    return CredAsyncView<
+        ({
+          List<SaleRecord> sales,
+          Map<String, StoreProfile> stores,
+        })>(
+      asyncValue: bundleAsync,
+      emptyMessage: 'No transaction history',
+      onRetry: () => _invalidateBundle(),
+      builder: (bundle) {
+        final stores = bundle.stores;
+        final filtered = _filterSales(bundle.sales, stores);
+        final visible = filtered.take(_visibleCount).toList();
+        final hasMore = filtered.length > visible.length;
 
-            return RefreshIndicator(
-              onRefresh: () async => setState(() {}),
-              child: ListView(
-                padding: CredTheme.pagePadding,
+        return CredTabPageLayout(
+          onRefresh: () async {
+            setState(() => _visibleCount = _pageSize);
+            _invalidateBundle();
+            await ref.read(currentCustomerHistoryBundleProvider.future);
+          },
+          children: [
+            TextField(
+              controller: _searchController,
+              decoration: const InputDecoration(
+                prefixIcon: Icon(Icons.search),
+                hintText: 'Search stores or amounts...',
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+              onChanged: (_) => setState(() {
+                _visibleCount = _pageSize;
+              }),
+            ),
+            const SizedBox(height: CredTheme.spaceSm),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
                 children: [
-                  TextField(
-                    controller: _searchController,
-                    decoration: const InputDecoration(
-                      prefixIcon: Icon(Icons.search),
-                      hintText: 'Search transactions...',
-                      border: OutlineInputBorder(),
-                    ),
-                    onChanged: (_) => setState(() {}),
-                  ),
-                  const SizedBox(height: CredTheme.spaceSm),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        _typeChip('all', 'All'),
-                        _typeChip('cash', 'Cash'),
-                        _typeChip('debt', 'Credit'),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: CredTheme.spaceXs),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        _dateChip('all', 'All Time'),
-                        _dateChip('today', 'Today'),
-                        _dateChip('week', 'This Week'),
-                        _dateChip('month', 'This Month'),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: CredTheme.spaceMd),
-                  if (filtered.isEmpty)
-                    const EmptyState(message: 'No transaction history')
-                  else
-                    ...filtered.map((sale) {
-                      final store = snap.data!.stores[sale.storeOwnerId];
-                      final storeName = store?.storeName ?? 'Store';
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: CredTheme.spaceXs),
-                        child: ListTile(
-                          leading: CredAvatar(name: storeName),
-                          title: Text(storeName),
-                          subtitle: Text(
-                            '${CustomerHelpers.saleTypeLabel(sale)} • ${sale.createdAt != null ? DateFormatter.formatDateTime(sale.createdAt!) : ''}',
-                          ),
-                          trailing: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(CurrencyFormatter.format(sale.total)),
-                              Chip(
-                                label: Text(
-                                  CustomerHelpers.saleTypeLabel(sale),
-                                  style: const TextStyle(fontSize: 11),
-                                ),
-                                visualDensity: VisualDensity.compact,
-                              ),
-                            ],
-                          ),
-                          onTap: () {
-                            if (sale.type == SaleType.debt) {
-                              final debt = _saleToDebt(sale);
-                              DebtReceiptSheet.show(context, debt, storeName: storeName);
-                            } else {
-                              _showCashReceipt(context, sale, storeName);
-                            }
-                          },
-                        ),
-                      );
-                    }),
+                  _typeChip('all', 'All'),
+                  _typeChip('cash', 'Cash'),
+                  _typeChip('debt', 'Credit'),
                 ],
               ),
-            );
-          },
+            ),
+            const SizedBox(height: CredTheme.spaceXs),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _dateChip('all', 'All Time'),
+                  _dateChip('today', 'Today'),
+                  _dateChip('week', 'This Week'),
+                  _dateChip('month', 'This Month'),
+                ],
+              ),
+            ),
+            const SizedBox(height: CredTheme.spaceMd),
+            if (filtered.isEmpty)
+              const EmptyState(
+                title: 'No history',
+                message: 'No transaction history',
+              )
+            else ...[
+              Text(
+                'Showing ${visible.length} of ${filtered.length}',
+                style: CredTheme.bodyMutedStyle(context),
+              ),
+              const SizedBox(height: CredTheme.spaceSm),
+              for (var i = 0; i < visible.length; i++) ...[
+                if (i > 0) const SizedBox(height: CredTheme.spaceXs),
+                Builder(
+                  builder: (context) {
+                    final sale = visible[i];
+                    final store = stores[sale.storeOwnerId];
+                    final storeName = store?.displayName ?? 'Store';
+                    final isCash = sale.type == SaleType.cash;
+                    return CredSurfaceTile(
+                      leading: CredAvatar(
+                        name: storeName,
+                        imageUrl: store?.storeImage,
+                      ),
+                      title: Text(
+                        storeName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      subtitle: Text(
+                        sale.createdAt != null
+                            ? DateFormatter.formatDateTime(sale.createdAt!)
+                            : '',
+                      ),
+                      trailing: Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            CurrencyFormatter.format(sale.total),
+                            style: CredTheme.listAmountStyle(context),
+                          ),
+                          const SizedBox(height: 4),
+                          CredStatusChip.saleType(isCash: isCash, compact: true),
+                        ],
+                      ),
+                      onTap: () {
+                        if (sale.type == SaleType.debt) {
+                          final debt = _saleToDebt(sale);
+                          DebtReceiptSheet.show(context, debt, storeName: storeName);
+                        } else {
+                          _showCashReceipt(context, sale, storeName);
+                        }
+                      },
+                    );
+                  },
+                ),
+              ],
+              if (hasMore) ...[
+                const SizedBox(height: CredTheme.spaceMd),
+                OutlinedButton(
+                  onPressed: () => setState(() => _visibleCount += _pageSize),
+                  child: Text('Load more (${filtered.length - visible.length} left)'),
+                ),
+              ],
+            ],
+          ],
         );
       },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => EmptyState(message: '$e'),
     );
+  }
+
+  void _invalidateBundle() {
+    ref.invalidate(currentCustomerSalesProvider);
+    ref.invalidate(currentCustomerHistoryBundleProvider);
   }
 
   Widget _typeChip(String value, String label) {
@@ -141,7 +184,10 @@ class _CustomerHistoryTabState extends ConsumerState<CustomerHistoryTab> {
       child: FilterChip(
         label: Text(label),
         selected: _typeFilter == value,
-        onSelected: (_) => setState(() => _typeFilter = value),
+        onSelected: (_) => setState(() {
+          _typeFilter = value;
+          _visibleCount = _pageSize;
+        }),
       ),
     );
   }
@@ -152,16 +198,23 @@ class _CustomerHistoryTabState extends ConsumerState<CustomerHistoryTab> {
       child: FilterChip(
         label: Text(label),
         selected: _dateFilter == value,
-        onSelected: (_) => setState(() => _dateFilter = value),
+        onSelected: (_) => setState(() {
+          _dateFilter = value;
+          _visibleCount = _pageSize;
+        }),
       ),
     );
   }
 
-  List<SaleRecord> _filterSales(List<SaleRecord> sales) {
+  List<SaleRecord> _filterSales(
+    List<SaleRecord> sales,
+    Map<String, StoreProfile> stores,
+  ) {
     final term = _searchController.text.trim().toLowerCase();
     final now = DateTime.now();
 
     return sales.where((sale) {
+      final store = stores[sale.storeOwnerId];
       final matchesType = _typeFilter == 'all' ||
           (_typeFilter == 'cash' && sale.type == SaleType.cash) ||
           (_typeFilter == 'debt' && sale.type == SaleType.debt);
@@ -178,6 +231,7 @@ class _CustomerHistoryTabState extends ConsumerState<CustomerHistoryTab> {
 
       final matchesSearch = term.isEmpty ||
           sale.id.toLowerCase().contains(term) ||
+          (store?.displayName.toLowerCase().contains(term) ?? false) ||
           CurrencyFormatter.format(sale.total).toLowerCase().contains(term);
 
       return matchesType && matchesDate && matchesSearch;
@@ -186,25 +240,6 @@ class _CustomerHistoryTabState extends ConsumerState<CustomerHistoryTab> {
 
   bool _isSameDay(DateTime a, DateTime b) {
     return a.year == b.year && a.month == b.month && a.day == b.day;
-  }
-
-  Future<({List<SaleRecord> sales, Map<String, StoreProfile> stores})> _loadHistory(
-    WidgetRef ref,
-    String customerId,
-    String customerName,
-  ) async {
-    final productRepo = ref.read(productRepositoryProvider);
-    final storeRepo = ref.read(storeRepositoryProvider);
-    final sales = await productRepo.getSalesByCustomer(customerId, customerName: customerName);
-
-    final storeIds = sales.map((s) => s.storeOwnerId).toSet();
-    final stores = <String, StoreProfile>{};
-    for (final id in storeIds) {
-      final store = await storeRepo.getStore(id);
-      if (store != null) stores[id] = store;
-    }
-
-    return (sales: sales, stores: stores);
   }
 
   void _showCashReceipt(BuildContext context, SaleRecord sale, String storeName) {

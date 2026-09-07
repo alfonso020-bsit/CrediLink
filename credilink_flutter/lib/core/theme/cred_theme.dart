@@ -1,38 +1,39 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
-/// Unified design tokens — v1 Ionic baseline (#3880FF primary, grey surfaces).
+/// CrediLink “Tidal Trust” design tokens — teal primary, cool mist surfaces.
 class CredTheme {
   CredTheme._();
 
   // Brand
-  static const Color primary = Color(0xFF3880FF);
-  static const Color primaryDark = Color(0xFF3171E0);
+  static const Color primary = Color(0xFF0E7490);
+  static const Color primaryDark = Color(0xFF155E75);
 
   // Surfaces
-  static const Color scaffoldBackground = Color(0xFFF4F5F8);
-  static const Color authBackground = Color(0xFFF8F9FA);
+  static const Color scaffoldBackground = Color(0xFFF0F9FB);
+  static const Color authBackground = Color(0xFFE8F6F9);
   static const Color cardBackground = Colors.white;
-  static const Color inputBackground = Color(0xFFF8F9FA);
+  static const Color inputBackground = Color(0xFFF5FBFC);
 
   // Text
-  static const Color titleText = Color(0xFF212529);
-  static const Color subtitleText = Color(0xFF6C757D);
-  static const Color placeholder = Color(0xFFADB5BD);
-  static const Color bodyMuted = Color(0xFF6C757D);
+  static const Color titleText = Color(0xFF0F172A);
+  static const Color subtitleText = Color(0xFF64748B);
+  static const Color placeholder = Color(0xFF94A3B8);
+  static const Color bodyMuted = Color(0xFF64748B);
 
   // Borders
-  static const Color border = Color(0xFFE9ECEF);
-  static const Color borderHover = Color(0xFFDEE2E6);
+  static const Color border = Color(0xFFCDE7EE);
+  static const Color borderHover = Color(0xFFA5D4E0);
 
-  // Semantic (v1 Ionic)
-  static const Color success = Color(0xFF2DD36F);
-  static const Color warning = Color(0xFFFFC409);
-  static const Color danger = Color(0xFFEB445A);
-  static const Color info = Color(0xFF3880FF);
+  // Semantic
+  static const Color success = Color(0xFF059669);
+  static const Color warning = Color(0xFFD97706);
+  static const Color danger = Color(0xFFDC2626);
+  static const Color info = Color(0xFF0E7490);
 
   // Role selector / info boxes
-  static const Color roleInactiveBg = Color(0xFFF8F9FA);
-  static const Color infoBoxBg = Color(0xFFF8F9FA);
+  static const Color roleInactiveBg = Color(0xFFF5FBFC);
+  static const Color infoBoxBg = Color(0xFFE8F6F9);
 
   // Spacing
   static const double spaceXs = 8;
@@ -42,44 +43,75 @@ class CredTheme {
   static const double spaceXl = 32;
 
   // Radii
-  static const double radiusCard = 12;
-  static const double radiusInput = 8;
+  static const double radiusCard = 14;
+  static const double radiusInput = 10;
   static const double radiusChip = 12;
-  static const double radiusRole = 8;
-  static const double radiusLogo = 16;
+  static const double radiusRole = 10;
+  static const double radiusLogo = 18;
 
   // Auth layout
   static const double authMaxWidth = 440;
-  static const double logoSize = 80;
+  static const double logoSize = 88;
   static const EdgeInsets authCardPadding = EdgeInsets.symmetric(horizontal: 28, vertical: 32);
 
   // Page layout
   static const EdgeInsets pagePadding = EdgeInsets.all(spaceMd);
 
+  static TextStyle brandWordmark(BuildContext context, {double fontSize = 36}) =>
+      GoogleFonts.fraunces(
+        fontSize: fontSize,
+        fontWeight: FontWeight.w700,
+        color: titleText,
+        height: 1.1,
+        letterSpacing: -0.5,
+      );
+
   static TextStyle pageTitle(BuildContext context) =>
-      Theme.of(context).textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w700,
-            color: titleText,
-          ) ??
-      const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: titleText);
+      GoogleFonts.plusJakartaSans(
+        fontSize: 22,
+        fontWeight: FontWeight.w700,
+        color: titleText,
+      );
 
   static TextStyle sectionTitle(BuildContext context) =>
-      Theme.of(context).textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.w600,
-            color: titleText,
-          ) ??
-      const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: titleText);
+      GoogleFonts.plusJakartaSans(
+        fontSize: 14,
+        fontWeight: FontWeight.w700,
+        color: titleText,
+        letterSpacing: 0.15,
+      );
 
   static TextStyle bodyMutedStyle(BuildContext context) =>
-      Theme.of(context).textTheme.bodyMedium?.copyWith(color: bodyMuted) ??
-      const TextStyle(fontSize: 14, color: bodyMuted);
+      GoogleFonts.plusJakartaSans(
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+        color: bodyMuted,
+      );
 
   static TextStyle metricValue(BuildContext context) =>
-      Theme.of(context).textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.w700,
-            color: titleText,
-          ) ??
-      const TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: titleText);
+      GoogleFonts.plusJakartaSans(
+        fontSize: 24,
+        fontWeight: FontWeight.w700,
+        color: titleText,
+      );
+
+  static TextStyle metricAmountStyle(BuildContext context) =>
+      metricValue(context).copyWith(fontSize: 28, letterSpacing: -0.4);
+
+  static TextStyle listAmountStyle(BuildContext context) =>
+      GoogleFonts.plusJakartaSans(
+        fontSize: 14,
+        fontWeight: FontWeight.w700,
+        color: titleText,
+        fontFeatures: const [FontFeature.tabularFigures()],
+      );
+
+  static TextStyle appBarContextStyle(BuildContext context) =>
+      GoogleFonts.plusJakartaSans(
+        fontSize: 11,
+        fontWeight: FontWeight.w500,
+        color: Colors.white70,
+      );
 }
 
 /// Theme extension for accessing CredTheme via [Theme.of(context).extension].

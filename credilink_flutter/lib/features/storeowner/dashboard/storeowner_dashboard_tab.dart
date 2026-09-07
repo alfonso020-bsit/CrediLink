@@ -9,8 +9,12 @@ import '../../../models/user_profile.dart';
 import '../../../models/user_role.dart';
 import '../../../repositories/repositories.dart';
 import '../../../shared/widgets/calendar/debt_calendar.dart';
+import '../../../shared/widgets/calendar/debt_day_sheet.dart';
+import '../../../shared/widgets/charts/cred_line_trend_chart.dart';
+import '../../../shared/widgets/charts/dashboard_sales_trend_section.dart';
 import '../../../shared/widgets/common/cred_async_view.dart';
 import '../../../shared/widgets/common/empty_state.dart';
+import '../../../shared/widgets/layout/cred_fade_in.dart';
 import '../../../shared/widgets/layout/cred_metric_card.dart';
 import '../../../shared/widgets/layout/cred_profile_card.dart';
 import '../../../shared/widgets/layout/cred_quick_action_grid.dart';
@@ -30,7 +34,12 @@ class StoreOwnerDashboardTab extends ConsumerWidget {
       asyncValue: profileAsync,
       emptyMessage: 'No profile',
       builder: (profile) {
-        if (profile == null) return const EmptyState(message: 'No profile');
+        if (profile == null) {
+          return const EmptyState(
+            title: 'No profile',
+            message: 'Unable to load your account.',
+          );
+        }
 
         final store = ref.watch(storeProfileProvider(profile.id)).value;
         final location = [
@@ -51,18 +60,33 @@ class StoreOwnerDashboardTab extends ConsumerWidget {
               onTap: () => StoreSettingsSheet.show(context, profile),
             ),
             const SizedBox(height: CredTheme.spaceLg),
-            CredSection(
-              title: 'Today',
-              subtitle: 'Store activity so far',
-              child: _TodayStatsSection(
-                storeOwnerId: profile.id,
-                onLowStockTap: () => context.go('/storeowner/tab4'),
+            CredFadeIn(
+              child: CredSection(
+                title: 'Today',
+                subtitle: 'Store activity so far',
+                child: _TodayStatsSection(
+                  storeOwnerId: profile.id,
+                  onLowStockTap: () => context.go('/storeowner/tab4'),
+                ),
               ),
             ),
             const SizedBox(height: CredTheme.spaceLg),
-            CredSection(
-              title: 'Debts',
-              child: _DebtSummarySection(storeOwnerId: profile.id),
+            CredFadeIn(
+              delay: const Duration(milliseconds: 40),
+              child: DashboardSalesTrendSection(
+                storeOwnerId: profile.id,
+                title: 'Sales trend',
+                metric: CredTrendMetric.revenue,
+                seriesLabel: 'Revenue',
+              ),
+            ),
+            const SizedBox(height: CredTheme.spaceLg),
+            CredFadeIn(
+              delay: const Duration(milliseconds: 80),
+              child: CredSection(
+                title: 'Debts',
+                child: _DebtSummarySection(storeOwnerId: profile.id),
+              ),
             ),
             const SizedBox(height: CredTheme.spaceLg),
             CredSection(
@@ -85,10 +109,12 @@ class StoreOwnerDashboardTab extends ConsumerWidget {
     ref.invalidate(storeTodayActivityProvider(storeOwnerId));
     ref.invalidate(storeDebtsProvider(storeOwnerId));
     ref.invalidate(storeProfileProvider(storeOwnerId));
+    ref.invalidate(storeSalesProvider(storeOwnerId));
     ref.invalidate(currentStoreProductsProvider);
     await Future.wait([
       ref.read(storeTodayActivityProvider(storeOwnerId).future),
       ref.read(storeDebtsProvider(storeOwnerId).future),
+      ref.read(storeSalesProvider(storeOwnerId).future),
       ref.read(currentStoreProductsProvider.future),
     ]);
   }
@@ -211,6 +237,16 @@ class _DebtCalendarSection extends ConsumerWidget {
       builder: (items) => DebtCalendar(
         debts: items,
         onDebtTap: (debt) => DebtReceiptSheet.show(context, debt),
+        onDayTap: (day, dayDebts) => DebtDaySheet.show(
+          context,
+          date: day,
+          debts: dayDebts,
+          titleForDebt: (d) => d.customerName?.trim().isNotEmpty == true
+              ? d.customerName!
+              : 'Customer',
+          viewAllLabel: 'Go to Debts',
+          onViewAll: () => context.go('/storeowner/tab3'),
+        ),
       ),
     );
   }

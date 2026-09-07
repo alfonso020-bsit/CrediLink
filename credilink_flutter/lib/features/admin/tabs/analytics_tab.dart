@@ -2,11 +2,14 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/theme/cred_theme.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../repositories/repositories.dart';
 import '../../../shared/widgets/common/empty_state.dart';
-import '../../../shared/widgets/common/stat_card.dart';
 import '../../../shared/widgets/filters/cred_segmented_filter.dart';
+import '../../../shared/widgets/layout/cred_metric_card.dart';
+import '../../../shared/widgets/layout/cred_section.dart';
+import '../../../shared/widgets/layout/cred_tab_page_layout.dart';
 
 class AdminAnalyticsTab extends ConsumerStatefulWidget {
   const AdminAnalyticsTab({super.key});
@@ -55,7 +58,7 @@ class _AdminAnalyticsTabState extends ConsumerState<AdminAnalyticsTab> {
         }
         if (snap.hasError) {
           return EmptyState(
-            message: '$snap.error',
+            message: '${snap.error}',
             action: TextButton(onPressed: _refresh, child: const Text('Retry')),
           );
         }
@@ -65,163 +68,196 @@ class _AdminAnalyticsTabState extends ConsumerState<AdminAnalyticsTab> {
         final financial = data.financial;
         final totalRoles = roles.values.fold<int>(0, (s, v) => s + v);
 
-        return RefreshIndicator(
+        return CredTabPageLayout(
           onRefresh: _refresh,
-          child: ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              GridView.count(
-                crossAxisCount: 2,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-                childAspectRatio: 1.4,
-                children: [
-                  StatCard(
+          children: [
+            const SizedBox(height: CredTheme.spaceMd),
+            CredSection(
+              title: 'Financial Snapshot',
+              child: CredMetricGrid(
+                metrics: [
+                  CredMetricCard(
                     label: 'Total Revenue',
                     value: CurrencyFormatter.format(financial['totalRevenue'] ?? 0),
                     icon: Icons.payments,
+                    accentColor: CredTheme.success,
                   ),
-                  StatCard(
+                  CredMetricCard(
                     label: 'Outstanding Debt',
                     value: CurrencyFormatter.format(financial['totalOutstanding'] ?? 0),
                     icon: Icons.account_balance,
+                    accentColor: CredTheme.danger,
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
-              Text('Role Distribution', style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 12),
-              if (totalRoles == 0)
-                const EmptyState(message: 'No user data')
-              else
-                SizedBox(
-                  height: 220,
-                  child: Row(
-                    children: [
-                      Expanded(
-                        flex: 3,
-                        child: PieChart(
-                          PieChartData(
-                            sectionsSpace: 2,
-                            centerSpaceRadius: 32,
-                            sections: _roleSections(roles, totalRoles, context),
+            ),
+            const SizedBox(height: CredTheme.spaceLg),
+            CredSection(
+              title: 'Role Distribution',
+              subtitle: totalRoles == 0 ? null : '$totalRoles users',
+              child: totalRoles == 0
+                  ? const EmptyState(message: 'No user data')
+                  : SizedBox(
+                      height: 220,
+                      child: Row(
+                        children: [
+                          Expanded(
+                            flex: 3,
+                            child: PieChart(
+                              PieChartData(
+                                sectionsSpace: 2,
+                                centerSpaceRadius: 32,
+                                sections: _roleSections(roles, totalRoles),
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            flex: 2,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                for (var i = 0; i < roles.entries.length; i++)
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(vertical: 4),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          width: 10,
+                                          height: 10,
+                                          decoration: BoxDecoration(
+                                            color: _roleColors[i % _roleColors.length],
+                                            shape: BoxShape.circle,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Expanded(
+                                          child: Text(
+                                            '${roles.entries.elementAt(i).key}: '
+                                            '${roles.entries.elementAt(i).value} '
+                                            '(${(roles.entries.elementAt(i).value / totalRoles * 100).toStringAsFixed(1)}%)',
+                                            style: CredTheme.bodyMutedStyle(context)
+                                                .copyWith(fontSize: 12),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+            ),
+            const SizedBox(height: CredTheme.spaceLg),
+            CredSection(
+              title: 'Registration Trends',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  CredSegmentedFilter<int>(
+                    options: const [7, 30],
+                    selected: _days,
+                    onChanged: _setDays,
+                    labelBuilder: (d) => '$d days',
+                  ),
+                  const SizedBox(height: CredTheme.spaceMd),
+                  SizedBox(
+                    height: 220,
+                    child: LineChart(
+                      LineChartData(
+                        gridData: FlGridData(
+                          show: true,
+                          drawVerticalLine: false,
+                          getDrawingHorizontalLine: (_) => FlLine(
+                            color: CredTheme.border,
+                            strokeWidth: 1,
                           ),
                         ),
-                      ),
-                      Expanded(
-                        flex: 2,
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: roles.entries.map((e) {
-                            final pct = totalRoles > 0 ? (e.value / totalRoles * 100) : 0.0;
-                            return Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 4),
-                              child: Text(
-                                '${e.key}: ${e.value} (${pct.toStringAsFixed(1)}%)',
-                                style: const TextStyle(fontSize: 12),
-                              ),
-                            );
-                          }).toList(),
+                        titlesData: FlTitlesData(
+                          bottomTitles: AxisTitles(
+                            sideTitles: SideTitles(
+                              showTitles: true,
+                              reservedSize: 28,
+                              getTitlesWidget: (value, meta) {
+                                final i = value.toInt();
+                                if (i < 0 || i >= trend.length) {
+                                  return const SizedBox.shrink();
+                                }
+                                return Padding(
+                                  padding: const EdgeInsets.only(top: 8),
+                                  child: Text(
+                                    trend[i]['label'] as String? ?? '',
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      color: CredTheme.subtitleText,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          leftTitles: const AxisTitles(
+                            sideTitles: SideTitles(showTitles: true, reservedSize: 32),
+                          ),
+                          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                         ),
+                        borderData: FlBorderData(show: false),
+                        lineBarsData: [
+                          LineChartBarData(
+                            spots: [
+                              for (var i = 0; i < trend.length; i++)
+                                FlSpot(i.toDouble(), (trend[i]['users'] as int).toDouble()),
+                            ],
+                            isCurved: true,
+                            color: CredTheme.primary,
+                            barWidth: 3,
+                            dotData: const FlDotData(show: true),
+                          ),
+                          LineChartBarData(
+                            spots: [
+                              for (var i = 0; i < trend.length; i++)
+                                FlSpot(i.toDouble(), (trend[i]['stores'] as int).toDouble()),
+                            ],
+                            isCurved: true,
+                            color: CredTheme.warning,
+                            barWidth: 3,
+                            dotData: const FlDotData(show: true),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                ),
-              const SizedBox(height: 24),
-              Text('Registration Trends', style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 12),
-              CredSegmentedFilter<int>(
-                options: const [7, 30],
-                selected: _days,
-                onChanged: _setDays,
-                labelBuilder: (d) => '$d days',
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                height: 220,
-                child: LineChart(
-                  LineChartData(
-                    gridData: const FlGridData(show: true, drawVerticalLine: false),
-                    titlesData: FlTitlesData(
-                      bottomTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                          showTitles: true,
-                          reservedSize: 28,
-                          getTitlesWidget: (value, meta) {
-                            final i = value.toInt();
-                            if (i < 0 || i >= trend.length) return const SizedBox.shrink();
-                            return Padding(
-                              padding: const EdgeInsets.only(top: 8),
-                              child: Text(
-                                trend[i]['label'] as String? ?? '',
-                                style: const TextStyle(fontSize: 10),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                      leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 32)),
-                      topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                      rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                     ),
-                    borderData: FlBorderData(show: false),
-                    lineBarsData: [
-                      LineChartBarData(
-                        spots: [
-                          for (var i = 0; i < trend.length; i++)
-                            FlSpot(i.toDouble(), (trend[i]['users'] as int).toDouble()),
-                        ],
-                        isCurved: true,
-                        color: Theme.of(context).colorScheme.primary,
-                        barWidth: 3,
-                        dotData: const FlDotData(show: true),
-                      ),
-                      LineChartBarData(
-                        spots: [
-                          for (var i = 0; i < trend.length; i++)
-                            FlSpot(i.toDouble(), (trend[i]['stores'] as int).toDouble()),
-                        ],
-                        isCurved: true,
-                        color: Colors.orange,
-                        barWidth: 3,
-                        dotData: const FlDotData(show: true),
-                      ),
+                  ),
+                  const SizedBox(height: CredTheme.spaceSm),
+                  const Row(
+                    children: [
+                      _LegendDot(color: CredTheme.primary, label: 'Users'),
+                      SizedBox(width: CredTheme.spaceMd),
+                      _LegendDot(color: CredTheme.warning, label: 'Stores'),
                     ],
                   ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  _LegendDot(color: Theme.of(context).colorScheme.primary, label: 'Users'),
-                  const SizedBox(width: 16),
-                  const _LegendDot(color: Colors.orange, label: 'Stores'),
                 ],
               ),
-            ],
-          ),
+            ),
+          ],
         );
       },
     );
   }
 
-  List<PieChartSectionData> _roleSections(
-    Map<String, int> roles,
-    int total,
-    BuildContext context,
-  ) {
-    final colors = [
-      Theme.of(context).colorScheme.primary,
-      Colors.orange,
-      Colors.teal,
-      Colors.purple,
-    ];
+  static const _roleColors = [
+    CredTheme.primary,
+    CredTheme.warning,
+    CredTheme.success,
+    CredTheme.info,
+  ];
+
+  List<PieChartSectionData> _roleSections(Map<String, int> roles, int total) {
     var i = 0;
     return roles.entries.map((e) {
-      final color = colors[i % colors.length];
+      final color = _roleColors[i % _roleColors.length];
       i++;
       final pct = total > 0 ? e.value / total * 100 : 0.0;
       return PieChartSectionData(
@@ -229,7 +265,11 @@ class _AdminAnalyticsTabState extends ConsumerState<AdminAnalyticsTab> {
         title: pct >= 8 ? '${pct.toStringAsFixed(0)}%' : '',
         color: color,
         radius: 56,
-        titleStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white),
+        titleStyle: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
+        ),
       );
     }).toList();
   }
@@ -258,9 +298,13 @@ class _LegendDot extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(width: 12, height: 12, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
         const SizedBox(width: 6),
-        Text(label, style: const TextStyle(fontSize: 12)),
+        Text(label, style: CredTheme.bodyMutedStyle(context).copyWith(fontSize: 12)),
       ],
     );
   }

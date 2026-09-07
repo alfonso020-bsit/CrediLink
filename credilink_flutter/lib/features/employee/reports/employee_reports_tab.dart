@@ -50,7 +50,12 @@ class _EmployeeReportsTabState extends ConsumerState<EmployeeReportsTab> {
       asyncValue: profileAsync,
       emptyMessage: 'No profile',
       builder: (profile) {
-        if (profile == null) return const EmptyState(message: 'No profile');
+        if (profile == null) {
+          return const EmptyState(
+            title: 'No profile',
+            message: 'Unable to load your account.',
+          );
+        }
 
         final storeOwnerId = resolveStoreOwnerId(profile);
         final salesAsync = ref.watch(storeSalesProvider(storeOwnerId));
@@ -147,7 +152,10 @@ class _EmployeeReportsTabState extends ConsumerState<EmployeeReportsTab> {
                           child: filtered.isEmpty
                               ? const Padding(
                                   padding: EdgeInsets.symmetric(vertical: CredTheme.spaceLg),
-                                  child: EmptyState(message: 'No transactions in this period'),
+                                  child: EmptyState(
+                                    title: 'No transactions',
+                                    message: 'No transactions in this period',
+                                  ),
                                 )
                               : Column(
                                   children: [
@@ -277,7 +285,7 @@ class _TransactionTile extends StatelessWidget {
         children: [
           Text(
             CurrencyFormatter.format(sale.total),
-            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+            style: CredTheme.listAmountStyle(context),
           ),
           const SizedBox(height: 4),
           CredStatusChip.saleType(isCash: isCash, compact: true),

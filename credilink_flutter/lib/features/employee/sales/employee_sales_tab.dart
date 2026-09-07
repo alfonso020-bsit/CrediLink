@@ -49,7 +49,12 @@ class _EmployeeSalesTabState extends ConsumerState<EmployeeSalesTab> {
       asyncValue: profileAsync,
       emptyMessage: 'No profile',
       builder: (profile) {
-        if (profile == null) return const EmptyState(message: 'No profile');
+        if (profile == null) {
+          return const EmptyState(
+            title: 'No profile',
+            message: 'Unable to load your account.',
+          );
+        }
 
         final storeOwnerId = resolveStoreOwnerId(profile);
         final salesAsync = ref.watch(storeSalesProvider(storeOwnerId));
@@ -74,7 +79,10 @@ class _EmployeeSalesTabState extends ConsumerState<EmployeeSalesTab> {
                   );
 
                   if (filtered.isEmpty) {
-                    return const EmptyState(message: 'No sales in this period');
+                    return const EmptyState(
+                      title: 'No sales',
+                      message: 'No sales in this period',
+                    );
                   }
 
                   return RefreshIndicator(
@@ -248,11 +256,7 @@ class _SaleTile extends StatelessWidget {
         children: [
           Text(
             CurrencyFormatter.format(sale.total),
-            style: const TextStyle(
-              fontWeight: FontWeight.w700,
-              fontSize: 15,
-              color: CredTheme.titleText,
-            ),
+            style: CredTheme.listAmountStyle(context),
           ),
           const SizedBox(height: 4),
           if (isCash)

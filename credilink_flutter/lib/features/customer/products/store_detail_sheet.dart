@@ -4,6 +4,8 @@ import '../../../core/theme/cred_theme.dart';
 import '../../../models/product.dart';
 import '../../../models/store_profile.dart';
 import '../../../shared/widgets/common/cred_avatar.dart';
+import '../../../shared/widgets/common/empty_state.dart';
+import '../../../shared/widgets/layout/cred_sheet_scaffold.dart';
 import '../../../shared/widgets/products/cred_product_card.dart';
 import '../customer_helpers.dart';
 
@@ -96,126 +98,115 @@ class _StoreDetailSheetState extends State<StoreDetailSheet> {
   @override
   Widget build(BuildContext context) {
     final products = _filteredProducts;
+    final storeName = widget.store.displayName;
+    final location = CustomerHelpers.storeLocation(widget.store);
 
-    return DraggableScrollableSheet(
-      expand: false,
-      initialChildSize: 0.85,
-      minChildSize: 0.5,
-      maxChildSize: 0.95,
-      builder: (_, controller) {
-        return ListView(
-          controller: controller,
-          padding: CredTheme.pagePadding,
-          children: [
-            Row(
-              children: [
-                CredAvatar(name: widget.store.storeName, imageUrl: widget.store.storeImage, radius: 28),
-                const SizedBox(width: CredTheme.spaceMd),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(widget.store.storeName, style: Theme.of(context).textTheme.titleLarge),
-                      if (widget.store.ownerName != null) Text('Owner: ${widget.store.ownerName}'),
-                      Text(CustomerHelpers.storeLocation(widget.store)),
-                    ],
-                  ),
+    return CredSheetScaffold(
+      title: storeName,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              CredAvatar(name: storeName, imageUrl: widget.store.storeImage, radius: 28),
+              const SizedBox(width: CredTheme.spaceMd),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (widget.store.ownerName != null &&
+                        widget.store.ownerName!.trim().isNotEmpty)
+                      Text(
+                        'Owner: ${widget.store.ownerName}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: CredTheme.bodyMutedStyle(context),
+                      ),
+                    if (location.isNotEmpty)
+                      Text(
+                        location,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: CredTheme.bodyMutedStyle(context),
+                      ),
+                  ],
                 ),
-              ],
-            ),
-            const SizedBox(height: CredTheme.spaceMd),
-            TextField(
-              controller: _searchController,
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.search),
-                hintText: 'Search products in store...',
-                border: OutlineInputBorder(),
               ),
-              onChanged: (value) => setState(() => _query = value.trim()),
+            ],
+          ),
+          const SizedBox(height: CredTheme.spaceMd),
+          TextField(
+            controller: _searchController,
+            decoration: const InputDecoration(
+              prefixIcon: Icon(Icons.search),
+              hintText: 'Search products in store...',
+              border: OutlineInputBorder(),
+              isDense: true,
             ),
-            const SizedBox(height: CredTheme.spaceSm),
-            Row(
-              children: [
-                Expanded(
-                  child: DropdownButtonFormField<String?>(
-                    key: ValueKey(_selectedCategory),
-                    initialValue: _selectedCategory,
-                    decoration: const InputDecoration(
-                      labelText: 'Category',
-                      border: OutlineInputBorder(),
-                      isDense: true,
-                    ),
-                    items: [
-                      const DropdownMenuItem<String?>(
-                        value: null,
-                        child: Text('All categories'),
-                      ),
-                      ..._categories.map(
-                        (category) => DropdownMenuItem<String?>(
-                          value: category,
-                          child: Text(category),
-                        ),
-                      ),
-                    ],
-                    onChanged: (value) => setState(() => _selectedCategory = value),
-                  ),
-                ),
-                const SizedBox(width: CredTheme.spaceSm),
-                Expanded(
-                  child: DropdownButtonFormField<_ProductSort>(
-                    key: ValueKey(_sortBy),
-                    initialValue: _sortBy,
-                    decoration: const InputDecoration(
-                      labelText: 'Sort by',
-                      border: OutlineInputBorder(),
-                      isDense: true,
-                    ),
-                    items: const [
-                      DropdownMenuItem(
-                        value: _ProductSort.name,
-                        child: Text('Name'),
-                      ),
-                      DropdownMenuItem(
-                        value: _ProductSort.priceLow,
-                        child: Text('Price: Low to High'),
-                      ),
-                      DropdownMenuItem(
-                        value: _ProductSort.priceHigh,
-                        child: Text('Price: High to Low'),
-                      ),
-                      DropdownMenuItem(
-                        value: _ProductSort.category,
-                        child: Text('Category'),
-                      ),
-                    ],
-                    onChanged: (value) {
-                      if (value != null) setState(() => _sortBy = value);
-                    },
-                  ),
-                ),
-              ],
+            onChanged: (value) => setState(() => _query = value.trim()),
+          ),
+          const SizedBox(height: CredTheme.spaceSm),
+          DropdownButtonFormField<String?>(
+            key: ValueKey('cat-$_selectedCategory'),
+            initialValue: _selectedCategory,
+            isExpanded: true,
+            decoration: const InputDecoration(
+              border: OutlineInputBorder(),
+              isDense: true,
+              hintText: 'All categories',
             ),
-            const SizedBox(height: CredTheme.spaceMd),
-            Text(
-              '${products.length} product${products.length == 1 ? '' : 's'}',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: CredTheme.spaceSm),
-            if (products.isEmpty)
-              const Padding(
-                padding: EdgeInsets.all(CredTheme.spaceLg),
-                child: Center(child: Text('No products found')),
-              )
-            else
-              CredProductGrid(
-                products: products,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemBuilder: (context, product, _) => CredProductCard(product: product),
+            items: [
+              const DropdownMenuItem<String?>(
+                value: null,
+                child: Text('All categories', overflow: TextOverflow.ellipsis),
               ),
-          ],
-        );
-      },
+              ..._categories.map(
+                (category) => DropdownMenuItem<String?>(
+                  value: category,
+                  child: Text(category, overflow: TextOverflow.ellipsis),
+                ),
+              ),
+            ],
+            onChanged: (value) => setState(() => _selectedCategory = value),
+          ),
+          const SizedBox(height: CredTheme.spaceSm),
+          DropdownButtonFormField<_ProductSort>(
+            key: ValueKey('sort-$_sortBy'),
+            initialValue: _sortBy,
+            isExpanded: true,
+            decoration: const InputDecoration(
+              border: OutlineInputBorder(),
+              isDense: true,
+              hintText: 'Sort by',
+            ),
+            items: const [
+              DropdownMenuItem(value: _ProductSort.name, child: Text('Sort: Name')),
+              DropdownMenuItem(value: _ProductSort.priceLow, child: Text('Sort: Price low–high')),
+              DropdownMenuItem(value: _ProductSort.priceHigh, child: Text('Sort: Price high–low')),
+              DropdownMenuItem(value: _ProductSort.category, child: Text('Sort: Category')),
+            ],
+            onChanged: (value) {
+              if (value != null) setState(() => _sortBy = value);
+            },
+          ),
+          const SizedBox(height: CredTheme.spaceMd),
+          Text(
+            '${products.length} product${products.length == 1 ? '' : 's'}',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: CredTheme.spaceSm),
+          if (products.isEmpty)
+            const EmptyState(message: 'No products found', icon: Icons.inventory_2_outlined)
+          else
+            CredProductGrid(
+              products: products,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemBuilder: (context, product, _) => CredProductCard(product: product),
+            ),
+        ],
+      ),
     );
   }
 }

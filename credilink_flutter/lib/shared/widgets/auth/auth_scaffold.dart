@@ -40,7 +40,10 @@ class AuthScaffold extends StatelessWidget {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: CredTheme.spaceMd, vertical: CredTheme.spaceMd),
+            padding: const EdgeInsets.symmetric(
+              horizontal: CredTheme.spaceMd,
+              vertical: CredTheme.spaceMd,
+            ),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: AuthTheme.maxWidth),
               child: Column(
@@ -95,7 +98,7 @@ class _LogoHeader extends StatelessWidget {
         Container(
           width: AuthTheme.logoSize,
           height: AuthTheme.logoSize,
-          padding: const EdgeInsets.all(8),
+          padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(AuthTheme.logoRadius),
@@ -111,25 +114,23 @@ class _LogoHeader extends StatelessWidget {
             ),
           ),
         ),
+        const SizedBox(height: CredTheme.spaceSm),
+        Text(
+          'CrediLink',
+          style: CredTheme.brandWordmark(context, fontSize: 32),
+          textAlign: TextAlign.center,
+        ),
         const SizedBox(height: CredTheme.spaceMd),
         Text(
           welcomeTitle,
-          style: const TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.w700,
-            color: AuthTheme.titleText,
-            letterSpacing: -0.5,
-          ),
+          style: CredTheme.pageTitle(context).copyWith(fontSize: 20),
           textAlign: TextAlign.center,
         ),
         if (welcomeSubtitle != null) ...[
           const SizedBox(height: 4),
           Text(
             welcomeSubtitle!,
-            style: const TextStyle(
-              fontSize: 14,
-              color: AuthTheme.subtitleText,
-            ),
+            style: CredTheme.bodyMutedStyle(context),
             textAlign: TextAlign.center,
           ),
         ],

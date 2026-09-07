@@ -1,185 +1,102 @@
 import 'package:flutter/material.dart';
-
 import 'package:go_router/go_router.dart';
 
-
-
 import '../../core/theme/cred_theme.dart';
-
 import '../../shared/widgets/auth/cred_buttons.dart';
-
-
+import '../../shared/widgets/layout/cred_fade_in.dart';
 
 class LandingScreen extends StatelessWidget {
-
   const LandingScreen({super.key});
 
-
-
   @override
-
   Widget build(BuildContext context) {
-
     return Scaffold(
-
-      backgroundColor: CredTheme.authBackground,
-
-      appBar: AppBar(title: const Text('CrediLink')),
-
+      backgroundColor: CredTheme.scaffoldBackground,
       body: SafeArea(
-
         child: Padding(
-
-          padding: const EdgeInsets.all(CredTheme.spaceLg),
-
+          padding: const EdgeInsets.symmetric(
+            horizontal: CredTheme.spaceLg,
+            vertical: CredTheme.spaceMd,
+          ),
           child: Column(
-
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-
-              const Spacer(),
-
-              Container(
-
-                width: CredTheme.logoSize,
-
-                height: CredTheme.logoSize,
-
-                padding: const EdgeInsets.all(8),
-
-                decoration: BoxDecoration(
-
-                  color: CredTheme.cardBackground,
-
-                  borderRadius: BorderRadius.circular(CredTheme.radiusLogo),
-
-                  border: Border.all(color: CredTheme.border),
-
+              const Spacer(flex: 2),
+              CredFadeIn(
+                child: Column(
+                  children: [
+                    Container(
+                      width: 96,
+                      height: 96,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: CredTheme.cardBackground,
+                        borderRadius: BorderRadius.circular(CredTheme.radiusLogo),
+                        border: Border.all(color: CredTheme.border),
+                      ),
+                      child: Image.asset(
+                        'assets/images/logo.jpg',
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, _, _) => const Icon(
+                          Icons.storefront_rounded,
+                          size: 48,
+                          color: CredTheme.primary,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: CredTheme.spaceLg),
+                    Text(
+                      'CrediLink',
+                      style: CredTheme.brandWordmark(context, fontSize: 42),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: CredTheme.spaceSm),
+                    Text(
+                      'Credit that keeps your sari-sari moving',
+                      textAlign: TextAlign.center,
+                      style: CredTheme.pageTitle(context).copyWith(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            height: 1.35,
+                          ),
+                    ),
+                    const SizedBox(height: CredTheme.spaceXs),
+                    Text(
+                      'POS, utang tracking, and inventory — built for neighborhood stores.',
+                      textAlign: TextAlign.center,
+                      style: CredTheme.bodyMutedStyle(context).copyWith(height: 1.45),
+                    ),
+                  ],
                 ),
-
-                child: Image.asset(
-
-                  'assets/images/logo.jpg',
-
-                  fit: BoxFit.contain,
-
-                  errorBuilder: (_, __, ___) => Icon(
-
-                    Icons.storefront,
-
-                    size: 48,
-
-                    color: Theme.of(context).colorScheme.primary,
-
-                  ),
-
+              ),
+              const Spacer(flex: 3),
+              CredFadeIn(
+                delay: const Duration(milliseconds: 80),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    CredPrimaryButton(
+                      label: 'Login',
+                      onPressed: () => context.go('/login'),
+                    ),
+                    const SizedBox(height: CredTheme.spaceSm),
+                    CredOutlineButton(
+                      label: 'Create an account',
+                      onPressed: () => context.go('/register'),
+                    ),
+                    const SizedBox(height: CredTheme.spaceLg),
+                    Text(
+                      '© ${DateTime.now().year} CrediLink',
+                      textAlign: TextAlign.center,
+                      style: CredTheme.bodyMutedStyle(context).copyWith(fontSize: 12),
+                    ),
+                  ],
                 ),
-
               ),
-
-              const SizedBox(height: CredTheme.spaceMd),
-
-              Text(
-
-                'CrediLink',
-
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
-
-              ),
-
-              const SizedBox(height: CredTheme.spaceXs),
-
-              Text(
-
-                'Sari-Sari Store Management System',
-
-                textAlign: TextAlign.center,
-
-                style: CredTheme.bodyMutedStyle(context),
-
-              ),
-
-              const SizedBox(height: CredTheme.spaceXl),
-
-              _feature(context, Icons.receipt, 'POS System', 'Fast point-of-sale transactions'),
-
-              _feature(context, Icons.people, 'Debt Tracking', 'Monitor customer debts'),
-
-              _feature(context, Icons.inventory_2, 'Inventory', 'Real-time stock levels'),
-
-              _feature(context, Icons.bar_chart, 'Reports', 'Sales and analytics'),
-
-              const Spacer(),
-
-              CredPrimaryButton(label: 'Login', onPressed: () => context.go('/login')),
-
-              const SizedBox(height: CredTheme.spaceSm),
-
-              CredOutlineButton(label: 'Register', onPressed: () => context.go('/register')),
-
-              const SizedBox(height: CredTheme.spaceMd),
-
-              Text(
-
-                '© ${DateTime.now().year} CrediLink',
-
-                style: CredTheme.bodyMutedStyle(context).copyWith(fontSize: 12),
-
-              ),
-
             ],
-
           ),
-
         ),
-
       ),
-
     );
-
   }
-
-
-
-  Widget _feature(BuildContext context, IconData icon, String title, String desc) {
-
-    return Padding(
-
-      padding: const EdgeInsets.symmetric(vertical: CredTheme.spaceXs),
-
-      child: Row(
-
-        children: [
-
-          Icon(icon, color: CredTheme.primary),
-
-          const SizedBox(width: CredTheme.spaceMd),
-
-          Expanded(
-
-            child: Column(
-
-              crossAxisAlignment: CrossAxisAlignment.start,
-
-              children: [
-
-                Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-
-                Text(desc, style: CredTheme.bodyMutedStyle(context).copyWith(fontSize: 13)),
-
-              ],
-
-            ),
-
-          ),
-
-        ],
-
-      ),
-
-    );
-
-  }
-
 }
-
-

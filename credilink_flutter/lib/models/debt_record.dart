@@ -42,12 +42,20 @@ class DebtRecord {
       status: data['status'] as String? ?? 'pending',
       paymentStatus: data['payment_status'] as String? ?? 'unpaid',
       customerName: data['customer_name'] as String? ?? data['customerName'] as String?,
-      customerPhone: data['customerPhone'] as String?,
+      customerPhone: _nonEmptyPhone(
+        data['customerPhone'] ?? data['customer_phone'] ?? data['phone_number'],
+      ),
       employeeId: data['employee_id'] as String?,
       items: (data['items'] as List?)?.cast<Map<String, dynamic>>() ?? [],
       dueDate: _toDate(data['dueDate'] ?? data['due_date']),
       createdAt: _toDate(data['created_at']),
     );
+  }
+
+  static String? _nonEmptyPhone(dynamic value) {
+    final phone = (value as String?)?.trim();
+    if (phone == null || phone.isEmpty) return null;
+    return phone;
   }
 
   static DateTime? _toDate(dynamic value) {

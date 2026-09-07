@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/cred_theme.dart';
 import '../../../models/product.dart';
 import '../../../services/barcode_lookup_service.dart';
 
@@ -29,10 +30,10 @@ class BarcodeScanResultCard extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
       color: isFound
-          ? Colors.green.shade50
+          ? CredTheme.success.withValues(alpha: 0.1)
           : isExternal
-              ? Colors.blue.shade50
-              : Colors.orange.shade50,
+              ? CredTheme.primary.withValues(alpha: 0.1)
+              : CredTheme.warning.withValues(alpha: 0.12),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(

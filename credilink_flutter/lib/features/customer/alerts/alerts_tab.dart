@@ -8,11 +8,14 @@ import '../../../models/debt_record.dart';
 import '../../../models/store_profile.dart';
 import '../../../repositories/repositories.dart';
 import '../../../shared/widgets/calendar/debt_calendar.dart';
+import '../../../shared/widgets/common/cred_async_view.dart';
+import '../../../shared/widgets/common/cred_avatar.dart';
 import '../../../shared/widgets/common/empty_state.dart';
 import '../../../shared/widgets/layout/cred_section.dart';
+import '../../../shared/widgets/layout/cred_status_chip.dart';
+import '../../../shared/widgets/layout/cred_surface_tile.dart';
+import '../../../shared/widgets/layout/cred_tab_page_layout.dart';
 import '../../../shared/widgets/receipts/payment_sheet.dart';
-import '../customer_helpers.dart';
-import '../widgets/debt_status_badge.dart';
 import 'day_events_modal.dart';
 
 class CustomerAlertsTab extends ConsumerStatefulWidget {
@@ -28,162 +31,167 @@ class _CustomerAlertsTabState extends ConsumerState<CustomerAlertsTab> {
 
   @override
   Widget build(BuildContext context) {
-    final profile = ref.watch(currentProfileProvider);
     final paymentRepo = ref.read(paymentRepositoryProvider);
+    final bundleAsync = ref.watch(currentCustomerDebtsBundleProvider);
 
-    return profile.when(
-      data: (p) {
-        if (p == null) return const EmptyState(message: 'No profile');
-        return FutureBuilder<
-            ({
-              List<DebtRecord> debts,
-              Map<String, StoreProfile> stores,
-              Map<String, String> storePhones,
-            })>(
-          future: _loadAlertsData(ref, p.id),
-          builder: (context, snap) {
-            if (!snap.hasData) return const Center(child: CircularProgressIndicator());
-            final debts = snap.data!.debts;
-            final storeNames = {
-              for (final entry in snap.data!.stores.entries) entry.key: entry.value.storeName,
-            };
-            final storePhones = snap.data!.storePhones;
+    return CredAsyncView<
+        ({
+          List<DebtRecord> debts,
+          Map<String, StoreProfile> stores,
+          Map<String, String> storePhones,
+        })>(
+      asyncValue: bundleAsync,
+      emptyMessage: 'No financial alerts',
+      onRetry: () => _invalidateBundle(),
+      builder: (bundle) {
+        final debts = bundle.debts;
+        final stores = bundle.stores;
+        final storeNames = {
+          for (final entry in stores.entries) entry.key: entry.value.displayName,
+        };
+        final storePhones = bundle.storePhones;
 
-            final overdue = debts.where((d) => paymentRepo.isDebtOverdue(d)).toList();
-            final upcoming = debts
-                .where((d) => !d.isPaid && !paymentRepo.isDebtOverdue(d) && d.dueDate != null)
-                .toList()
-              ..sort((a, b) => a.dueDate!.compareTo(b.dueDate!));
+        final overdue = debts.where((d) => paymentRepo.isDebtOverdue(d)).toList();
+        final upcoming = debts
+            .where((d) => !d.isPaid && !paymentRepo.isDebtOverdue(d) && d.dueDate != null)
+            .toList()
+          ..sort((a, b) => a.dueDate!.compareTo(b.dueDate!));
 
-            final overdueAlerts = overdue
-                .map(
-                  (debt) => _AlertItem(
-                    id: 'overdue-${debt.id}',
-                    debt: debt,
-                    storeName: storeNames[debt.storeOwnerId],
-                    storePhone: storePhones[debt.storeOwnerId],
-                    title: 'Overdue debt at ${storeNames[debt.storeOwnerId] ?? 'Store'}',
-                    highlight: true,
-                  ),
-                )
-                .where((alert) => !_dismissedAlertIds.contains(alert.id))
-                .toList();
-
-            final upcomingAlerts = upcoming
-                .take(5)
-                .map(
-                  (debt) => _AlertItem(
-                    id: 'upcoming-${debt.id}',
-                    debt: debt,
-                    storeName: storeNames[debt.storeOwnerId],
-                    storePhone: storePhones[debt.storeOwnerId],
-                    title: 'Payment due at ${storeNames[debt.storeOwnerId] ?? 'Store'}',
-                  ),
-                )
-                .where((alert) => !_dismissedAlertIds.contains(alert.id))
-                .toList();
-
-            final visibleAlerts = [...overdueAlerts, ...upcomingAlerts];
-            final unreadCount =
-                visibleAlerts.where((alert) => !_readAlertIds.contains(alert.id)).length;
-
-            return RefreshIndicator(
-              onRefresh: () async {
-                ref.invalidate(currentProfileProvider);
-                setState(() {});
-              },
-              child: ListView(
-                padding: CredTheme.pagePadding,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'Financial Alerts',
-                          style: Theme.of(context).textTheme.titleLarge,
-                        ),
-                      ),
-                      if (unreadCount > 0)
-                        TextButton(
-                          onPressed: () => setState(() {
-                            for (final alert in visibleAlerts) {
-                              _readAlertIds.add(alert.id);
-                            }
-                          }),
-                          child: Text('Mark all read ($unreadCount)'),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: CredTheme.spaceMd),
-                  if (visibleAlerts.isEmpty)
-                    const EmptyState(
-                      message: 'No financial alerts',
-                      icon: Icons.notifications_off,
-                    ),
-                  if (overdueAlerts.isNotEmpty)
-                    CredSection(
-                      title: 'Overdue Debts',
-                      child: Column(
-                        children: overdueAlerts
-                            .map(
-                              (alert) => _AlertCard(
-                                alert: alert,
-                                paymentRepo: paymentRepo,
-                                isRead: _readAlertIds.contains(alert.id),
-                                onOpen: () => _openDebtDetail(alert),
-                                onDismiss: () => setState(() => _dismissedAlertIds.add(alert.id)),
-                                onMarkRead: () => setState(() => _readAlertIds.add(alert.id)),
-                              ),
-                            )
-                            .toList(),
-                      ),
-                    ),
-                  if (upcomingAlerts.isNotEmpty) ...[
-                    if (overdueAlerts.isNotEmpty) const SizedBox(height: CredTheme.spaceMd),
-                    CredSection(
-                      title: 'Upcoming Due Dates',
-                      child: Column(
-                        children: upcomingAlerts
-                            .map(
-                              (alert) => _AlertCard(
-                                alert: alert,
-                                paymentRepo: paymentRepo,
-                                isRead: _readAlertIds.contains(alert.id),
-                                onOpen: () => _openDebtDetail(alert),
-                                onDismiss: () => setState(() => _dismissedAlertIds.add(alert.id)),
-                                onMarkRead: () => setState(() => _readAlertIds.add(alert.id)),
-                              ),
-                            )
-                            .toList(),
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: CredTheme.spaceMd),
-                  DebtCalendar(
-                    debts: debts,
-                    onDebtTap: (d) => DebtReceiptSheet.show(
-                      context,
-                      d,
-                      storeName: storeNames[d.storeOwnerId],
-                      storePhone: storePhones[d.storeOwnerId],
-                    ),
-                    onDayTap: (day, dayDebts) => DayEventsModal.show(
-                      context,
-                      date: day,
-                      debts: dayDebts,
-                      storeNames: storeNames,
-                      storePhones: storePhones,
-                    ),
-                  ),
-                ],
+        final overdueAlerts = overdue
+            .map(
+              (debt) => _AlertItem(
+                id: 'overdue-${debt.id}',
+                debt: debt,
+                storeName: storeNames[debt.storeOwnerId],
+                storeImage: stores[debt.storeOwnerId]?.storeImage,
+                storePhone: storePhones[debt.storeOwnerId],
+                title: 'Overdue debt at ${storeNames[debt.storeOwnerId] ?? 'Store'}',
+                highlight: true,
               ),
-            );
+            )
+            .where((alert) => !_dismissedAlertIds.contains(alert.id))
+            .toList();
+
+        final upcomingAlerts = upcoming
+            .take(5)
+            .map(
+              (debt) => _AlertItem(
+                id: 'upcoming-${debt.id}',
+                debt: debt,
+                storeName: storeNames[debt.storeOwnerId],
+                storeImage: stores[debt.storeOwnerId]?.storeImage,
+                storePhone: storePhones[debt.storeOwnerId],
+                title: 'Payment due at ${storeNames[debt.storeOwnerId] ?? 'Store'}',
+              ),
+            )
+            .where((alert) => !_dismissedAlertIds.contains(alert.id))
+            .toList();
+
+        final visibleAlerts = [...overdueAlerts, ...upcomingAlerts];
+        final unreadCount =
+            visibleAlerts.where((alert) => !_readAlertIds.contains(alert.id)).length;
+
+        return CredTabPageLayout(
+          onRefresh: () async {
+            _invalidateBundle();
+            await ref.read(currentCustomerDebtsBundleProvider.future);
           },
+          children: [
+            if (unreadCount > 0)
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () => setState(() {
+                    for (final alert in visibleAlerts) {
+                      _readAlertIds.add(alert.id);
+                    }
+                  }),
+                  child: Text('Mark all read ($unreadCount)'),
+                ),
+              ),
+            if (visibleAlerts.isEmpty)
+              const EmptyState(
+                title: 'No alerts',
+                message: 'No financial alerts',
+                icon: Icons.notifications_off,
+              ),
+            if (overdueAlerts.isNotEmpty)
+              CredSection(
+                title: 'Overdue Debts',
+                child: Column(
+                  children: [
+                    for (var i = 0; i < overdueAlerts.length; i++) ...[
+                      if (i > 0) const SizedBox(height: CredTheme.spaceXs),
+                      _AlertCard(
+                        alert: overdueAlerts[i],
+                        paymentRepo: paymentRepo,
+                        isRead: _readAlertIds.contains(overdueAlerts[i].id),
+                        onOpen: () => _openDebtDetail(overdueAlerts[i]),
+                        onDismiss: () =>
+                            setState(() => _dismissedAlertIds.add(overdueAlerts[i].id)),
+                        onMarkRead: () =>
+                            setState(() => _readAlertIds.add(overdueAlerts[i].id)),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            if (upcomingAlerts.isNotEmpty) ...[
+              if (overdueAlerts.isNotEmpty) const SizedBox(height: CredTheme.spaceMd),
+              CredSection(
+                title: 'Upcoming Due Dates',
+                child: Column(
+                  children: [
+                    for (var i = 0; i < upcomingAlerts.length; i++) ...[
+                      if (i > 0) const SizedBox(height: CredTheme.spaceXs),
+                      _AlertCard(
+                        alert: upcomingAlerts[i],
+                        paymentRepo: paymentRepo,
+                        isRead: _readAlertIds.contains(upcomingAlerts[i].id),
+                        onOpen: () => _openDebtDetail(upcomingAlerts[i]),
+                        onDismiss: () =>
+                            setState(() => _dismissedAlertIds.add(upcomingAlerts[i].id)),
+                        onMarkRead: () =>
+                            setState(() => _readAlertIds.add(upcomingAlerts[i].id)),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+            const SizedBox(height: CredTheme.spaceLg),
+            CredSection(
+              title: 'Debt calendar',
+              subtitle: 'Tap a day for due items',
+              child: DebtCalendar(
+                debts: debts,
+                onDebtTap: (d) => DebtReceiptSheet.show(
+                  context,
+                  d,
+                  storeName: storeNames[d.storeOwnerId],
+                  storePhone: storePhones[d.storeOwnerId],
+                ),
+                onDayTap: (day, dayDebts) => DayEventsModal.show(
+                  context,
+                  date: day,
+                  debts: dayDebts,
+                  storeNames: storeNames,
+                  storePhones: storePhones,
+                ),
+              ),
+            ),
+          ],
         );
       },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => EmptyState(message: '$e'),
     );
+  }
+
+  void _invalidateBundle() {
+    final profile = ref.read(currentProfileProvider).value;
+    if (profile != null) {
+      ref.invalidate(customerDebtsProvider(profile.id));
+    }
+    ref.invalidate(currentCustomerDebtsBundleProvider);
   }
 
   void _openDebtDetail(_AlertItem alert) {
@@ -195,31 +203,6 @@ class _CustomerAlertsTabState extends ConsumerState<CustomerAlertsTab> {
       storePhone: alert.storePhone,
     );
   }
-
-  Future<
-      ({
-        List<DebtRecord> debts,
-        Map<String, StoreProfile> stores,
-        Map<String, String> storePhones,
-      })> _loadAlertsData(
-    WidgetRef ref,
-    String customerId,
-  ) async {
-    final paymentRepo = ref.read(paymentRepositoryProvider);
-    final storeRepo = ref.read(storeRepositoryProvider);
-    final authRepo = ref.read(authRepositoryProvider);
-    final debts = await paymentRepo.getDebtsByCustomer(customerId);
-
-    final storeIds = debts.map((d) => d.storeOwnerId).toSet();
-    final stores = <String, StoreProfile>{};
-    for (final id in storeIds) {
-      final store = await storeRepo.getStore(id);
-      if (store != null) stores[id] = store;
-    }
-    final storePhones = await CustomerHelpers.loadStorePhones(authRepo, storeIds);
-
-    return (debts: debts, stores: stores, storePhones: storePhones);
-  }
 }
 
 class _AlertItem {
@@ -228,6 +211,7 @@ class _AlertItem {
     required this.debt,
     required this.title,
     this.storeName,
+    this.storeImage,
     this.storePhone,
     this.highlight = false,
   });
@@ -236,6 +220,7 @@ class _AlertItem {
   final DebtRecord debt;
   final String title;
   final String? storeName;
+  final String? storeImage;
   final String? storePhone;
   final bool highlight;
 }
@@ -259,24 +244,20 @@ class _AlertCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cred = CredThemeExtension.of(context);
     final debt = alert.debt;
+    final overdue = paymentRepo.isDebtOverdue(debt);
+    final storeName = alert.storeName ?? 'Store';
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: CredTheme.spaceXs),
-      color: alert.highlight
-          ? cred.danger.withValues(alpha: isRead ? 0.04 : 0.08)
-          : isRead
-              ? CredTheme.scaffoldBackground
-              : null,
-      child: ListTile(
-        leading: Icon(
-          alert.highlight ? Icons.warning : Icons.schedule,
-          color: alert.highlight ? cred.danger : cred.warning,
-        ),
+    return Opacity(
+      opacity: isRead ? 0.72 : 1,
+      child: CredSurfaceTile(
+        emphasized: alert.highlight,
+        leading: CredAvatar(name: storeName, imageUrl: alert.storeImage),
         title: Text(
-          alert.storeName ?? 'Store',
-          style: TextStyle(fontWeight: isRead ? FontWeight.normal : FontWeight.w600),
+          storeName,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(fontWeight: isRead ? FontWeight.w500 : FontWeight.w700),
         ),
         subtitle: Text(
           debt.dueDate != null
@@ -287,12 +268,19 @@ class _AlertCard extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Column(
-              mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Text(CurrencyFormatter.format(debt.remainingBalance)),
+                Text(
+                  CurrencyFormatter.format(debt.remainingBalance),
+                  style: CredTheme.listAmountStyle(context),
+                ),
                 const SizedBox(height: 4),
-                DebtStatusBadge(debt: debt, paymentRepo: paymentRepo),
+                CredStatusChip.debt(
+                  paymentStatus: debt.paymentStatus,
+                  isOverdue: overdue,
+                  compact: true,
+                ),
               ],
             ),
             PopupMenuButton<String>(

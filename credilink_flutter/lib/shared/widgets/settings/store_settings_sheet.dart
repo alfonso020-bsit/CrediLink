@@ -32,6 +32,7 @@ class StoreSettingsSheet extends ConsumerStatefulWidget {
 class _StoreSettingsSheetState extends ConsumerState<StoreSettingsSheet> {
   final _formKey = GlobalKey<FormState>();
   final _picker = ImagePicker();
+  late final TextEditingController _storeName;
   late final TextEditingController _description;
   late final TextEditingController _permit;
   late final TextEditingController _hours;
@@ -43,6 +44,9 @@ class _StoreSettingsSheetState extends ConsumerState<StoreSettingsSheet> {
   @override
   void initState() {
     super.initState();
+    _storeName = TextEditingController(
+      text: widget.profile.storeName?.trim() ?? '',
+    );
     _description = TextEditingController();
     _permit = TextEditingController();
     _hours = TextEditingController();
@@ -55,6 +59,9 @@ class _StoreSettingsSheetState extends ConsumerState<StoreSettingsSheet> {
     final store = await ref.read(storeRepositoryProvider).getStore(widget.profile.id);
     if (!mounted || store == null) return;
     setState(() {
+      if (_storeName.text.trim().isEmpty && store.storeName.trim().isNotEmpty) {
+        _storeName.text = store.storeName;
+      }
       _description.text = store.description ?? '';
       _permit.text = store.businessPermitNumber ?? '';
       _hours.text = store.businessHours ?? '';
@@ -66,6 +73,7 @@ class _StoreSettingsSheetState extends ConsumerState<StoreSettingsSheet> {
 
   @override
   void dispose() {
+    _storeName.dispose();
     _description.dispose();
     _permit.dispose();
     _hours.dispose();
@@ -87,9 +95,11 @@ class _StoreSettingsSheetState extends ConsumerState<StoreSettingsSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final storeName = widget.profile.storeName?.trim().isNotEmpty == true
-        ? widget.profile.storeName!.trim()
-        : 'My Store';
+    final displayName = _storeName.text.trim().isNotEmpty
+        ? _storeName.text.trim()
+        : (widget.profile.storeName?.trim().isNotEmpty == true
+            ? widget.profile.storeName!.trim()
+            : 'My Store');
 
     return CredSheetScaffold(
       title: 'Store Settings',
@@ -98,12 +108,14 @@ class _StoreSettingsSheetState extends ConsumerState<StoreSettingsSheet> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Center(child: CredAvatar(name: storeName, imageUrl: _storeImage, radius: 44)),
-            const SizedBox(height: CredTheme.spaceXs),
-            Text(
-              storeName,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+            Center(child: CredAvatar(name: displayName, imageUrl: _storeImage, radius: 44)),
+            const SizedBox(height: CredTheme.spaceMd),
+            CredTextField(
+              controller: _storeName,
+              label: 'Store Name',
+              icon: Icons.storefront_outlined,
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? 'Store name is required' : null,
             ),
             const SizedBox(height: CredTheme.spaceSm),
             OutlinedButton.icon(
@@ -144,10 +156,12 @@ class _StoreSettingsSheetState extends ConsumerState<StoreSettingsSheet> {
   }
 
   Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
     setState(() => _loading = true);
     try {
       await ref.read(storeRepositoryProvider).updateStoreProfile(
             storeOwnerId: widget.profile.id,
+            storeName: _storeName.text.trim(),
             description: _description.text.trim(),
             storeAddress: _address.text.trim(),
             businessPermitNumber: _permit.text.trim(),
@@ -158,6 +172,7 @@ class _StoreSettingsSheetState extends ConsumerState<StoreSettingsSheet> {
           );
       ref.invalidate(storeProfileProvider(widget.profile.id));
       ref.invalidate(receiptStoreInfoProvider(widget.profile.id));
+      ref.invalidate(currentProfileProvider);
       if (mounted) {
         Navigator.pop(context);
         CredSnackBar.show(context, 'Store settings saved');

@@ -30,8 +30,11 @@ class CredSection extends StatelessWidget {
                   Text(title, style: CredTheme.sectionTitle(context)),
                   if (subtitle != null)
                     Padding(
-                      padding: const EdgeInsets.only(top: 2),
-                      child: Text(subtitle!, style: CredTheme.bodyMutedStyle(context)),
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        subtitle!,
+                        style: CredTheme.bodyMutedStyle(context).copyWith(fontSize: 13),
+                      ),
                     ),
                 ],
               ),

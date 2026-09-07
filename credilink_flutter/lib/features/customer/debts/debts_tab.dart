@@ -7,12 +7,16 @@ import '../../../core/utils/date_formatter.dart';
 import '../../../models/debt_record.dart';
 import '../../../models/store_profile.dart';
 import '../../../repositories/repositories.dart';
+import '../../../shared/widgets/common/cred_async_view.dart';
 import '../../../shared/widgets/common/cred_avatar.dart';
 import '../../../shared/widgets/common/empty_state.dart';
 import '../../../shared/widgets/layout/cred_metric_card.dart';
+import '../../../shared/widgets/layout/cred_section.dart';
+import '../../../shared/widgets/layout/cred_status_chip.dart';
+import '../../../shared/widgets/layout/cred_surface_tile.dart';
+import '../../../shared/widgets/layout/cred_tab_page_layout.dart';
 import '../../../shared/widgets/receipts/payment_sheet.dart';
 import '../customer_helpers.dart';
-import '../widgets/debt_status_badge.dart';
 
 class CustomerDebtsTab extends ConsumerStatefulWidget {
   const CustomerDebtsTab({super.key});
@@ -33,87 +37,127 @@ class _CustomerDebtsTabState extends ConsumerState<CustomerDebtsTab> {
 
   @override
   Widget build(BuildContext context) {
-    final profile = ref.watch(currentProfileProvider);
     final paymentRepo = ref.read(paymentRepositoryProvider);
+    final bundleAsync = ref.watch(currentCustomerDebtsBundleProvider);
 
-    return profile.when(
-      data: (p) {
-        if (p == null) return const EmptyState(message: 'No profile');
-        return FutureBuilder<
-            ({
-              List<DebtRecord> debts,
-              Map<String, StoreProfile> stores,
-              Map<String, String> storePhones,
-            })>(
-          future: _loadDebts(ref, p.id),
-          builder: (context, snap) {
-            if (!snap.hasData) return const Center(child: CircularProgressIndicator());
-            final debts = _filterDebts(snap.data!.debts, paymentRepo);
-            final grouped = CustomerHelpers.groupDebtsByStore(debts);
-            final outstanding = debts
-                .where((d) => !d.isPaid)
-                .fold<double>(0, (sum, d) => sum + d.remainingBalance);
+    return CredAsyncView<
+        ({
+          List<DebtRecord> debts,
+          Map<String, StoreProfile> stores,
+          Map<String, String> storePhones,
+        })>(
+      asyncValue: bundleAsync,
+      emptyMessage: 'No debts',
+      onRetry: () => _invalidateBundle(),
+      builder: (bundle) {
+        if (bundle.debts.isEmpty) {
+          return const EmptyState(
+            title: 'No debts',
+            message: 'No debts',
+          );
+        }
 
-            if (snap.data!.debts.isEmpty) {
-              return const EmptyState(message: 'No debts');
-            }
+        final sortedDebts = [...bundle.debts]
+          ..sort((a, b) {
+            final aOverdue = paymentRepo.isDebtOverdue(a);
+            final bOverdue = paymentRepo.isDebtOverdue(b);
+            if (aOverdue != bOverdue) return aOverdue ? -1 : 1;
+            final ad = a.dueDate ?? DateTime(2100);
+            final bd = b.dueDate ?? DateTime(2100);
+            return ad.compareTo(bd);
+          });
 
-            return RefreshIndicator(
-              onRefresh: () async => setState(() {}),
-              child: ListView(
-                padding: CredTheme.pagePadding,
+        final debts = _filterDebts(
+          sortedDebts,
+          paymentRepo,
+          stores: bundle.stores,
+        );
+        final grouped = CustomerHelpers.groupDebtsByStore(debts);
+        final outstanding = debts
+            .where((d) => !d.isPaid)
+            .fold<double>(0, (sum, d) => sum + d.remainingBalance);
+
+        return CredTabPageLayout(
+          onRefresh: () async {
+            _invalidateBundle();
+            await ref.read(currentCustomerDebtsBundleProvider.future);
+          },
+          children: [
+            TextField(
+              controller: _searchController,
+              decoration: const InputDecoration(
+                prefixIcon: Icon(Icons.search),
+                hintText: 'Search stores or amounts...',
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+              onChanged: (_) => setState(() {}),
+            ),
+            const SizedBox(height: CredTheme.spaceSm),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
                 children: [
-                  TextField(
-                    controller: _searchController,
-                    decoration: const InputDecoration(
-                      prefixIcon: Icon(Icons.search),
-                      hintText: 'Search stores or amounts...',
-                      border: OutlineInputBorder(),
-                    ),
-                    onChanged: (_) => setState(() {}),
-                  ),
-                  const SizedBox(height: CredTheme.spaceSm),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        _filterChip('all', 'All'),
-                        _filterChip('unpaid', 'Unpaid'),
-                        _filterChip('partially_paid', 'Partial'),
-                        _filterChip('paid', 'Paid'),
-                        _filterChip('overdue', 'Overdue'),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: CredTheme.spaceMd),
-                  CredMetricCard(
-                    label: 'Total Outstanding',
-                    value: CurrencyFormatter.format(outstanding),
-                    icon: Icons.account_balance_wallet,
-                    accentColor: CredTheme.primary,
-                  ),
-                  const SizedBox(height: CredTheme.spaceMd),
-                  ...grouped.entries.map((entry) {
-                    final store = snap.data!.stores[entry.key];
-                    final storeName = store?.storeName ?? 'Store';
-                    final storePhone = snap.data!.storePhones[entry.key];
-                    return _StoreDebtSection(
-                      storeName: storeName,
-                      storeLocation: store != null ? CustomerHelpers.storeLocation(store) : '',
-                      storePhone: storePhone,
-                      debts: entry.value,
-                      paymentRepo: paymentRepo,
-                    );
-                  }),
+                  _filterChip('all', 'All'),
+                  _filterChip('unpaid', 'Unpaid'),
+                  _filterChip('partially_paid', 'Partial'),
+                  _filterChip('paid', 'Paid'),
+                  _filterChip('overdue', 'Overdue'),
                 ],
               ),
-            );
-          },
+            ),
+            const SizedBox(height: CredTheme.spaceMd),
+            CredSection(
+              title: 'Summary',
+              child: CredMetricCard(
+                label: 'Total Outstanding',
+                value: CurrencyFormatter.format(outstanding),
+                icon: Icons.account_balance_wallet,
+                accentColor: CredTheme.danger,
+                style: CredMetricStyle.featured,
+              ),
+            ),
+            const SizedBox(height: CredTheme.spaceLg),
+            if (debts.isEmpty)
+              const EmptyState(
+                title: 'No matches',
+                message: 'No debts match your filters',
+              )
+            else
+              CredSection(
+                title: 'By store',
+                subtitle:
+                    '${debts.length} debt${debts.length == 1 ? '' : 's'} · ${grouped.length} store${grouped.length == 1 ? '' : 's'}',
+                child: Column(
+                  children: [
+                    for (final entry in grouped.entries) ...[
+                      _StoreDebtSection(
+                        storeName: bundle.stores[entry.key]?.displayName ?? 'Store',
+                        storeLocation: bundle.stores[entry.key] != null
+                            ? CustomerHelpers.storeLocation(bundle.stores[entry.key]!)
+                            : '',
+                        storeImage: bundle.stores[entry.key]?.storeImage,
+                        storePhone: bundle.storePhones[entry.key],
+                        debts: entry.value,
+                        paymentRepo: paymentRepo,
+                      ),
+                      const SizedBox(height: CredTheme.spaceMd),
+                    ],
+                  ],
+                ),
+              ),
+          ],
         );
       },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => EmptyState(message: '$e'),
     );
+  }
+
+  void _invalidateBundle() {
+    final profile = ref.read(currentProfileProvider).value;
+    if (profile != null) {
+      ref.invalidate(customerDebtsProvider(profile.id));
+    }
+    ref.invalidate(currentCustomerDebtsBundleProvider);
   }
 
   Widget _filterChip(String value, String label) {
@@ -128,10 +172,17 @@ class _CustomerDebtsTabState extends ConsumerState<CustomerDebtsTab> {
     );
   }
 
-  List<DebtRecord> _filterDebts(List<DebtRecord> debts, PaymentRepository paymentRepo) {
+  List<DebtRecord> _filterDebts(
+    List<DebtRecord> debts,
+    PaymentRepository paymentRepo, {
+    Map<String, StoreProfile> stores = const {},
+  }) {
     final term = _searchController.text.trim().toLowerCase();
     return debts.where((debt) {
+      final store = stores[debt.storeOwnerId];
       final matchesSearch = term.isEmpty ||
+          (store?.displayName.toLowerCase().contains(term) ?? false) ||
+          (store != null && CustomerHelpers.storeLocation(store).toLowerCase().contains(term)) ||
           debt.storeOwnerId.toLowerCase().contains(term) ||
           (debt.customerName?.toLowerCase().contains(term) ?? false) ||
           CurrencyFormatter.format(debt.remainingBalance).toLowerCase().contains(term);
@@ -145,40 +196,6 @@ class _CustomerDebtsTabState extends ConsumerState<CustomerDebtsTab> {
       return matchesSearch && matchesStatus;
     }).toList();
   }
-
-  Future<
-      ({
-        List<DebtRecord> debts,
-        Map<String, StoreProfile> stores,
-        Map<String, String> storePhones,
-      })> _loadDebts(
-    WidgetRef ref,
-    String customerId,
-  ) async {
-    final paymentRepo = ref.read(paymentRepositoryProvider);
-    final storeRepo = ref.read(storeRepositoryProvider);
-    final authRepo = ref.read(authRepositoryProvider);
-    final debts = await paymentRepo.getDebtsByCustomer(customerId);
-
-    final storeIds = debts.map((d) => d.storeOwnerId).toSet();
-    final stores = <String, StoreProfile>{};
-    for (final id in storeIds) {
-      final store = await storeRepo.getStore(id);
-      if (store != null) stores[id] = store;
-    }
-    final storePhones = await CustomerHelpers.loadStorePhones(authRepo, storeIds);
-
-    debts.sort((a, b) {
-      final aOverdue = paymentRepo.isDebtOverdue(a);
-      final bOverdue = paymentRepo.isDebtOverdue(b);
-      if (aOverdue != bOverdue) return aOverdue ? -1 : 1;
-      final ad = a.dueDate ?? DateTime(2100);
-      final bd = b.dueDate ?? DateTime(2100);
-      return ad.compareTo(bd);
-    });
-
-    return (debts: debts, stores: stores, storePhones: storePhones);
-  }
 }
 
 class _StoreDebtSection extends StatelessWidget {
@@ -187,6 +204,7 @@ class _StoreDebtSection extends StatelessWidget {
     required this.storeLocation,
     required this.debts,
     required this.paymentRepo,
+    this.storeImage,
     this.storePhone,
   });
 
@@ -194,52 +212,101 @@ class _StoreDebtSection extends StatelessWidget {
   final String storeLocation;
   final List<DebtRecord> debts;
   final PaymentRepository paymentRepo;
+  final String? storeImage;
   final String? storePhone;
 
   @override
   Widget build(BuildContext context) {
-    final cred = CredThemeExtension.of(context);
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: CredTheme.spaceMd),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ListTile(
-            leading: CredAvatar(name: storeName),
-            title: Text(storeName, style: const TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: storeLocation.isNotEmpty ? Text(storeLocation) : null,
-            trailing: Text('${debts.length} debt${debts.length == 1 ? '' : 's'}'),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        CredSurfaceTile(
+          leading: CredAvatar(name: storeName, imageUrl: storeImage),
+          title: Text(storeName, maxLines: 2, overflow: TextOverflow.ellipsis),
+          subtitle: storeLocation.isNotEmpty
+              ? Text(storeLocation, maxLines: 2, overflow: TextOverflow.ellipsis)
+              : Text('${debts.length} debt${debts.length == 1 ? '' : 's'}'),
+          trailing: Text(
+            '${debts.length}',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: CredTheme.primary,
+                ),
           ),
-          const Divider(height: 1),
-          ...debts.map((debt) {
-            final overdue = paymentRepo.isDebtOverdue(debt);
-            return ListTile(
-              title: Text('Transaction ${debt.id?.substring(0, 8) ?? ''}'),
-              subtitle: Text(
-                debt.dueDate != null
-                    ? 'Due ${DateFormatter.format(debt.dueDate!)}'
-                    : 'Created ${debt.createdAt != null ? DateFormatter.format(debt.createdAt!) : ''}',
-              ),
-              trailing: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(CurrencyFormatter.format(debt.remainingBalance)),
-                  const SizedBox(height: 4),
-                  DebtStatusBadge(debt: debt, paymentRepo: paymentRepo),
-                ],
-              ),
-              tileColor: overdue ? cred.danger.withValues(alpha: 0.08) : null,
-              onTap: () => DebtReceiptSheet.show(
-                context,
-                debt,
-                storeName: storeName,
-                storePhone: storePhone,
-              ),
-            );
-          }),
+        ),
+        const SizedBox(height: CredTheme.spaceXs),
+        for (var i = 0; i < debts.length; i++) ...[
+          if (i > 0) const SizedBox(height: CredTheme.spaceXs),
+          _DebtRow(
+            debt: debts[i],
+            paymentRepo: paymentRepo,
+            storeName: storeName,
+            storePhone: storePhone,
+          ),
         ],
+      ],
+    );
+  }
+}
+
+class _DebtRow extends StatelessWidget {
+  const _DebtRow({
+    required this.debt,
+    required this.paymentRepo,
+    required this.storeName,
+    this.storePhone,
+  });
+
+  final DebtRecord debt;
+  final PaymentRepository paymentRepo;
+  final String storeName;
+  final String? storePhone;
+
+  @override
+  Widget build(BuildContext context) {
+    final overdue = paymentRepo.isDebtOverdue(debt);
+
+    return CredSurfaceTile(
+      emphasized: overdue,
+      leading: Icon(
+        debt.isPaid ? Icons.check_circle : Icons.receipt_long,
+        color: debt.isPaid
+            ? CredTheme.success
+            : overdue
+                ? CredTheme.danger
+                : CredTheme.warning,
+      ),
+      title: Text(
+        'Txn ${debt.id?.substring(0, 8) ?? ''}',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      subtitle: Text(
+        debt.dueDate != null
+            ? 'Due ${DateFormatter.format(debt.dueDate!)}'
+            : 'Created ${debt.createdAt != null ? DateFormatter.format(debt.createdAt!) : ''}',
+      ),
+      trailing: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            CurrencyFormatter.format(debt.remainingBalance),
+            style: CredTheme.listAmountStyle(context),
+          ),
+          const SizedBox(height: 4),
+          CredStatusChip.debt(
+            paymentStatus: debt.paymentStatus,
+            isOverdue: overdue,
+            compact: true,
+          ),
+        ],
+      ),
+      onTap: () => DebtReceiptSheet.show(
+        context,
+        debt,
+        storeName: storeName,
+        storePhone: storePhone,
       ),
     );
   }

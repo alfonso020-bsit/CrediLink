@@ -37,13 +37,13 @@ class CredMetricCard extends StatelessWidget {
 
     return Material(
       color: style == CredMetricStyle.featured
-          ? color.withValues(alpha: 0.08)
+          ? color.withValues(alpha: 0.1)
           : CredTheme.cardBackground,
       shape: RoundedRectangleBorder(
         borderRadius: radius,
         side: BorderSide(
           color: style == CredMetricStyle.featured
-              ? color.withValues(alpha: 0.22)
+              ? color.withValues(alpha: 0.28)
               : CredTheme.border,
         ),
       ),
@@ -188,7 +188,7 @@ class _FeaturedBody extends StatelessWidget {
                   alignment: Alignment.centerLeft,
                   child: Text(
                     value,
-                    style: CredTheme.metricValue(context).copyWith(fontSize: 28),
+                    style: CredTheme.metricAmountStyle(context),
                   ),
                 ),
                 if (subtitle != null) ...[

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/theme/cred_theme.dart';
 import '../../models/debt_record.dart';
 import '../../models/sale_record.dart';
 import '../../models/store_profile.dart';
@@ -13,6 +14,9 @@ class CustomerHelpers {
   }
 
   static String storeLocation(StoreProfile store) {
+    if (store.storeAddress != null && store.storeAddress!.trim().isNotEmpty) {
+      return store.storeAddress!.trim();
+    }
     final parts = [
       if (store.barangay != null && store.barangay!.isNotEmpty) store.barangay,
       if (store.municipality != null && store.municipality!.isNotEmpty) store.municipality,
@@ -26,20 +30,20 @@ class CustomerHelpers {
   }
 
   static Color paymentStatusColor(String status) {
-    switch (status) {
+    switch (_normalizePaymentStatus(status)) {
       case 'paid':
-        return Colors.green;
+        return CredTheme.success;
       case 'partially_paid':
-        return Colors.orange;
+        return CredTheme.warning;
       case 'unpaid':
-        return Colors.red;
+        return CredTheme.danger;
       default:
-        return Colors.grey;
+        return CredTheme.subtitleText;
     }
   }
 
   static String paymentStatusLabel(String status) {
-    switch (status) {
+    switch (_normalizePaymentStatus(status)) {
       case 'paid':
         return 'Paid';
       case 'partially_paid':
@@ -48,6 +52,24 @@ class CustomerHelpers {
         return 'Unpaid';
       default:
         return status;
+    }
+  }
+
+  /// Maps legacy aliases (`pending`, `partial`) to canonical payment_status.
+  static String normalizePaymentStatus(String status) => _normalizePaymentStatus(status);
+
+  static String _normalizePaymentStatus(String status) {
+    switch (status.trim().toLowerCase()) {
+      case 'paid':
+        return 'paid';
+      case 'partially_paid':
+      case 'partial':
+        return 'partially_paid';
+      case 'unpaid':
+      case 'pending':
+        return 'unpaid';
+      default:
+        return status.trim().toLowerCase();
     }
   }
 

@@ -349,7 +349,7 @@ class StoreOwnerCategoryFilter extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: DropdownButtonFormField<String?>(
         initialValue: selectedCategory?.isEmpty == true ? null : selectedCategory,
-        decoration: const InputDecoration(labelText: 'Category', isDense: true),
+        decoration: const InputDecoration(isDense: true),
         items: [
           const DropdownMenuItem(value: null, child: Text('All categories')),
           ...categories.map((c) => DropdownMenuItem(value: c, child: Text(c))),

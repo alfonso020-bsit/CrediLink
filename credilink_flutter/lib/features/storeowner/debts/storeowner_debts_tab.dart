@@ -47,7 +47,12 @@ class _StoreOwnerDebtsTabState extends ConsumerState<StoreOwnerDebtsTab> {
       asyncValue: profileAsync,
       emptyMessage: 'No profile',
       builder: (p) {
-        if (p == null) return const EmptyState(message: 'No profile');
+        if (p == null) {
+          return const EmptyState(
+            title: 'No profile',
+            message: 'Unable to load your account.',
+          );
+        }
         final debts = ref.watch(storeDebtsProvider(p.id));
         final employees = ref.watch(storeEmployeesProvider(p.id));
         final employeeNames = {
@@ -385,7 +390,10 @@ class _DebtListView extends StatelessWidget {
       return ListView(
         children: const [
           SizedBox(height: 80),
-          EmptyState(message: 'No debts match filters'),
+          EmptyState(
+            title: 'No matching debts',
+            message: 'No debts match filters',
+          ),
         ],
       );
     }
@@ -426,7 +434,10 @@ class _CustomersView extends StatelessWidget {
       return ListView(
         children: const [
           SizedBox(height: 80),
-          EmptyState(message: 'No customers with outstanding debt'),
+          EmptyState(
+            title: 'No outstanding debts',
+            message: 'No customers with outstanding debt',
+          ),
         ],
       );
     }
@@ -464,7 +475,7 @@ class _CustomersView extends StatelessWidget {
             subtitle: Text('${entry.value.length} debt(s) · ${entry.key}'),
             trailing: Text(
               CurrencyFormatter.format(total),
-              style: const TextStyle(fontWeight: FontWeight.w700),
+              style: CredTheme.listAmountStyle(context),
             ),
             children: [
               for (var j = 0; j < entry.value.length; j++) ...[
@@ -502,7 +513,10 @@ class _EmployeesView extends StatelessWidget {
       return ListView(
         children: const [
           SizedBox(height: 80),
-          EmptyState(message: 'No employee-linked debts'),
+          EmptyState(
+            title: 'No employee debts',
+            message: 'No employee-linked debts',
+          ),
         ],
       );
     }
@@ -547,7 +561,7 @@ class _EmployeesView extends StatelessWidget {
             subtitle: Text('${entry.value.length} debt(s)'),
             trailing: Text(
               CurrencyFormatter.format(total),
-              style: const TextStyle(fontWeight: FontWeight.w700),
+              style: CredTheme.listAmountStyle(context),
             ),
             children: [
               for (var j = 0; j < entry.value.length; j++) ...[
@@ -592,7 +606,7 @@ class _DebtTile extends StatelessWidget {
         children: [
           Text(
             CurrencyFormatter.format(debt.remainingBalance),
-            style: const TextStyle(fontWeight: FontWeight.w700),
+            style: CredTheme.listAmountStyle(context),
           ),
           const SizedBox(height: 4),
           CredStatusChip.debt(

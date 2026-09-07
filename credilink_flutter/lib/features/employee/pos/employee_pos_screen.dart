@@ -199,6 +199,7 @@ class _EmployeePosScreenState extends ConsumerState<EmployeePosScreen> {
             customerId: u.id,
             fullName: u.fullName,
             email: u.email,
+            phoneNumber: u.phoneNumber,
             province: u.province,
             municipality: u.municipality,
             barangay: u.barangay,
@@ -263,6 +264,7 @@ class _EmployeePosScreenState extends ConsumerState<EmployeePosScreen> {
           customerId: match.id,
           fullName: match.fullName,
           email: match.email,
+          phoneNumber: match.phoneNumber,
         ),
       );
     }
@@ -298,7 +300,9 @@ class _EmployeePosScreenState extends ConsumerState<EmployeePosScreen> {
             initialPayment: payment.initialPayment,
             dueDate: payment.dueDate,
             customerName: customer.fullName,
-            customerPhone: null,
+            customerPhone: customer.phoneNumber?.trim().isNotEmpty == true
+                ? customer.phoneNumber!.trim()
+                : null,
           );
 
       ref.invalidate(currentStoreProductsProvider);

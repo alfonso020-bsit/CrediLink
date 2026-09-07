@@ -23,14 +23,19 @@ class CredStatusChip extends StatelessWidget {
     if (isOverdue) {
       return CredStatusChip(label: 'Overdue', color: CredTheme.danger, compact: compact);
     }
-    switch (paymentStatus) {
+    // Normalize legacy aliases (pending → unpaid, partial → partially_paid).
+    final normalized = switch (paymentStatus.trim().toLowerCase()) {
+      'paid' => 'paid',
+      'partially_paid' || 'partial' => 'partially_paid',
+      'unpaid' || 'pending' => 'unpaid',
+      _ => paymentStatus.trim().toLowerCase(),
+    };
+    switch (normalized) {
       case 'paid':
         return CredStatusChip(label: 'Paid', color: CredTheme.success, compact: compact);
       case 'partially_paid':
-      case 'partial':
         return CredStatusChip(label: 'Partial', color: CredTheme.warning, compact: compact);
       case 'unpaid':
-      case 'pending':
         return CredStatusChip(label: 'Unpaid', color: CredTheme.info, compact: compact);
       default:
         return CredStatusChip(

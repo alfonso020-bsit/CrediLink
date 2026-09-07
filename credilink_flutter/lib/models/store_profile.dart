@@ -30,6 +30,15 @@ class StoreProfile {
   /// Logo image — often a data URI / base64 string (Ionic `store_image`).
   final String? storeImage;
 
+  /// Prefer store_name; fall back to owner-based label.
+  String get displayName {
+    final name = storeName.trim();
+    if (name.isNotEmpty) return name;
+    final owner = ownerName?.trim();
+    if (owner != null && owner.isNotEmpty) return "$owner's Store";
+    return 'Store';
+  }
+
   factory StoreProfile.fromFirestore(String id, Map<String, dynamic> data) {
     return StoreProfile(
       id: id,
@@ -45,6 +54,38 @@ class StoreProfile {
       businessHours: data['business_hours'] as String?,
       facebookPage: data['facebook_page'] as String?,
       storeImage: data['store_image'] as String?,
+    );
+  }
+
+  StoreProfile copyWith({
+    String? id,
+    String? storeOwnerId,
+    String? storeName,
+    String? ownerName,
+    String? province,
+    String? municipality,
+    String? barangay,
+    String? description,
+    String? storeAddress,
+    String? businessPermitNumber,
+    String? businessHours,
+    String? facebookPage,
+    String? storeImage,
+  }) {
+    return StoreProfile(
+      id: id ?? this.id,
+      storeOwnerId: storeOwnerId ?? this.storeOwnerId,
+      storeName: storeName ?? this.storeName,
+      ownerName: ownerName ?? this.ownerName,
+      province: province ?? this.province,
+      municipality: municipality ?? this.municipality,
+      barangay: barangay ?? this.barangay,
+      description: description ?? this.description,
+      storeAddress: storeAddress ?? this.storeAddress,
+      businessPermitNumber: businessPermitNumber ?? this.businessPermitNumber,
+      businessHours: businessHours ?? this.businessHours,
+      facebookPage: facebookPage ?? this.facebookPage,
+      storeImage: storeImage ?? this.storeImage,
     );
   }
 }

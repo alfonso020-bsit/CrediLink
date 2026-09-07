@@ -52,13 +52,14 @@ class CredProfileCard extends StatelessWidget {
                   ? CredTheme.primary.withValues(alpha: 0.18)
                   : CredTheme.border,
             ),
+            // Opaque mixes — avoid translucent washes that look mottled when scrolled.
             gradient: _isStoreOwner
                 ? LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      CredTheme.primary.withValues(alpha: 0.14),
-                      CredTheme.primary.withValues(alpha: 0.04),
+                      Color.lerp(CredTheme.cardBackground, CredTheme.primary, 0.12)!,
+                      Color.lerp(CredTheme.cardBackground, CredTheme.primary, 0.05)!,
                       CredTheme.cardBackground,
                     ],
                   )

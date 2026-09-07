@@ -137,9 +137,9 @@ class _DebtCalendarState extends State<DebtCalendar> {
                 : null;
 
     return InkWell(
-      onTap: day.debts.isEmpty
+      onTap: day.debts.isEmpty || widget.onDayTap == null
           ? null
-          : () => widget.onDayTap?.call(day.date!, day.debts),
+          : () => widget.onDayTap!(day.date!, day.debts),
       borderRadius: BorderRadius.circular(8),
       child: Container(
         height: 36,

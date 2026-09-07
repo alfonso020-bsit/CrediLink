@@ -76,7 +76,15 @@ class _QuickActionTile extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(action.icon, color: CredTheme.primary, size: 22),
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.85),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(action.icon, color: CredTheme.primary, size: 20),
+              ),
               const SizedBox(height: 8),
               Text(
                 action.label,

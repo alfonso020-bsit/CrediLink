@@ -1,7 +1,7 @@
-import 'dart:convert';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
+import '../core/errors/app_exception.dart';
 import '../models/user_role.dart';
 import 'location_repository.dart';
 
@@ -27,14 +27,17 @@ class DebtCustomerRegistrationData {
   final String? password;
 }
 
-/// POS debt-customer registration — v1 parity (Firestore only, password_hash).
+/// POS debt-customer registration via Firebase Auth (no password_hash).
 class DebtCustomerRepository {
   DebtCustomerRepository({
+    required FirebaseAuth firebaseAuth,
     required FirebaseFirestore firestore,
     required LocationRepository locationRepository,
-  })  : _firestore = firestore,
+  })  : _auth = firebaseAuth,
+        _firestore = firestore,
         _locationRepository = locationRepository;
 
+  final FirebaseAuth _auth;
   final FirebaseFirestore _firestore;
   final LocationRepository _locationRepository;
 
@@ -79,38 +82,62 @@ class DebtCustomerRepository {
     final password = (customerData.password?.trim().isNotEmpty ?? false)
         ? customerData.password!.trim()
         : 'default123';
-    if (password.length < 4) {
-      throw Exception('Password must be at least 4 characters long');
+    if (password.length < 6) {
+      throw Exception('Password must be at least 6 characters long');
     }
 
     if (await _isUsernameTaken(username)) {
       throw Exception('Username "$username" already exists.');
     }
 
-    if (customerData.email != null && customerData.email!.trim().isNotEmpty) {
-      if (await _isEmailTaken(customerData.email!.trim())) {
-        throw Exception('Email already exists');
-      }
+    final email = (customerData.email != null && customerData.email!.trim().isNotEmpty)
+        ? customerData.email!.trim()
+        : '$username@customers.credilink.local';
+
+    if (await _isEmailTaken(email)) {
+      throw Exception('Email already exists');
     }
 
-    final docRef = _firestore.collection('all_users').doc();
-    await docRef.set({
-      'username': username,
-      'password_hash': _hashPassword(password),
-      'full_name': customerData.fullName.trim(),
-      'email': customerData.email?.trim() ?? '',
-      'phone_number': customerData.phoneNumber.trim(),
-      'region': storeOwnerRegion ?? regionInfo.regionName,
-      'province': storeOwnerProvince,
-      'municipality': customerData.municipality,
-      'barangay': customerData.barangay,
-      'sitio_purok': customerData.sitioPurok?.trim() ?? '',
-      'role': UserRole.customer.value,
-      'status': 'active',
-      'store_owner_id': storeOwnerId,
-      'created_at': FieldValue.serverTimestamp(),
-      'updated_at': FieldValue.serverTimestamp(),
-    });
+    UserCredential? credential;
+    try {
+      credential = await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      final uid = credential.user!.uid;
+
+      await _firestore.collection('all_users').doc(uid).set({
+        'username': username,
+        'full_name': customerData.fullName.trim(),
+        'email': email,
+        'phone_number': customerData.phoneNumber.trim(),
+        'region': storeOwnerRegion ?? regionInfo.regionName,
+        'province': storeOwnerProvince,
+        'municipality': customerData.municipality,
+        'barangay': customerData.barangay,
+        'sitio_purok': customerData.sitioPurok?.trim() ?? '',
+        'role': UserRole.customer.value,
+        'status': 'active',
+        'store_owner_id': storeOwnerId,
+        'firebase_uid': uid,
+        'created_at': FieldValue.serverTimestamp(),
+        'updated_at': FieldValue.serverTimestamp(),
+      });
+
+      await _firestore.collection('customer_profiles').doc(uid).set({
+        'user_id': uid,
+        'customer_id': uid,
+        'store_owner_id': storeOwnerId,
+        'created_at': FieldValue.serverTimestamp(),
+        'updated_at': FieldValue.serverTimestamp(),
+      });
+    } on FirebaseAuthException catch (e) {
+      await credential?.user?.delete();
+      throw AuthException(_mapAuthError(e));
+    } catch (e) {
+      await credential?.user?.delete();
+      rethrow;
+    }
   }
 
   Future<bool> _isUsernameTaken(String username) async {
@@ -134,7 +161,16 @@ class DebtCustomerRepository {
     return false;
   }
 
-  String _hashPassword(String password) {
-    return base64.encode(utf8.encode(password));
+  String _mapAuthError(FirebaseAuthException e) {
+    switch (e.code) {
+      case 'email-already-in-use':
+        return 'Email already exists';
+      case 'weak-password':
+        return 'Password must be at least 6 characters long';
+      case 'invalid-email':
+        return 'Enter a valid email';
+      default:
+        return e.message ?? "Couldn't register customer. Try again.";
+    }
   }
 }

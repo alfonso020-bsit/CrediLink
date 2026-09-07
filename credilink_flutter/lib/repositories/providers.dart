@@ -68,6 +68,7 @@ final employeeRepositoryProvider = Provider<EmployeeRepository>((ref) {
 
 final debtCustomerRepositoryProvider = Provider<DebtCustomerRepository>((ref) {
   return DebtCustomerRepository(
+    firebaseAuth: FirebaseAuth.instance,
     firestore: FirebaseFirestore.instance,
     locationRepository: ref.watch(locationRepositoryProvider),
   );
@@ -160,4 +161,74 @@ final storeProfileProvider = FutureProvider.family<StoreProfile?, String>((ref, 
 final userProfileByIdProvider = FutureProvider.family<UserProfile?, String>((ref, userId) async {
   if (userId.isEmpty) return null;
   return ref.read(authRepositoryProvider).getUserProfileById(userId);
+});
+
+/// Customer-scoped debts by user id.
+final customerDebtsProvider = FutureProvider.family<List<DebtRecord>, String>((ref, customerId) {
+  return ref.watch(paymentRepositoryProvider).getDebtsByCustomer(customerId);
+});
+
+final currentCustomerDebtsProvider = FutureProvider<List<DebtRecord>>((ref) async {
+  final profile = await ref.watch(currentProfileProvider.future);
+  if (profile == null) return [];
+  return ref.watch(customerDebtsProvider(profile.id).future);
+});
+
+final currentCustomerSalesProvider = FutureProvider<List<SaleRecord>>((ref) async {
+  final profile = await ref.watch(currentProfileProvider.future);
+  if (profile == null) return [];
+  return ref.read(productRepositoryProvider).getSalesByCustomer(
+        profile.id,
+        customerName: profile.fullName,
+      );
+});
+
+final allStoresProvider = FutureProvider<List<StoreProfile>>((ref) {
+  return ref.watch(storeRepositoryProvider).getAllStores();
+});
+
+/// Debts + store profiles + owner phones for customer Debts/Alerts tabs.
+final currentCustomerDebtsBundleProvider = FutureProvider<
+    ({
+      List<DebtRecord> debts,
+      Map<String, StoreProfile> stores,
+      Map<String, String> storePhones,
+    })>((ref) async {
+  final profile = await ref.watch(currentProfileProvider.future);
+  if (profile == null) {
+    return (debts: <DebtRecord>[], stores: <String, StoreProfile>{}, storePhones: <String, String>{});
+  }
+
+  final debts = await ref.watch(customerDebtsProvider(profile.id).future);
+  final storeIds = debts.map((d) => d.storeOwnerId).toSet();
+  final stores = <String, StoreProfile>{};
+  for (final id in storeIds) {
+    final store = await ref.read(storeRepositoryProvider).getStore(id);
+    if (store != null) stores[id] = store;
+  }
+
+  final authRepo = ref.read(authRepositoryProvider);
+  final storePhones = <String, String>{};
+  for (final id in storeIds) {
+    final owner = await authRepo.getUserProfileById(id);
+    final phone = owner?.phoneNumber?.trim();
+    if (phone != null && phone.isNotEmpty) storePhones[id] = phone;
+  }
+
+  return (debts: debts, stores: stores, storePhones: storePhones);
+});
+
+final currentCustomerHistoryBundleProvider = FutureProvider<
+    ({
+      List<SaleRecord> sales,
+      Map<String, StoreProfile> stores,
+    })>((ref) async {
+  final sales = await ref.watch(currentCustomerSalesProvider.future);
+  final storeIds = sales.map((s) => s.storeOwnerId).toSet();
+  final stores = <String, StoreProfile>{};
+  for (final id in storeIds) {
+    final store = await ref.read(storeRepositoryProvider).getStore(id);
+    if (store != null) stores[id] = store;
+  }
+  return (sales: sales, stores: stores);
 });

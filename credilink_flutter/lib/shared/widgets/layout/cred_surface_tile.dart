@@ -30,14 +30,15 @@ class CredSurfaceTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final radius = BorderRadius.circular(CredTheme.radiusCard);
     final borderColor = emphasized
-        ? CredTheme.danger.withValues(alpha: 0.35)
+        ? CredTheme.danger.withValues(alpha: 0.45)
         : CredTheme.border;
     final fill = emphasized
-        ? CredTheme.danger.withValues(alpha: 0.04)
+        ? CredTheme.danger.withValues(alpha: 0.1)
         : CredTheme.cardBackground;
 
     return Material(
       color: fill,
+      elevation: emphasized ? 0 : 0,
       shape: RoundedRectangleBorder(
         borderRadius: radius,
         side: BorderSide(color: borderColor),
@@ -46,6 +47,8 @@ class CredSurfaceTile extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: radius,
+        splashColor: CredTheme.primary.withValues(alpha: 0.08),
+        highlightColor: CredTheme.primary.withValues(alpha: 0.04),
         child: Padding(
           padding: padding,
           child: Row(

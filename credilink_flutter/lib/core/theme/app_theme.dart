@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'cred_theme.dart';
 
@@ -7,6 +8,7 @@ class AppTheme {
   static const Color primaryDark = CredTheme.primaryDark;
 
   static ThemeData get light {
+    final baseText = GoogleFonts.plusJakartaSansTextTheme();
     const colorScheme = ColorScheme(
       brightness: Brightness.light,
       primary: CredTheme.primary,
@@ -24,12 +26,21 @@ class AppTheme {
       colorScheme: colorScheme,
       scaffoldBackgroundColor: CredTheme.scaffoldBackground,
       extensions: const [CredThemeExtension()],
-      appBarTheme: const AppBarTheme(
+      textTheme: baseText.apply(
+        bodyColor: CredTheme.titleText,
+        displayColor: CredTheme.titleText,
+      ),
+      appBarTheme: AppBarTheme(
         backgroundColor: CredTheme.primary,
         foregroundColor: Colors.white,
-        centerTitle: true,
+        centerTitle: false,
         elevation: 0,
         scrolledUnderElevation: 0,
+        titleTextStyle: GoogleFonts.plusJakartaSans(
+          fontSize: 17,
+          fontWeight: FontWeight.w700,
+          color: Colors.white,
+        ),
       ),
       cardTheme: CardThemeData(
         color: CredTheme.cardBackground,
@@ -42,22 +53,43 @@ class AppTheme {
       ),
       chipTheme: ChipThemeData(
         backgroundColor: CredTheme.inputBackground,
+        selectedColor: CredTheme.primary.withValues(alpha: 0.14),
+        checkmarkColor: CredTheme.primary,
         deleteIconColor: CredTheme.subtitleText,
-        labelStyle: const TextStyle(fontSize: 13, color: CredTheme.titleText),
+        labelStyle: GoogleFonts.plusJakartaSans(fontSize: 13, color: CredTheme.titleText),
+        secondaryLabelStyle: GoogleFonts.plusJakartaSans(
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          color: CredTheme.primary,
+        ),
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(CredTheme.radiusChip),
           side: const BorderSide(color: CredTheme.border),
         ),
+        side: WidgetStateBorderSide.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return BorderSide(color: CredTheme.primary.withValues(alpha: 0.4));
+          }
+          return const BorderSide(color: CredTheme.border);
+        }),
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: CredTheme.cardBackground,
-        indicatorColor: CredTheme.primary.withValues(alpha: 0.12),
+        indicatorColor: CredTheme.primary.withValues(alpha: 0.14),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: CredTheme.primary);
+            return GoogleFonts.plusJakartaSans(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: CredTheme.primary,
+            );
           }
-          return const TextStyle(fontSize: 12, color: CredTheme.subtitleText);
+          return GoogleFonts.plusJakartaSans(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: CredTheme.subtitleText,
+          );
         }),
         iconTheme: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
@@ -65,11 +97,12 @@ class AppTheme {
           }
           return const IconThemeData(color: CredTheme.subtitleText, size: 24);
         }),
-        height: 64,
-        elevation: 8,
-        shadowColor: Colors.black26,
+        height: 68,
+        elevation: 0,
+        shadowColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
       ),
-      bottomSheetTheme: const BottomSheetThemeData(
+      bottomSheetTheme: BottomSheetThemeData(
         backgroundColor: CredTheme.cardBackground,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(CredTheme.radiusCard)),
@@ -93,7 +126,7 @@ class AppTheme {
           borderSide: const BorderSide(color: CredTheme.primary, width: 1.5),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: CredTheme.spaceMd, vertical: 14),
-        hintStyle: const TextStyle(color: CredTheme.placeholder),
+        hintStyle: GoogleFonts.plusJakartaSans(color: CredTheme.placeholder),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -103,7 +136,7 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(CredTheme.radiusInput),
           ),
-          textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+          textStyle: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
@@ -114,15 +147,8 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(CredTheme.radiusInput),
           ),
-          textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+          textStyle: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700),
         ),
-      ),
-      textTheme: const TextTheme(
-        titleLarge: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: CredTheme.titleText),
-        titleMedium: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: CredTheme.titleText),
-        titleSmall: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: CredTheme.titleText),
-        bodyMedium: TextStyle(fontSize: 14, color: CredTheme.titleText),
-        bodySmall: TextStyle(fontSize: 12, color: CredTheme.subtitleText),
       ),
     );
   }

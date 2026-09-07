@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/cred_theme.dart';
+import '../../../core/utils/cred_snackbar.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../core/utils/date_formatter.dart';
 import '../../../models/debt_record.dart';
@@ -75,15 +76,28 @@ class _PaymentSheetState extends State<PaymentSheet> {
             onPressed: _loading
                 ? null
                 : () async {
+                    final raw = _amountController.text.trim();
+                    final amount = double.tryParse(raw);
+                    if (amount == null || amount <= 0) {
+                      CredSnackBar.show(context, 'Enter a valid amount', isError: true);
+                      return;
+                    }
+                    if (amount > widget.debt.remainingBalance) {
+                      CredSnackBar.show(context, 'Amount exceeds balance', isError: true);
+                      return;
+                    }
+
                     setState(() => _loading = true);
                     try {
                       await widget.onPay(
-                        double.parse(_amountController.text),
-                        _notesController.text.isEmpty
-                            ? null
-                            : _notesController.text,
+                        amount,
+                        _notesController.text.isEmpty ? null : _notesController.text,
                       );
                       if (context.mounted) Navigator.pop(context);
+                    } catch (e) {
+                      if (context.mounted) {
+                        CredSnackBar.show(context, '$e', isError: true);
+                      }
                     } finally {
                       if (mounted) setState(() => _loading = false);
                     }
@@ -135,6 +149,13 @@ class DebtReceiptSheet extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final paymentRepo = ref.read(paymentRepositoryProvider);
     final overdue = paymentRepo.isDebtOverdue(debt);
+    final phoneFromDebt = debt.customerPhone?.trim();
+    final needsLookup =
+        (phoneFromDebt == null || phoneFromDebt.isEmpty) && debt.customerId.trim().isNotEmpty;
+    final profileAsync = needsLookup ? ref.watch(userProfileByIdProvider(debt.customerId)) : null;
+    final resolvedPhone = (phoneFromDebt != null && phoneFromDebt.isNotEmpty)
+        ? phoneFromDebt
+        : profileAsync?.asData?.value?.phoneNumber?.trim();
 
     return DraggableScrollableSheet(
       expand: false,
@@ -157,7 +178,8 @@ class DebtReceiptSheet extends ConsumerWidget {
                 ],
                 const SizedBox(height: 16),
                 _detailRow('Customer', debt.customerName ?? debt.customerId),
-                if (debt.customerPhone != null) _detailRow('Phone', debt.customerPhone!),
+                if (resolvedPhone != null && resolvedPhone.isNotEmpty)
+                  _detailRow('Phone', resolvedPhone),
                 _detailRow('Total', CurrencyFormatter.format(debt.totalAmount)),
                 _detailRow('Remaining', CurrencyFormatter.format(debt.remainingBalance)),
                 _detailRow('Status', debt.paymentStatus),

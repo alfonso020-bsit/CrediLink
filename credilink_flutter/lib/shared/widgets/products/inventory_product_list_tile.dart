@@ -132,16 +132,16 @@ class InventoryProductListTile extends StatelessWidget {
         return false;
       },
       background: Container(
-        color: Colors.blue.shade100,
+        color: CredTheme.primary.withValues(alpha: 0.12),
         alignment: Alignment.centerLeft,
         padding: const EdgeInsets.only(left: 20),
-        child: const Icon(Icons.inventory_outlined, color: Colors.blue),
+        child: const Icon(Icons.inventory_outlined, color: CredTheme.primary),
       ),
       secondaryBackground: Container(
-        color: Colors.red.shade100,
+        color: CredTheme.danger.withValues(alpha: 0.12),
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
-        child: const Icon(Icons.delete_outline, color: Colors.red),
+        child: const Icon(Icons.delete_outline, color: CredTheme.danger),
       ),
       child: padded,
     );

@@ -75,7 +75,8 @@ class PaymentRepository {
 
     final paymentEntry = {
       'amount': amount,
-      'paymentDate': FieldValue.serverTimestamp(),
+      // Firestore rejects FieldValue.serverTimestamp() inside arrays.
+      'paymentDate': Timestamp.now(),
       'paid_by': paidBy ?? 'User',
       'notes': ?notes,
     };

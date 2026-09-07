@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../core/theme/cred_theme.dart';
 import '../../../models/bulk_option.dart';
 import '../../../models/product.dart';
 import '../../../services/barcode_lookup_service.dart';
@@ -235,7 +236,7 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
                 if (_lookupMessage != null)
                   Padding(
                     padding: const EdgeInsets.only(top: 4),
-                    child: Text(_lookupMessage!, style: TextStyle(fontSize: 12, color: Colors.blue.shade700)),
+                    child: Text(_lookupMessage!, style: const TextStyle(fontSize: 12, color: CredTheme.primary)),
                   ),
               ] else
                 CredTextField(

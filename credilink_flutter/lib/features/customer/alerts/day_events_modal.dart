@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/utils/currency_formatter.dart';
-import '../../../core/utils/date_formatter.dart';
 import '../../../models/debt_record.dart';
-import '../../../shared/widgets/receipts/payment_sheet.dart';
+import '../../../shared/widgets/calendar/debt_day_sheet.dart';
 
+/// Customer alerts day sheet — delegates to [DebtDaySheet].
 class DayEventsModal extends StatelessWidget {
   const DayEventsModal({
     super.key,
@@ -26,82 +25,24 @@ class DayEventsModal extends StatelessWidget {
     Map<String, String> storeNames = const {},
     Map<String, String> storePhones = const {},
   }) {
-    return showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (_) => DayEventsModal(
-        date: date,
-        debts: debts,
-        storeNames: storeNames,
-        storePhones: storePhones,
-      ),
+    return DebtDaySheet.show(
+      context,
+      date: date,
+      debts: debts,
+      storeNames: storeNames,
+      storePhones: storePhones,
+      titleForDebt: (debt) => storeNames[debt.storeOwnerId] ?? 'Store',
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final created = debts.where((d) => d.createdAt != null && _sameDay(d.createdAt!, date)).toList();
-    final due = debts.where((d) => d.dueDate != null && _sameDay(d.dueDate!, date)).toList();
-
-    return DraggableScrollableSheet(
-      expand: false,
-      initialChildSize: 0.6,
-      minChildSize: 0.35,
-      maxChildSize: 0.9,
-      builder: (_, controller) {
-        return ListView(
-          controller: controller,
-          padding: const EdgeInsets.all(16),
-          children: [
-            Text(
-              'Events on ${DateFormatter.format(date)}',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 16),
-            if (due.isNotEmpty) ...[
-              Text('Payments Due', style: Theme.of(context).textTheme.titleMedium),
-              ...due.map((debt) => _eventTile(context, debt, 'Due ${CurrencyFormatter.format(debt.remainingBalance)}')),
-              const SizedBox(height: 16),
-            ],
-            if (created.isNotEmpty) ...[
-              Text('Debts Created', style: Theme.of(context).textTheme.titleMedium),
-              ...created.map((debt) => _eventTile(context, debt, 'Amount ${CurrencyFormatter.format(debt.totalAmount)}')),
-            ],
-            if (due.isEmpty && created.isEmpty)
-              const Padding(
-                padding: EdgeInsets.all(24),
-                child: Center(child: Text('No events for this day')),
-              ),
-          ],
-        );
-      },
+    return DebtDaySheet(
+      date: date,
+      debts: debts,
+      storeNames: storeNames,
+      storePhones: storePhones,
+      titleForDebt: (debt) => storeNames[debt.storeOwnerId] ?? 'Store',
     );
-  }
-
-  Widget _eventTile(BuildContext context, DebtRecord debt, String subtitle) {
-    final storeName = storeNames[debt.storeOwnerId] ?? 'Store';
-    return Card(
-      child: ListTile(
-        leading: Icon(
-          debt.isOverdue ? Icons.warning : Icons.event,
-          color: debt.isOverdue ? Colors.red : null,
-        ),
-        title: Text(storeName),
-        subtitle: Text(subtitle),
-        onTap: () {
-          Navigator.pop(context);
-          DebtReceiptSheet.show(
-            context,
-            debt,
-            storeName: storeName,
-            storePhone: storePhones[debt.storeOwnerId],
-          );
-        },
-      ),
-    );
-  }
-
-  bool _sameDay(DateTime a, DateTime b) {
-    return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 }
