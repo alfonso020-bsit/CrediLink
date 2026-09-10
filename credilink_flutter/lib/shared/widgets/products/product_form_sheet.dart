@@ -9,6 +9,7 @@ import '../../../models/bulk_option.dart';
 import '../../../models/product.dart';
 import '../../../services/barcode_lookup_service.dart';
 import '../auth/cred_text_field.dart';
+import '../layout/cred_modal.dart';
 
 class ProductFormData {
   const ProductFormData({
@@ -84,9 +85,8 @@ class ProductFormSheet extends StatefulWidget {
     ExternalProductInfo? prefill,
     Future<BarcodeLookupResult> Function(String barcode)? onBarcodeLookup,
   }) {
-    return showModalBottomSheet<ProductFormData>(
+    return showCredModal<ProductFormData>(
       context: context,
-      isScrollControlled: true,
       builder: (_) => ProductFormSheet(
         product: product,
         onSave: onSave,

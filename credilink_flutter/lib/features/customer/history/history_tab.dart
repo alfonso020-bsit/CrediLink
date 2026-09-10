@@ -11,6 +11,7 @@ import '../../../repositories/repositories.dart';
 import '../../../shared/widgets/common/cred_async_view.dart';
 import '../../../shared/widgets/common/cred_avatar.dart';
 import '../../../shared/widgets/common/empty_state.dart';
+import '../../../shared/widgets/layout/cred_modal.dart';
 import '../../../shared/widgets/layout/cred_sheet_scaffold.dart';
 import '../../../shared/widgets/layout/cred_status_chip.dart';
 import '../../../shared/widgets/layout/cred_surface_tile.dart';
@@ -243,9 +244,8 @@ class _CustomerHistoryTabState extends ConsumerState<CustomerHistoryTab> {
   }
 
   void _showCashReceipt(BuildContext context, SaleRecord sale, String storeName) {
-    showModalBottomSheet(
+    showCredModal(
       context: context,
-      isScrollControlled: true,
       builder: (ctx) => CredSheetScaffold(
         title: 'Receipt',
         child: Column(

@@ -6,6 +6,7 @@ import '../../../core/utils/store_scope.dart';
 import '../../../models/user_profile.dart';
 import '../../../repositories/repositories.dart';
 import '../common/cred_avatar.dart';
+import '../layout/cred_modal.dart';
 import '../layout/cred_sheet_scaffold.dart';
 
 class StoreInfoSheet extends ConsumerWidget {
@@ -14,9 +15,8 @@ class StoreInfoSheet extends ConsumerWidget {
   final UserProfile profile;
 
   static Future<void> show(BuildContext context, UserProfile profile) {
-    return showModalBottomSheet(
+    return showCredModal(
       context: context,
-      isScrollControlled: true,
       builder: (_) => StoreInfoSheet(profile: profile),
     );
   }

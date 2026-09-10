@@ -1,8 +1,10 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/errors/app_exception.dart';
+import '../../core/platform/post_login_route.dart';
 import '../../core/theme/cred_theme.dart';
 import '../../core/utils/cred_snackbar.dart';
 import '../../repositories/repositories.dart';
@@ -42,7 +44,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (!mounted) return;
       ref.invalidate(currentProfileProvider);
       CredSnackBar.show(context, 'Welcome back, ${profile.fullName}!');
-      context.go(profile.role.initialTabRoute);
+      context.go(postLoginRoute(profile.role));
     } on AuthException catch (e) {
       if (mounted) CredSnackBar.show(context, e.message, isError: true);
     } finally {
@@ -53,11 +55,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return AuthScaffold(
-      welcomeTitle: 'Welcome back',
-      welcomeSubtitle: 'Sign in to continue',
+      welcomeTitle: kIsWeb ? null : 'Welcome back',
+      welcomeSubtitle: kIsWeb ? null : 'Sign in to continue',
       showBack: true,
       onBack: () => context.go('/home'),
-      formFooter: const AuthFooter(),
+      formFooter: kIsWeb ? null : const AuthFooter(),
       child: AutofillGroup(
         child: Form(
           key: _formKey,
@@ -82,7 +84,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
               const SizedBox(height: CredTheme.spaceXs),
               CredPrimaryButton(
-                label: 'Log in',
+                label: kIsWeb ? 'Sign in' : 'Log in',
                 icon: Icons.login,
                 onPressed: _isLoading ? null : _onLogin,
                 isLoading: _isLoading,

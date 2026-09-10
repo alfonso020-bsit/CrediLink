@@ -159,7 +159,8 @@ class CredProductGrid extends StatelessWidget {
     required this.products,
     required this.itemBuilder,
     this.padding = EdgeInsets.zero,
-    this.crossAxisCount = 2,
+    this.crossAxisCount,
+    this.maxCrossAxisExtent = 168,
     this.childAspectRatio,
     this.mainAxisExtent = 184,
     this.shrinkWrap = false,
@@ -169,20 +170,35 @@ class CredProductGrid extends StatelessWidget {
   final List<Product> products;
   final Widget Function(BuildContext context, Product product, int index) itemBuilder;
   final EdgeInsetsGeometry padding;
-  final int crossAxisCount;
+  /// When set, forces a fixed column count. Prefer [maxCrossAxisExtent] on wide layouts.
+  final int? crossAxisCount;
+  /// Target card width; columns grow as the viewport widens (desktop-friendly).
+  final double maxCrossAxisExtent;
   /// If set, used instead of [mainAxisExtent]. Prefer extent so cards stay compact.
   final double? childAspectRatio;
   final double mainAxisExtent;
   final bool shrinkWrap;
   final ScrollPhysics? physics;
 
-  static SliverGridDelegateWithFixedCrossAxisCount gridDelegate({
-    int crossAxisCount = 2,
+  /// Responsive by default: cards keep ~[maxCrossAxisExtent] width instead of
+  /// stretching across a fixed 2-column phone layout on desktop.
+  static SliverGridDelegate gridDelegate({
+    int? crossAxisCount,
+    double maxCrossAxisExtent = 168,
     double? childAspectRatio,
     double mainAxisExtent = 184,
   }) {
-    return SliverGridDelegateWithFixedCrossAxisCount(
-      crossAxisCount: crossAxisCount,
+    if (crossAxisCount != null) {
+      return SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: crossAxisCount,
+        mainAxisSpacing: CredTheme.spaceSm,
+        crossAxisSpacing: CredTheme.spaceSm,
+        childAspectRatio: childAspectRatio ?? 1,
+        mainAxisExtent: childAspectRatio == null ? mainAxisExtent : null,
+      );
+    }
+    return SliverGridDelegateWithMaxCrossAxisExtent(
+      maxCrossAxisExtent: maxCrossAxisExtent,
       mainAxisSpacing: CredTheme.spaceSm,
       crossAxisSpacing: CredTheme.spaceSm,
       childAspectRatio: childAspectRatio ?? 1,
@@ -199,6 +215,7 @@ class CredProductGrid extends StatelessWidget {
       itemCount: products.length,
       gridDelegate: gridDelegate(
         crossAxisCount: crossAxisCount,
+        maxCrossAxisExtent: maxCrossAxisExtent,
         childAspectRatio: childAspectRatio,
         mainAxisExtent: mainAxisExtent,
       ),

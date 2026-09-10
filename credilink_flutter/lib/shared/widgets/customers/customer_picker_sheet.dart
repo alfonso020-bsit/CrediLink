@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../models/customer_profile.dart';
 import '../filters/cred_search_field.dart';
+import '../layout/cred_modal.dart';
 
 class CustomerPickerSheet extends StatefulWidget {
   const CustomerPickerSheet({
@@ -18,15 +19,10 @@ class CustomerPickerSheet extends StatefulWidget {
     required List<CustomerProfile> customers,
     VoidCallback? onRegisterNew,
   }) {
-    return showModalBottomSheet<CustomerProfile>(
+    return showCredModal<CustomerProfile>(
       context: context,
-      isScrollControlled: true,
-      builder: (_) => DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.7,
-        minChildSize: 0.4,
-        maxChildSize: 0.95,
-        builder: (context, scrollController) => CustomerPickerSheet(
+      builder: (_) => credDraggableModalBody(
+        child: CustomerPickerSheet(
           customers: customers,
           onRegisterNew: onRegisterNew,
         ),

@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/cred_theme.dart';
+import 'cred_modal.dart';
 
 class CredSheetScaffold extends StatelessWidget {
   const CredSheetScaffold({
@@ -19,7 +21,7 @@ class CredSheetScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final media = MediaQuery.of(context);
-    final maxHeight = media.size.height * 0.92;
+    final maxHeight = media.size.height * (kIsWeb ? 0.88 : 0.92);
 
     return SafeArea(
       child: Padding(
@@ -35,23 +37,25 @@ class CredSheetScaffold extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: CredTheme.spaceMd),
-                  decoration: BoxDecoration(
-                    color: CredTheme.border,
-                    borderRadius: BorderRadius.circular(2),
+              if (!kIsWeb)
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: CredTheme.spaceMd),
+                    decoration: BoxDecoration(
+                      color: CredTheme.border,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
                 ),
-              ),
               Row(
                 children: [
                   Expanded(
                     child: Text(title, style: CredTheme.pageTitle(context)),
                   ),
                   if (actions != null) ...actions!,
+                  const CredModalCloseButton(),
                 ],
               ),
               const SizedBox(height: CredTheme.spaceMd),

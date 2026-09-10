@@ -10,6 +10,7 @@ import '../../../models/user_profile.dart';
 import '../../../repositories/repositories.dart';
 import '../auth/cred_text_field.dart';
 import '../common/cred_avatar.dart';
+import '../layout/cred_modal.dart';
 import '../layout/cred_sheet_scaffold.dart';
 
 class StoreSettingsSheet extends ConsumerStatefulWidget {
@@ -18,9 +19,8 @@ class StoreSettingsSheet extends ConsumerStatefulWidget {
   final UserProfile profile;
 
   static Future<void> show(BuildContext context, UserProfile profile) {
-    return showModalBottomSheet(
+    return showCredModal(
       context: context,
-      isScrollControlled: true,
       builder: (_) => StoreSettingsSheet(profile: profile),
     );
   }

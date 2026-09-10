@@ -23,6 +23,7 @@ import '../../../shared/widgets/common/empty_state.dart';
 import '../../../shared/widgets/customers/customer_picker_sheet.dart';
 import '../../../shared/widgets/customers/debt_customer_register_sheet.dart';
 import '../../../shared/widgets/filters/cred_search_field.dart';
+import '../../../shared/widgets/layout/cred_modal.dart';
 import '../../../shared/widgets/layout/cred_sheet_scaffold.dart';
 import '../../../shared/widgets/products/cred_product_card.dart';
 import '../../../shared/widgets/receipts/pdf_export_button.dart';
@@ -277,9 +278,8 @@ class _EmployeePosScreenState extends ConsumerState<EmployeePosScreen> {
     required CustomerProfile customer,
   }) async {
     final total = items.fold<double>(0, (acc, item) => acc + item.subtotal);
-    final payment = await showModalBottomSheet<_DebtPaymentDetails>(
+    final payment = await showCredModal<_DebtPaymentDetails>(
       context: context,
-      isScrollControlled: true,
       builder: (_) => _DebtPaymentSheet(total: total),
     );
 
@@ -349,9 +349,8 @@ class _EmployeePosScreenState extends ConsumerState<EmployeePosScreen> {
     final storeInfo = await ref.read(receiptStoreInfoProvider(storeOwnerId).future);
     if (!mounted) return;
 
-    await showModalBottomSheet(
+    await showCredModal(
       context: context,
-      isScrollControlled: true,
       builder: (ctx) => CredSheetScaffold(
         title: 'Receipt',
         child: Column(

@@ -213,10 +213,17 @@ class CredMetricGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final width = (constraints.maxWidth - CredTheme.spaceSm) / 2;
+        final maxW = constraints.maxWidth;
+        final columns = maxW >= 1100
+            ? 4
+            : maxW >= 720
+                ? 3
+                : 2;
+        final gap = CredTheme.spaceSm;
+        final width = (maxW - gap * (columns - 1)) / columns;
         return Wrap(
-          spacing: CredTheme.spaceSm,
-          runSpacing: CredTheme.spaceSm,
+          spacing: gap,
+          runSpacing: gap,
           children: metrics.map((m) => SizedBox(width: width, child: m)).toList(),
         );
       },

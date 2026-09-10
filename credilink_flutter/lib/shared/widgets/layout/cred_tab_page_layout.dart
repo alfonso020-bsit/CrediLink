@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/cred_theme.dart';
@@ -8,29 +9,40 @@ class CredTabPageLayout extends StatelessWidget {
     super.key,
     required this.children,
     this.onRefresh,
-    this.padding = const EdgeInsets.symmetric(horizontal: CredTheme.spaceMd),
+    this.padding,
     this.bottomPadding = CredTheme.spaceMd,
     this.floatingActionButton,
   });
 
   final List<Widget> children;
   final Future<void> Function()? onRefresh;
-  final EdgeInsets padding;
+  final EdgeInsets? padding;
   final double bottomPadding;
   final Widget? floatingActionButton;
 
   @override
   Widget build(BuildContext context) {
+    final resolvedPadding = padding ??
+        EdgeInsets.symmetric(
+          horizontal: kIsWeb ? CredTheme.spaceLg : CredTheme.spaceMd,
+          vertical: kIsWeb ? CredTheme.spaceSm : 0,
+        );
+
     final scrollView = CustomScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
       slivers: [
+        // BoxAdapter + stretch Column gives children a finite width (needed for
+        // LayoutBuilder / Wrap / charts). SliverList is easy to break with unbounded width.
         SliverPadding(
-          padding: padding,
-          sliver: SliverList(
-            delegate: SliverChildListDelegate([
-              ...children,
-              SizedBox(height: bottomPadding + (floatingActionButton != null ? 72 : 0)),
-            ]),
+          padding: resolvedPadding,
+          sliver: SliverToBoxAdapter(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                ...children,
+                SizedBox(height: bottomPadding + (floatingActionButton != null ? 72 : 0)),
+              ],
+            ),
           ),
         ),
       ],

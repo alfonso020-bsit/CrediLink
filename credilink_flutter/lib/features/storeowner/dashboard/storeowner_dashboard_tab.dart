@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/masquerade/masquerade_provider.dart';
 import '../../../core/theme/cred_theme.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../models/debt_record.dart';
@@ -28,7 +29,7 @@ class StoreOwnerDashboardTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final profileAsync = ref.watch(currentProfileProvider);
+    final profileAsync = ref.watch(viewingProfileProvider);
 
     return CredAsyncView<UserProfile?>(
       asyncValue: profileAsync,
@@ -110,12 +111,12 @@ class StoreOwnerDashboardTab extends ConsumerWidget {
     ref.invalidate(storeDebtsProvider(storeOwnerId));
     ref.invalidate(storeProfileProvider(storeOwnerId));
     ref.invalidate(storeSalesProvider(storeOwnerId));
-    ref.invalidate(currentStoreProductsProvider);
+    ref.invalidate(storeProductsProvider(storeOwnerId));
     await Future.wait([
       ref.read(storeTodayActivityProvider(storeOwnerId).future),
       ref.read(storeDebtsProvider(storeOwnerId).future),
       ref.read(storeSalesProvider(storeOwnerId).future),
-      ref.read(currentStoreProductsProvider.future),
+      ref.read(storeProductsProvider(storeOwnerId).future),
     ]);
   }
 }
@@ -168,7 +169,7 @@ class _TodayStatsSection extends ConsumerWidget {
   }
 
   int _lowStockCount(WidgetRef ref) {
-    final products = ref.watch(currentStoreProductsProvider).value ?? [];
+    final products = ref.watch(storeProductsProvider(storeOwnerId)).value ?? [];
     return products.where((p) => p.isActive && p.isLowStock).length;
   }
 }

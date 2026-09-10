@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -7,6 +8,97 @@ import '../../shared/widgets/layout/cred_fade_in.dart';
 
 class LandingScreen extends StatelessWidget {
   const LandingScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    if (kIsWeb) {
+      return const _AdminWebLanding();
+    }
+    return const _MobileLanding();
+  }
+}
+
+class _AdminWebLanding extends StatelessWidget {
+  const _AdminWebLanding();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: CredTheme.scaffoldBackground,
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: Padding(
+            padding: const EdgeInsets.all(CredTheme.spaceLg),
+            child: CredFadeIn(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 88,
+                      height: 88,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: CredTheme.cardBackground,
+                        borderRadius: BorderRadius.circular(CredTheme.radiusLogo),
+                        border: Border.all(color: CredTheme.border),
+                      ),
+                      child: Image.asset(
+                        'assets/images/logo.jpg',
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, _, _) => const Icon(
+                          Icons.admin_panel_settings_outlined,
+                          size: 44,
+                          color: CredTheme.primary,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: CredTheme.spaceLg),
+                  Text(
+                    'CrediLink',
+                    style: CredTheme.brandWordmark(context, fontSize: 40),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: CredTheme.spaceXs),
+                  Text(
+                    'Admin console',
+                    textAlign: TextAlign.center,
+                    style: CredTheme.pageTitle(context).copyWith(fontSize: 18),
+                  ),
+                  const SizedBox(height: CredTheme.spaceSm),
+                  Text(
+                    'Platform oversight for stores, users, and analytics. '
+                    'Store owners and staff use the mobile app.',
+                    textAlign: TextAlign.center,
+                    style: CredTheme.bodyMutedStyle(context).copyWith(height: 1.45),
+                  ),
+                  const SizedBox(height: CredTheme.spaceXl),
+                  CredPrimaryButton(
+                    label: 'Sign in as Admin',
+                    icon: Icons.login,
+                    onPressed: () => context.go('/login'),
+                  ),
+                  const SizedBox(height: CredTheme.spaceLg),
+                  Text(
+                    '© ${DateTime.now().year} CrediLink',
+                    textAlign: TextAlign.center,
+                    style: CredTheme.bodyMutedStyle(context).copyWith(fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MobileLanding extends StatelessWidget {
+  const _MobileLanding();
 
   @override
   Widget build(BuildContext context) {

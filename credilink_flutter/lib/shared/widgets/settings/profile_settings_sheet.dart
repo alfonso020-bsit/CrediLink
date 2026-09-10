@@ -9,6 +9,7 @@ import '../../../models/user_profile.dart';
 import '../../../repositories/repositories.dart';
 import '../address/ph_address_picker.dart';
 import '../forms/cred_form_field.dart';
+import '../layout/cred_modal.dart';
 import '../layout/cred_sheet_scaffold.dart';
 
 class ProfileSettingsSheet extends ConsumerStatefulWidget {
@@ -17,9 +18,8 @@ class ProfileSettingsSheet extends ConsumerStatefulWidget {
   final UserProfile profile;
 
   static Future<void> show(BuildContext context, UserProfile profile) {
-    return showModalBottomSheet(
+    return showCredModal(
       context: context,
-      isScrollControlled: true,
       builder: (_) => ProfileSettingsSheet(profile: profile),
     );
   }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/cred_theme.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../models/cart_item.dart';
+import '../layout/cred_modal.dart';
 import '../layout/cred_sheet_scaffold.dart';
 
 enum CheckoutType { cash, debt }
@@ -30,9 +31,8 @@ class CheckoutSheet extends StatefulWidget {
     BuildContext context, {
     required List<CartItem> items,
   }) {
-    return showModalBottomSheet<CheckoutResult>(
+    return showCredModal<CheckoutResult>(
       context: context,
-      isScrollControlled: true,
       builder: (_) => CheckoutSheet(items: items),
     );
   }

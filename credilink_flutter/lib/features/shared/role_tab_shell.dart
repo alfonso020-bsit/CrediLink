@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/masquerade/masquerade_provider.dart';
 import '../../core/theme/cred_theme.dart';
 import '../../models/user_profile.dart';
 import '../../models/user_role.dart';
@@ -22,7 +23,7 @@ class RoleTabConfig {
   final List<Widget> screens;
 }
 
-enum _ShellMenuAction { storeSettings, storeInfo, profileSettings, logout }
+enum _ShellMenuAction { storeSettings, storeInfo, profileSettings, exitMasquerade, logout }
 
 class RoleTabShell extends ConsumerWidget {
   const RoleTabShell({
@@ -33,6 +34,8 @@ class RoleTabShell extends ConsumerWidget {
 
   final RoleTabConfig config;
   final int currentIndex;
+
+  static const double _railBreakpoint = 900;
 
   Future<void> _onMenuSelected(
     BuildContext context,
@@ -50,7 +53,12 @@ class RoleTabShell extends ConsumerWidget {
       case _ShellMenuAction.profileSettings:
         if (profile != null) ProfileSettingsSheet.show(context, profile);
         break;
+      case _ShellMenuAction.exitMasquerade:
+        clearMasquerade(ref);
+        if (context.mounted) context.go('/admin/tab2');
+        break;
       case _ShellMenuAction.logout:
+        clearMasquerade(ref);
         await ref.read(authRepositoryProvider).signOut();
         ref.invalidate(currentProfileProvider);
         if (context.mounted) context.go('/login');
@@ -58,11 +66,60 @@ class RoleTabShell extends ConsumerWidget {
     }
   }
 
+  void _goTab(BuildContext context, int index) {
+    context.go('${config.role.routePrefix}/tab${index + 1}');
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tabIndex = currentIndex.clamp(0, config.screens.length - 1);
-    final profile = ref.watch(currentProfileProvider).value;
+    final masquerade = ref.watch(masqueradeProvider);
+    final isMasquerading = masquerade != null && config.role == UserRole.storeOwner;
+    final profile = isMasquerading
+        ? masquerade.ownerProfile
+        : ref.watch(currentProfileProvider).value;
     final role = config.role;
+    final useRail = MediaQuery.sizeOf(context).width >= _railBreakpoint;
+
+    final content = Column(
+      children: [
+        const Divider(height: 1, thickness: 1, color: CredTheme.border),
+        Expanded(
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 220),
+            switchInCurve: Curves.easeOut,
+            switchOutCurve: Curves.easeIn,
+            child: KeyedSubtree(
+              key: ValueKey<int>(tabIndex),
+              child: config.screens[tabIndex],
+            ),
+          ),
+        ),
+      ],
+    );
+
+    final innerBody = useRail
+        ? Row(
+            children: [
+              NavigationRail(
+                selectedIndex: tabIndex,
+                onDestinationSelected: (i) => _goTab(context, i),
+                labelType: NavigationRailLabelType.all,
+                backgroundColor: CredTheme.cardBackground,
+                destinations: [
+                  for (final tab in config.tabs)
+                    NavigationRailDestination(
+                      icon: tab.icon,
+                      selectedIcon: tab.selectedIcon,
+                      label: Text(tab.label),
+                    ),
+                ],
+              ),
+              const VerticalDivider(width: 1, thickness: 1, color: CredTheme.border),
+              Expanded(child: content),
+            ],
+          )
+        : content;
 
     return Scaffold(
       appBar: AppBar(
@@ -101,47 +158,76 @@ class RoleTabShell extends ConsumerWidget {
                     title: Text('Profile settings'),
                   ),
                 ),
-              const PopupMenuItem(
-                value: _ShellMenuAction.logout,
-                child: ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: Icon(Icons.logout),
-                  title: Text('Logout'),
+              if (isMasquerading)
+                const PopupMenuItem(
+                  value: _ShellMenuAction.exitMasquerade,
+                  child: ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(Icons.logout),
+                    title: Text('Exit masquerade'),
+                  ),
                 ),
-              ),
+              if (!isMasquerading)
+                const PopupMenuItem(
+                  value: _ShellMenuAction.logout,
+                  child: ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(Icons.logout),
+                    title: Text('Logout'),
+                  ),
+                ),
             ],
           ),
         ],
       ),
       body: Column(
         children: [
-          const Divider(height: 1, thickness: 1, color: CredTheme.border),
-          Expanded(
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 220),
-              switchInCurve: Curves.easeOut,
-              switchOutCurve: Curves.easeIn,
-              child: KeyedSubtree(
-                key: ValueKey<int>(tabIndex),
-                child: config.screens[tabIndex],
+          if (isMasquerading)
+            Material(
+              color: CredTheme.warning.withValues(alpha: 0.12),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                child: Row(
+                  children: [
+                    const Icon(Icons.visibility_outlined, color: CredTheme.warning, size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Viewing as ${masquerade.storeName}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: CredTheme.titleText,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        clearMasquerade(ref);
+                        context.go('/admin/tab2');
+                      },
+                      child: const Text('Exit'),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
+          Expanded(child: innerBody),
         ],
       ),
-      bottomNavigationBar: DecoratedBox(
-        decoration: const BoxDecoration(
-          color: CredTheme.cardBackground,
-          border: Border(top: BorderSide(color: CredTheme.border)),
-        ),
-        child: NavigationBar(
-          selectedIndex: tabIndex,
-          onDestinationSelected: (i) {
-            context.go('${config.role.routePrefix}/tab${i + 1}');
-          },
-          destinations: config.tabs,
-        ),
-      ),
+      bottomNavigationBar: useRail
+          ? null
+          : DecoratedBox(
+              decoration: const BoxDecoration(
+                color: CredTheme.cardBackground,
+                border: Border(top: BorderSide(color: CredTheme.border)),
+              ),
+              child: NavigationBar(
+                selectedIndex: tabIndex,
+                onDestinationSelected: (i) => _goTab(context, i),
+                destinations: config.tabs,
+              ),
+            ),
     );
   }
 }

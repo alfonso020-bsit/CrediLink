@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/cred_theme.dart';
 import '../../../models/product.dart';
+import '../layout/cred_modal.dart';
 import 'cred_product_card.dart';
 
 class LowStockModal extends StatelessWidget {
@@ -28,15 +29,13 @@ class LowStockModal extends StatelessWidget {
     VoidCallback? onFilterList,
     bool readOnly = false,
   }) {
-    return showModalBottomSheet(
+    return showCredModal(
       context: context,
-      isScrollControlled: true,
-      builder: (_) => DraggableScrollableSheet(
-        expand: false,
+      builder: (_) => credDraggableModalBody(
         initialChildSize: 0.6,
         minChildSize: 0.4,
         maxChildSize: 0.9,
-        builder: (context, scrollController) => LowStockModal(
+        child: LowStockModal(
           products: products,
           onViewProduct: onViewProduct,
           onAdjustStock: onAdjustStock,
@@ -60,6 +59,7 @@ class LowStockModal extends StatelessWidget {
               ),
               if (onFilterList != null)
                 TextButton(onPressed: onFilterList, child: const Text('Filter List')),
+              const CredModalCloseButton(),
             ],
           ),
         ),

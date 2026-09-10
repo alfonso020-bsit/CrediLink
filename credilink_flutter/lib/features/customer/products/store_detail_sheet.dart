@@ -5,6 +5,7 @@ import '../../../models/product.dart';
 import '../../../models/store_profile.dart';
 import '../../../shared/widgets/common/cred_avatar.dart';
 import '../../../shared/widgets/common/empty_state.dart';
+import '../../../shared/widgets/layout/cred_modal.dart';
 import '../../../shared/widgets/layout/cred_sheet_scaffold.dart';
 import '../../../shared/widgets/products/cred_product_card.dart';
 import '../customer_helpers.dart';
@@ -26,9 +27,8 @@ class StoreDetailSheet extends StatefulWidget {
     required StoreProfile store,
     required List<Product> products,
   }) {
-    return showModalBottomSheet(
+    return showCredModal(
       context: context,
-      isScrollControlled: true,
       builder: (_) => StoreDetailSheet(store: store, products: products),
     );
   }

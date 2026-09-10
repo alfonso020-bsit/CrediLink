@@ -9,10 +9,12 @@ import '../../../repositories/repositories.dart';
 import '../../../shared/widgets/common/cred_avatar.dart';
 import '../../../shared/widgets/common/empty_state.dart';
 import '../../../shared/widgets/layout/cred_section.dart';
+import '../../../shared/widgets/layout/cred_modal.dart';
 import '../../../shared/widgets/layout/cred_sheet_scaffold.dart';
 import '../../../shared/widgets/layout/cred_status_chip.dart';
 import '../../../shared/widgets/layout/cred_surface_tile.dart';
 import '../../../shared/widgets/layout/cred_tab_page_layout.dart';
+import '../widgets/admin_console_table.dart';
 import '../widgets/admin_detail_row.dart';
 
 class AdminUsersTab extends ConsumerStatefulWidget {
@@ -58,9 +60,8 @@ class _AdminUsersTabState extends ConsumerState<AdminUsersTab> {
   }
 
   void _showUserDetail(UserProfile user) {
-    showModalBottomSheet(
+    showCredModal(
       context: context,
-      isScrollControlled: true,
       builder: (sheetContext) => CredSheetScaffold(
         title: user.fullName,
         child: _UserDetailBody(
@@ -123,18 +124,56 @@ class _AdminUsersTabState extends ConsumerState<AdminUsersTab> {
               subtitle: '${users.length} shown',
               child: users.isEmpty
                   ? const EmptyState(message: 'No users found')
-                  : Column(
-                      children: [
-                        for (var i = 0; i < users.length; i++) ...[
-                          if (i > 0) const SizedBox(height: CredTheme.spaceXs),
-                          _UserTile(
-                            user: users[i],
-                            onTap: () => _showUserDetail(users[i]),
-                            onToggle: (v) => _toggleStatus(users[i], v),
-                          ),
-                        ],
-                      ],
-                    ),
+                  : AdminConsoleTable.isConsoleLayout
+                      ? AdminConsoleTable(
+                          columns: const ['Name', 'Role', 'Email', 'Status'],
+                          rows: [
+                            for (final user in users)
+                              AdminConsoleTableRow(
+                                onTap: () => _showUserDetail(user),
+                                cells: [
+                                  Text(
+                                    user.fullName,
+                                    style: const TextStyle(fontWeight: FontWeight.w600),
+                                  ),
+                                  Text(user.role.displayName),
+                                  Text(
+                                    user.email ?? '—',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        CredStatusChip.active(
+                                          isActive: user.isActive,
+                                          compact: true,
+                                        ),
+                                        Switch(
+                                          value: user.isActive,
+                                          onChanged: (v) => _toggleStatus(user, v),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                          ],
+                        )
+                      : Column(
+                          children: [
+                            for (var i = 0; i < users.length; i++) ...[
+                              if (i > 0) const SizedBox(height: CredTheme.spaceXs),
+                              _UserTile(
+                                user: users[i],
+                                onTap: () => _showUserDetail(users[i]),
+                                onToggle: (v) => _toggleStatus(users[i], v),
+                              ),
+                            ],
+                          ],
+                        ),
             ),
           ],
         );

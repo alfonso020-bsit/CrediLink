@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/masquerade/masquerade_provider.dart';
 import '../../../core/theme/cred_theme.dart';
 import '../../../core/utils/cred_snackbar.dart';
 import '../../../core/utils/currency_formatter.dart';
@@ -41,7 +42,7 @@ class _StoreOwnerDebtsTabState extends ConsumerState<StoreOwnerDebtsTab> {
 
   @override
   Widget build(BuildContext context) {
-    final profileAsync = ref.watch(currentProfileProvider);
+    final profileAsync = ref.watch(viewingProfileProvider);
 
     return CredAsyncView<UserProfile?>(
       asyncValue: profileAsync,

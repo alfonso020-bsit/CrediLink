@@ -8,8 +8,9 @@ import '../../../core/utils/date_formatter.dart';
 import '../../../models/debt_record.dart';
 import '../../../models/payment_history_entry.dart';
 import '../../../repositories/repositories.dart';
-import '../settings/contact_store_button.dart';
+import '../layout/cred_modal.dart';
 import '../layout/cred_sheet_scaffold.dart';
+import '../settings/contact_store_button.dart';
 
 class PaymentSheet extends StatefulWidget {
   const PaymentSheet({
@@ -26,9 +27,8 @@ class PaymentSheet extends StatefulWidget {
     required DebtRecord debt,
     required Future<void> Function(double amount, String? notes) onPay,
   }) {
-    return showModalBottomSheet(
+    return showCredModal(
       context: context,
-      isScrollControlled: true,
       builder: (_) => PaymentSheet(debt: debt, onPay: onPay),
     );
   }
@@ -134,9 +134,8 @@ class DebtReceiptSheet extends ConsumerWidget {
     String? storeName,
     String? storePhone,
   }) {
-    return showModalBottomSheet(
+    return showCredModal(
       context: context,
-      isScrollControlled: true,
       builder: (_) => DebtReceiptSheet(
         debt: debt,
         storeName: storeName,

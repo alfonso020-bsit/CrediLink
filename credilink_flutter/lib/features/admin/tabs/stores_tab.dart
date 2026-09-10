@@ -1,19 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../core/masquerade/masquerade_provider.dart';
 import '../../../core/theme/cred_theme.dart';
 import '../../../core/utils/cred_snackbar.dart';
 import '../../../models/store_profile.dart';
+import '../../../models/user_profile.dart';
 import '../../../repositories/repositories.dart';
 import '../../../shared/widgets/common/cred_avatar.dart';
 import '../../../shared/widgets/common/empty_state.dart';
 import '../../../shared/widgets/filters/cred_search_field.dart';
 import '../../../shared/widgets/filters/cred_segmented_filter.dart';
 import '../../../shared/widgets/layout/cred_section.dart';
+import '../../../shared/widgets/layout/cred_modal.dart';
 import '../../../shared/widgets/layout/cred_sheet_scaffold.dart';
 import '../../../shared/widgets/layout/cred_status_chip.dart';
 import '../../../shared/widgets/layout/cred_surface_tile.dart';
 import '../../../shared/widgets/layout/cred_tab_page_layout.dart';
+import '../widgets/admin_console_table.dart';
 import '../widgets/admin_detail_row.dart';
 
 class _StoreListItem {
@@ -21,11 +26,13 @@ class _StoreListItem {
     required this.store,
     required this.ownerStatus,
     required this.ownerName,
+    this.ownerProfile,
   });
 
   final StoreProfile store;
   final String ownerStatus;
   final String ownerName;
+  final UserProfile? ownerProfile;
 
   bool get isActive => ownerStatus == 'active';
 }
@@ -69,6 +76,7 @@ class _AdminStoresTabState extends ConsumerState<AdminStoresTab> {
         store: store,
         ownerStatus: owner?.status ?? 'inactive',
         ownerName: owner?.fullName ?? store.ownerName ?? 'Unknown',
+        ownerProfile: owner,
       );
     }).toList();
   }
@@ -152,11 +160,87 @@ class _AdminStoresTabState extends ConsumerState<AdminStoresTab> {
     await _refresh();
   }
 
+  Future<void> _deleteStore(_StoreListItem item) async {
+    final profileId = item.store.id;
+    if (profileId == null || profileId.isEmpty) {
+      CredSnackBar.show(context, 'Store profile id missing', isError: true);
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Delete store?'),
+        content: Text(
+          'This removes ${item.store.displayName} from the directory and deactivates '
+          '${item.ownerName}. Sales and products are not deleted. This cannot be undone.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: CredTheme.danger),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    try {
+      await ref.read(adminRepositoryProvider).deleteStore(
+            storeProfileId: profileId,
+            storeOwnerId: item.store.storeOwnerId,
+          );
+      if (!mounted) return;
+      CredSnackBar.show(context, 'Store deleted');
+      await _refresh();
+    } catch (e) {
+      if (!mounted) return;
+      CredSnackBar.show(context, 'Could not delete store: $e', isError: true);
+    }
+  }
+
+  Future<void> _startMasquerade(_StoreListItem item) async {
+    final owner = item.ownerProfile;
+    if (owner == null) {
+      CredSnackBar.show(context, 'Store owner profile not found', isError: true);
+      return;
+    }
+    if (!item.isActive) {
+      CredSnackBar.show(context, 'Cannot masquerade an inactive store', isError: true);
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Masquerade as store owner?'),
+        content: Text(
+          'You will view ${item.store.displayName} as ${item.ownerName}. '
+          'You stay signed in as Admin. Exit anytime to return to the console.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Continue')),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    ref.read(masqueradeProvider.notifier).start(MasqueradeSession(
+      storeOwnerId: owner.id,
+      storeName: item.store.displayName,
+      ownerProfile: owner,
+    ));
+    if (!mounted) return;
+    context.go('/storeowner/tab1');
+  }
+
   void _showStoreDetail(_StoreListItem item) {
     final store = item.store;
-    showModalBottomSheet(
+    showCredModal(
       context: context,
-      isScrollControlled: true,
       builder: (_) => CredSheetScaffold(
         title: store.displayName,
         child: Column(
@@ -172,12 +256,33 @@ class _AdminStoresTabState extends ConsumerState<AdminStoresTab> {
                   .join(', '),
             ),
             const SizedBox(height: CredTheme.spaceMd),
+            if (item.isActive && item.ownerProfile != null) ...[
+              FilledButton.icon(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _startMasquerade(item);
+                },
+                icon: const Icon(Icons.face_retouching_natural),
+                label: const Text('Masquerade'),
+              ),
+              const SizedBox(height: CredTheme.spaceSm),
+            ],
             FilledButton.tonal(
               onPressed: () {
                 Navigator.pop(context);
                 _toggleStoreStatus(item);
               },
               child: Text(item.isActive ? 'Deactivate Store' : 'Activate Store'),
+            ),
+            const SizedBox(height: CredTheme.spaceSm),
+            OutlinedButton.icon(
+              onPressed: () {
+                Navigator.pop(context);
+                _deleteStore(item);
+              },
+              icon: const Icon(Icons.delete_outline),
+              label: const Text('Delete Store'),
+              style: OutlinedButton.styleFrom(foregroundColor: CredTheme.danger),
             ),
           ],
         ),
@@ -303,18 +408,59 @@ class _AdminStoresTabState extends ConsumerState<AdminStoresTab> {
               subtitle: '${filtered.length} shown',
               child: filtered.isEmpty
                   ? const EmptyState(message: 'No stores found')
-                  : Column(
-                      children: [
-                        for (var i = 0; i < filtered.length; i++) ...[
-                          if (i > 0) const SizedBox(height: CredTheme.spaceXs),
-                          _StoreTile(
-                            item: filtered[i],
-                            onTap: () => _showStoreDetail(filtered[i]),
-                            onToggle: () => _toggleStoreStatus(filtered[i]),
-                          ),
-                        ],
-                      ],
-                    ),
+                  : AdminConsoleTable.isConsoleLayout
+                      ? AdminConsoleTable(
+                          columns: const ['Store', 'Owner', 'Location', 'Status', 'Actions'],
+                          rows: [
+                            for (final item in filtered)
+                              AdminConsoleTableRow(
+                                onTap: () => _showStoreDetail(item),
+                                cells: [
+                                  Text(
+                                    item.store.displayName,
+                                    style: const TextStyle(fontWeight: FontWeight.w600),
+                                  ),
+                                  Text(item.ownerName),
+                                  Text(
+                                    [
+                                      item.store.municipality,
+                                      item.store.province,
+                                    ].whereType<String>().where((e) => e.isNotEmpty).join(', '),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: CredStatusChip.active(
+                                      isActive: item.isActive,
+                                      compact: true,
+                                    ),
+                                  ),
+                                  Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: _StoreActionIcons(
+                                      canMasquerade: item.isActive && item.ownerProfile != null,
+                                      isActive: item.isActive,
+                                      onMasquerade: () => _startMasquerade(item),
+                                      onToggleStatus: () => _toggleStoreStatus(item),
+                                      onDelete: () => _deleteStore(item),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                          ],
+                        )
+                      : Column(
+                          children: [
+                            for (var i = 0; i < filtered.length; i++) ...[
+                              if (i > 0) const SizedBox(height: CredTheme.spaceXs),
+                              _StoreTile(
+                                item: filtered[i],
+                                onTap: () => _showStoreDetail(filtered[i]),
+                              ),
+                            ],
+                          ],
+                        ),
             ),
           ],
         );
@@ -323,16 +469,63 @@ class _AdminStoresTabState extends ConsumerState<AdminStoresTab> {
   }
 }
 
+class _StoreActionIcons extends StatelessWidget {
+  const _StoreActionIcons({
+    required this.canMasquerade,
+    required this.isActive,
+    required this.onMasquerade,
+    required this.onToggleStatus,
+    required this.onDelete,
+  });
+
+  final bool canMasquerade;
+  final bool isActive;
+  final VoidCallback onMasquerade;
+  final VoidCallback onToggleStatus;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          tooltip: 'Masquerade',
+          onPressed: canMasquerade ? onMasquerade : null,
+          icon: const Icon(Icons.face_retouching_natural, size: 20),
+          visualDensity: VisualDensity.compact,
+          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+        ),
+        IconButton(
+          tooltip: isActive ? 'Deactivate' : 'Activate',
+          onPressed: onToggleStatus,
+          icon: Icon(
+            isActive ? Icons.block_outlined : Icons.check_circle_outline,
+            size: 20,
+          ),
+          visualDensity: VisualDensity.compact,
+          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+        ),
+        IconButton(
+          tooltip: 'Delete',
+          onPressed: onDelete,
+          icon: Icon(Icons.delete_outline, size: 20, color: CredTheme.danger),
+          visualDensity: VisualDensity.compact,
+          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+        ),
+      ],
+    );
+  }
+}
+
 class _StoreTile extends StatelessWidget {
   const _StoreTile({
     required this.item,
     required this.onTap,
-    required this.onToggle,
   });
 
   final _StoreListItem item;
   final VoidCallback onTap;
-  final VoidCallback onToggle;
 
   @override
   Widget build(BuildContext context) {
@@ -351,17 +544,7 @@ class _StoreTile extends StatelessWidget {
       subtitle: Text(
         [item.ownerName, location].where((e) => e.isNotEmpty).join(' · '),
       ),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          CredStatusChip.active(isActive: item.isActive, compact: true),
-          const SizedBox(width: CredTheme.spaceXs),
-          Switch(
-            value: item.isActive,
-            onChanged: (_) => onToggle(),
-          ),
-        ],
-      ),
+      trailing: CredStatusChip.active(isActive: item.isActive, compact: true),
     );
   }
 }

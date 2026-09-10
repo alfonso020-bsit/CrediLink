@@ -16,6 +16,7 @@ import '../../../shared/widgets/common/cred_async_view.dart';
 import '../../../shared/widgets/common/empty_state.dart';
 import '../../../shared/widgets/layout/cred_metric_card.dart';
 import '../../../shared/widgets/layout/cred_section.dart';
+import '../../../shared/widgets/layout/cred_modal.dart';
 import '../../../shared/widgets/layout/cred_sheet_scaffold.dart';
 import '../../../shared/widgets/layout/cred_status_chip.dart';
 import '../../../shared/widgets/layout/cred_surface_tile.dart';
@@ -211,9 +212,8 @@ class _EmployeeReportsTabState extends ConsumerState<EmployeeReportsTab> {
     final storeInfo = await ref.read(receiptStoreInfoProvider(storeOwnerId).future);
     if (!context.mounted) return;
 
-    showModalBottomSheet(
+    showCredModal(
       context: context,
-      isScrollControlled: true,
       builder: (ctx) => CredSheetScaffold(
         title: 'Transaction Details',
         child: Column(

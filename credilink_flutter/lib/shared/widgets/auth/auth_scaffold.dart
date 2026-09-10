@@ -6,15 +6,15 @@ import '../../../core/theme/cred_theme.dart';
 class AuthScaffold extends StatelessWidget {
   const AuthScaffold({
     super.key,
-    required this.welcomeTitle,
     required this.child,
+    this.welcomeTitle,
     this.welcomeSubtitle,
     this.showBack = false,
     this.onBack,
     this.formFooter,
   });
 
-  final String welcomeTitle;
+  final String? welcomeTitle;
   final String? welcomeSubtitle;
   final Widget child;
   final bool showBack;
@@ -84,15 +84,19 @@ class AuthScaffold extends StatelessWidget {
 
 class _LogoHeader extends StatelessWidget {
   const _LogoHeader({
-    required this.welcomeTitle,
+    this.welcomeTitle,
     this.welcomeSubtitle,
   });
 
-  final String welcomeTitle;
+  final String? welcomeTitle;
   final String? welcomeSubtitle;
 
   @override
   Widget build(BuildContext context) {
+    final title = welcomeTitle?.trim();
+    final subtitle = welcomeSubtitle?.trim();
+    final hasTitle = title != null && title.isNotEmpty;
+
     return Column(
       children: [
         Container(
@@ -120,16 +124,18 @@ class _LogoHeader extends StatelessWidget {
           style: CredTheme.brandWordmark(context, fontSize: 32),
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: CredTheme.spaceMd),
-        Text(
-          welcomeTitle,
-          style: CredTheme.pageTitle(context).copyWith(fontSize: 20),
-          textAlign: TextAlign.center,
-        ),
-        if (welcomeSubtitle != null) ...[
+        if (hasTitle) ...[
+          const SizedBox(height: CredTheme.spaceMd),
+          Text(
+            title,
+            style: CredTheme.pageTitle(context).copyWith(fontSize: 20),
+            textAlign: TextAlign.center,
+          ),
+        ],
+        if (subtitle != null && subtitle.isNotEmpty) ...[
           const SizedBox(height: 4),
           Text(
-            welcomeSubtitle!,
+            subtitle,
             style: CredTheme.bodyMutedStyle(context),
             textAlign: TextAlign.center,
           ),

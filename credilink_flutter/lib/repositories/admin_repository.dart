@@ -314,6 +314,18 @@ class AdminRepository {
     }).toList();
   }
 
+  /// Removes the store profile and deactivates the owner account (Auth user kept).
+  Future<void> deleteStore({
+    required String storeProfileId,
+    required String storeOwnerId,
+  }) async {
+    await _firestore.collection('store_profiles').doc(storeProfileId).delete();
+    await _firestore.collection('all_users').doc(storeOwnerId).set({
+      'status': 'inactive',
+      'updated_at': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
   Future<Map<String, int>> getRoleDistribution() async {
     final users = await getAllUsers();
     return {
@@ -353,6 +365,46 @@ class AdminRepository {
     }
 
     return trend.values.toList();
+  }
+
+  /// Platform-wide cash revenue + transaction counts for the last [days] days.
+  Future<List<Map<String, dynamic>>> getPlatformSalesTrend({int days = 14}) async {
+    try {
+      final today = DateTime.now();
+      final start = DateTime(today.year, today.month, today.day)
+          .subtract(Duration(days: days - 1));
+      final trend = <String, Map<String, dynamic>>{};
+
+      for (var i = days - 1; i >= 0; i--) {
+        final date = DateTime(today.year, today.month, today.day).subtract(Duration(days: i));
+        final key = _dateKey(date);
+        trend[key] = {
+          'date': date,
+          'label': _trendLabel(date),
+          'revenue': 0.0,
+          'transactions': 0,
+        };
+      }
+
+      final cashSnap = await _firestore.collection('cash_products').get();
+      for (final doc in cashSnap.docs) {
+        final data = doc.data();
+        final created = _toDate(data['created_at']);
+        if (created == null || created.isBefore(start)) continue;
+        final key = _dateKey(DateTime(created.year, created.month, created.day));
+        final bucket = trend[key];
+        if (bucket == null) continue;
+        bucket['revenue'] = (bucket['revenue'] as double) +
+            ((data['total'] as num?)?.toDouble() ??
+                (data['total_amount'] as num?)?.toDouble() ??
+                0);
+        bucket['transactions'] = (bucket['transactions'] as int) + 1;
+      }
+
+      return trend.values.toList();
+    } catch (_) {
+      return [];
+    }
   }
 
   String _dateKey(DateTime date) =>

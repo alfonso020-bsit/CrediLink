@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/masquerade/masquerade_provider.dart';
 import '../../../core/theme/cred_theme.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../core/utils/cred_snackbar.dart';
@@ -19,6 +20,7 @@ import '../../../shared/widgets/forms/cred_form_field.dart';
 import '../../../shared/widgets/layout/cred_metric_card.dart';
 import '../../../shared/widgets/layout/cred_quick_action_grid.dart';
 import '../../../shared/widgets/layout/cred_section.dart';
+import '../../../shared/widgets/layout/cred_modal.dart';
 import '../../../shared/widgets/layout/cred_sheet_scaffold.dart';
 import '../../../shared/widgets/layout/cred_status_chip.dart';
 import '../../../shared/widgets/layout/cred_surface_tile.dart';
@@ -44,7 +46,7 @@ class _StoreOwnerEmployeesTabState extends ConsumerState<StoreOwnerEmployeesTab>
 
   @override
   Widget build(BuildContext context) {
-    final profileAsync = ref.watch(currentProfileProvider);
+    final profileAsync = ref.watch(viewingProfileProvider);
 
     return CredAsyncView<UserProfile?>(
       asyncValue: profileAsync,
@@ -168,9 +170,8 @@ class _StoreOwnerEmployeesTabState extends ConsumerState<StoreOwnerEmployeesTab>
   }
 
   void _showEmployeeDetail(BuildContext context, UserProfile employee, String storeOwnerId) {
-    showModalBottomSheet(
+    showCredModal(
       context: context,
-      isScrollControlled: true,
       builder: (ctx) => CredSheetScaffold(
         title: employee.fullName,
         child: Column(
@@ -341,9 +342,8 @@ class _StoreOwnerEmployeesTabState extends ConsumerState<StoreOwnerEmployeesTab>
   void _showSalarySheet(BuildContext context, UserProfile employee) {
     final amountController = TextEditingController();
     final notesController = TextEditingController();
-    showModalBottomSheet(
+    showCredModal(
       context: context,
-      isScrollControlled: true,
       builder: (ctx) => CredSheetScaffold(
         title: 'Record Salary',
         child: Column(
@@ -387,9 +387,8 @@ class _StoreOwnerEmployeesTabState extends ConsumerState<StoreOwnerEmployeesTab>
     final cashCount = mine.where((s) => s.type == SaleType.cash).length;
     final debtCount = mine.where((s) => s.type == SaleType.debt).length;
 
-    showModalBottomSheet(
+    showCredModal(
       context: this.context,
-      isScrollControlled: true,
       builder: (ctx) => CredSheetScaffold(
         title: '${employee.fullName} · Analytics',
         child: Column(
@@ -432,9 +431,8 @@ class _StoreOwnerEmployeesTabState extends ConsumerState<StoreOwnerEmployeesTab>
   }
 
   void _showCreateEmployeeSheet(BuildContext context, String storeOwnerId) {
-    showModalBottomSheet(
+    showCredModal(
       context: context,
-      isScrollControlled: true,
       builder: (ctx) => _CreateEmployeeSheet(
         storeOwnerId: storeOwnerId,
         onCreated: () {

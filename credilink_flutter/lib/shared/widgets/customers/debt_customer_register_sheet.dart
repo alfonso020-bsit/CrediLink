@@ -5,6 +5,7 @@ import '../../../core/utils/cred_validators.dart';
 import '../../../models/ph_address.dart';
 import '../address/ph_address_picker.dart';
 import '../forms/cred_form_field.dart';
+import '../layout/cred_modal.dart';
 import '../layout/cred_sheet_scaffold.dart';
 
 class DebtCustomerRegisterResult {
@@ -29,9 +30,8 @@ class DebtCustomerRegisterSheet extends StatefulWidget {
   const DebtCustomerRegisterSheet({super.key});
 
   static Future<DebtCustomerRegisterResult?> show(BuildContext context) {
-    return showModalBottomSheet<DebtCustomerRegisterResult>(
+    return showCredModal<DebtCustomerRegisterResult>(
       context: context,
-      isScrollControlled: true,
       builder: (_) => const DebtCustomerRegisterSheet(),
     );
   }

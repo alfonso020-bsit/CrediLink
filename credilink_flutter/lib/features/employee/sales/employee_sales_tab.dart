@@ -16,6 +16,7 @@ import '../../../shared/widgets/common/empty_state.dart';
 import '../../../shared/widgets/layout/cred_section.dart';
 import '../../../shared/widgets/layout/cred_status_chip.dart';
 import '../../../shared/widgets/layout/cred_surface_tile.dart';
+import '../../../shared/widgets/layout/cred_modal.dart';
 import '../../../shared/widgets/layout/cred_sheet_scaffold.dart';
 import '../../../shared/widgets/receipts/payment_sheet.dart';
 import '../../../shared/widgets/receipts/pdf_export_button.dart';
@@ -125,9 +126,8 @@ class _EmployeeSalesTabState extends ConsumerState<EmployeeSalesTab> {
     final storeInfo = await ref.read(receiptStoreInfoProvider(storeOwnerId).future);
     if (!context.mounted) return;
 
-    showModalBottomSheet(
+    showCredModal(
       context: context,
-      isScrollControlled: true,
       builder: (ctx) => CredSheetScaffold(
         title: 'Receipt',
         child: Column(

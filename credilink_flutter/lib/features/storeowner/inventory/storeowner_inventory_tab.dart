@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/masquerade/masquerade_provider.dart';
 import '../../../core/theme/cred_theme.dart';
 import '../../../core/utils/cred_snackbar.dart';
 import '../../../core/utils/inventory_stats.dart';
@@ -91,8 +92,7 @@ class _StoreOwnerInventoryTabState extends ConsumerState<StoreOwnerInventoryTab>
 
   @override
   Widget build(BuildContext context) {
-    final profileAsync = ref.watch(currentProfileProvider);
-    final productsAsync = ref.watch(currentStoreProductsProvider);
+    final profileAsync = ref.watch(viewingProfileProvider);
 
     return CredAsyncView<UserProfile?>(
       asyncValue: profileAsync,
@@ -100,10 +100,13 @@ class _StoreOwnerInventoryTabState extends ConsumerState<StoreOwnerInventoryTab>
       builder: (profile) {
         if (profile == null) return const EmptyState(message: 'No profile');
 
+        final storeOwnerId = profile.id;
+        final productsAsync = ref.watch(storeProductsProvider(storeOwnerId));
+
         return CredAsyncView<List<Product>>(
           asyncValue: productsAsync,
           emptyMessage: 'No products',
-          onRetry: () => ref.invalidate(currentStoreProductsProvider),
+          onRetry: () => ref.invalidate(storeProductsProvider(storeOwnerId)),
           builder: (products) {
             final active = products.where((p) => p.isActive).toList();
             final stats = computeInventoryStats(active);
@@ -117,8 +120,8 @@ class _StoreOwnerInventoryTabState extends ConsumerState<StoreOwnerInventoryTab>
 
             return CredTabPageLayoutBuilder(
               onRefresh: () async {
-                ref.invalidate(currentStoreProductsProvider);
-                await ref.read(currentStoreProductsProvider.future);
+                ref.invalidate(storeProductsProvider(storeOwnerId));
+                await ref.read(storeProductsProvider(storeOwnerId).future);
               },
               header: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,

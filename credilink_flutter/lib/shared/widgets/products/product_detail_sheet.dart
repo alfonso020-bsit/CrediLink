@@ -5,6 +5,7 @@ import '../../../core/utils/currency_formatter.dart';
 import '../../../core/utils/inventory_stats.dart';
 import '../../../models/product.dart';
 import '../../../models/stock_transaction.dart';
+import '../layout/cred_modal.dart';
 import 'inventory_status_badge.dart';
 
 class ProductDetailSheet extends StatelessWidget {
@@ -37,16 +38,13 @@ class ProductDetailSheet extends StatelessWidget {
     List<StockTransaction> transactions = const [],
     bool readOnly = false,
   }) {
-    showModalBottomSheet(
+    showCredModal(
       context: context,
-      isScrollControlled: true,
-      builder: (_) => DraggableScrollableSheet(
-        expand: false,
+      maxWidth: 560,
+      builder: (_) => credDraggableModalBody(
         initialChildSize: 0.75,
-        minChildSize: 0.4,
         maxChildSize: 0.95,
-        builder: (context, scrollController) => SingleChildScrollView(
-          controller: scrollController,
+        child: SingleChildScrollView(
           child: ProductDetailSheet(
             product: product,
             onAddToCart: onAddToCart,
@@ -72,6 +70,12 @@ class ProductDetailSheet extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          const Row(
+            children: [
+              Spacer(),
+              CredModalCloseButton(),
+            ],
+          ),
           if (product.imageUrl != null && product.imageUrl!.isNotEmpty)
             Center(
               child: ClipRRect(

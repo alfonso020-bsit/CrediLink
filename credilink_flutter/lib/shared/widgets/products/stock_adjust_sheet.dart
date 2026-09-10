@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../models/product.dart';
 import '../auth/cred_text_field.dart';
+import '../layout/cred_modal.dart';
 
 enum StockAdjustType { add, remove, set }
 
@@ -32,9 +33,8 @@ class StockAdjustSheet extends StatefulWidget {
     required Product product,
     required Future<void> Function(StockAdjustResult result) onAdjust,
   }) {
-    return showModalBottomSheet<StockAdjustResult>(
+    return showCredModal<StockAdjustResult>(
       context: context,
-      isScrollControlled: true,
       builder: (_) => StockAdjustSheet(product: product, onAdjust: onAdjust),
     );
   }
