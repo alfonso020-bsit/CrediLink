@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+import '../core/auth/secondary_auth.dart';
 import '../core/errors/app_exception.dart';
 import '../core/utils/profile_resolver.dart';
 import '../models/user_profile.dart';
@@ -246,6 +247,12 @@ class AuthRepository {
     } on FirebaseAuthException catch (e) {
       await credential?.user?.delete();
       throw AuthException(_mapAuthError(e));
+    } catch (_) {
+      try {
+        await credential?.user?.delete();
+      } catch (_) {}
+      await _auth.signOut();
+      throw const AuthException("Couldn't create your account. Try again.");
     }
   }
 
@@ -266,49 +273,47 @@ class AuthRepository {
       if (emailTaken) throw const AuthException('This email is already registered');
     }
 
-    UserCredential? credential;
     try {
-      credential = await _auth.createUserWithEmailAndPassword(
+      await SecondaryAuth.createUser(
         email: email,
         password: data.password,
-      );
-      final uid = credential.user!.uid;
-      final now = DateTime.now();
+        writeProfile: (uid) async {
+          final now = DateTime.now();
+          final profile = UserProfile(
+            id: uid,
+            username: data.username.trim().toLowerCase(),
+            fullName: data.fullName.trim(),
+            role: UserRole.employee,
+            status: 'active',
+            email: email,
+            phoneNumber: data.phoneNumber?.trim(),
+            region: data.region?.trim(),
+            province: data.province.trim(),
+            municipality: data.municipality.trim(),
+            barangay: data.barangay.trim(),
+            sitioPurok: data.sitioPurok?.trim(),
+            storeOwnerId: storeOwnerId,
+            position: data.position?.trim(),
+            createdAt: now,
+            updatedAt: now,
+          );
 
-      final profile = UserProfile(
-        id: uid,
-        username: data.username.trim().toLowerCase(),
-        fullName: data.fullName.trim(),
-        role: UserRole.employee,
-        status: 'active',
-        email: email,
-        phoneNumber: data.phoneNumber?.trim(),
-        region: data.region?.trim(),
-        province: data.province.trim(),
-        municipality: data.municipality.trim(),
-        barangay: data.barangay.trim(),
-        sitioPurok: data.sitioPurok?.trim(),
-        storeOwnerId: storeOwnerId,
-        position: data.position?.trim(),
-        createdAt: now,
-        updatedAt: now,
+          await _firestore.collection('all_users').doc(uid).set({
+            ...profile.toFirestore(),
+            'firebase_uid': uid,
+          });
+          await _firestore.collection('employee_profiles').doc(uid).set({
+            'employee_id': uid,
+            'store_owner_id': storeOwnerId,
+            'phone_number': data.phoneNumber?.trim() ?? '',
+            'position': data.position?.trim() ?? '',
+            'hire_date': FieldValue.serverTimestamp(),
+            'created_at': FieldValue.serverTimestamp(),
+            'updated_at': FieldValue.serverTimestamp(),
+          });
+        },
       );
-
-      await _firestore.collection('all_users').doc(uid).set({
-        ...profile.toFirestore(),
-        'firebase_uid': uid,
-      });
-      await _firestore.collection('employee_profiles').doc(uid).set({
-        'employee_id': uid,
-        'store_owner_id': storeOwnerId,
-        'phone_number': data.phoneNumber?.trim() ?? '',
-        'position': data.position?.trim() ?? '',
-        'hire_date': FieldValue.serverTimestamp(),
-        'created_at': FieldValue.serverTimestamp(),
-        'updated_at': FieldValue.serverTimestamp(),
-      });
     } on FirebaseAuthException catch (e) {
-      await credential?.user?.delete();
       throw AuthException(_mapAuthError(e));
     }
   }

@@ -47,6 +47,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       context.go(postLoginRoute(profile.role));
     } on AuthException catch (e) {
       if (mounted) CredSnackBar.show(context, e.message, isError: true);
+    } catch (e) {
+      if (mounted) CredSnackBar.error(context, e, fallback: "Couldn't sign in. Try again.");
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

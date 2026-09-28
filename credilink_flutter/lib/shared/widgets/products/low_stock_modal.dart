@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/cred_theme.dart';
 import '../../../models/product.dart';
+import '../common/empty_state.dart';
 import '../layout/cred_modal.dart';
 import 'cred_product_card.dart';
 
@@ -65,7 +66,10 @@ class LowStockModal extends StatelessWidget {
         ),
         Expanded(
           child: products.isEmpty
-              ? const Center(child: Text('No low stock products'))
+              ? const EmptyState(
+                  title: 'Stock looks good',
+                  message: 'No low stock products',
+                )
               : CredProductGrid(
                   products: products,
                   mainAxisExtent: 168,

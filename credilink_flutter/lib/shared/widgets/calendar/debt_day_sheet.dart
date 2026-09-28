@@ -4,6 +4,7 @@ import '../../../core/theme/cred_theme.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../core/utils/date_formatter.dart';
 import '../../../models/debt_record.dart';
+import '../common/empty_state.dart';
 import '../layout/cred_modal.dart';
 import '../layout/cred_sheet_scaffold.dart';
 import '../receipts/payment_sheet.dart';
@@ -84,7 +85,10 @@ class DebtDaySheet extends StatelessWidget {
           if (due.isEmpty && created.isEmpty)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: CredTheme.spaceLg),
-              child: Center(child: Text('No debts for this day')),
+              child: EmptyState(
+                title: 'Nothing due',
+                message: 'No debts for this day',
+              ),
             ),
           if (viewAllLabel != null && onViewAll != null) ...[
             const SizedBox(height: CredTheme.spaceSm),

@@ -130,7 +130,7 @@ class _ProfileSettingsSheetState extends ConsumerState<ProfileSettingsSheet> {
         CredSnackBar.show(context, 'Profile updated');
       }
     } catch (e) {
-      if (mounted) CredSnackBar.show(context, '$e', isError: true);
+      if (mounted) CredSnackBar.error(context, e, fallback: "Couldn't update your profile.");
     } finally {
       if (mounted) setState(() => _loading = false);
     }

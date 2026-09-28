@@ -11,11 +11,7 @@ bool saleMatchesDateRange(SaleRecord sale, DateTimeRange? range) {
 bool saleMatchesDebtStatus(SaleRecord sale, String statusFilter) {
   if (sale.type != SaleType.debt) return true;
   if (statusFilter == 'all') return true;
-  if (statusFilter == 'overdue') {
-    final due = sale.createdAt?.add(const Duration(days: 30));
-    final overdue = due != null && DateTime.now().isAfter(due);
-    return overdue && (sale.paymentStatus ?? 'unpaid') != 'paid';
-  }
+  if (statusFilter == 'overdue') return sale.isOverdue;
   return (sale.paymentStatus ?? 'unpaid') == statusFilter;
 }
 

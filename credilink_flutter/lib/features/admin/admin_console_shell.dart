@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -56,22 +56,27 @@ class AdminConsoleShell extends ConsumerWidget {
         : (profile?.fullName ?? 'Admin');
     final userEmail = isMasquerading ? profile?.email : profile?.email;
 
-    return Scaffold(
-      backgroundColor: CredTheme.scaffoldBackground,
-      body: Row(
-        children: [
-          _Sidebar(
-            width: _sidebarWidth,
-            selectedIndex: tabIndex,
-            tabs: config.tabs,
-            consoleSubtitle: sidebarTitle,
-            userName: userName,
-            userEmail: userEmail,
-            isMasquerading: isMasquerading,
-            onSelect: (i) => _goTab(context, i),
-            onLogout: () => _logout(context, ref),
-            onExitMasquerade: () => _exitMasquerade(context, ref),
-          ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 1100;
+        final sidebarWidth = compact ? 76.0 : _sidebarWidth;
+        return Scaffold(
+          backgroundColor: CredTheme.scaffoldBackground,
+          body: Row(
+            children: [
+              _Sidebar(
+                width: sidebarWidth,
+                compact: compact,
+                selectedIndex: tabIndex,
+                tabs: config.tabs,
+                consoleSubtitle: sidebarTitle,
+                userName: userName,
+                userEmail: userEmail,
+                isMasquerading: isMasquerading,
+                onSelect: (i) => _goTab(context, i),
+                onLogout: () => _logout(context, ref),
+                onExitMasquerade: () => _exitMasquerade(context, ref),
+              ),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -140,6 +145,8 @@ class AdminConsoleShell extends ConsumerWidget {
         ],
       ),
     );
+      },
+    );
   }
 }
 
@@ -171,6 +178,7 @@ class _TopBar extends StatelessWidget {
 class _Sidebar extends StatelessWidget {
   const _Sidebar({
     required this.width,
+    required this.compact,
     required this.selectedIndex,
     required this.tabs,
     required this.consoleSubtitle,
@@ -183,6 +191,7 @@ class _Sidebar extends StatelessWidget {
   });
 
   final double width;
+  final bool compact;
   final int selectedIndex;
   final List<NavigationDestination> tabs;
   final String consoleSubtitle;
@@ -207,7 +216,7 @@ class _Sidebar extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+                padding: EdgeInsets.fromLTRB(compact ? 16 : 20, 24, compact ? 16 : 20, 20),
                 child: Row(
                   children: [
                     Container(
@@ -229,22 +238,24 @@ class _Sidebar extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'CrediLink',
-                            style: CredTheme.sectionTitle(context).copyWith(fontSize: 15),
-                          ),
-                          Text(
-                            consoleSubtitle,
-                            style: CredTheme.bodyMutedStyle(context).copyWith(fontSize: 12),
-                          ),
-                        ],
+                    if (!compact) ...[
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'CrediLink',
+                              style: CredTheme.brandWordmark(context, fontSize: 18),
+                            ),
+                            Text(
+                              consoleSubtitle,
+                              style: CredTheme.bodyMutedStyle(context).copyWith(fontSize: 12),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ),
@@ -252,11 +263,18 @@ class _Sidebar extends StatelessWidget {
               const SizedBox(height: 12),
               Expanded(
                 child: ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  padding: EdgeInsets.symmetric(horizontal: compact ? 8 : 12),
                   itemCount: tabs.length,
                   itemBuilder: (context, index) {
                     final tab = tabs[index];
                     final selected = index == selectedIndex;
+                    final icon = IconTheme(
+                      data: IconThemeData(
+                        size: 22,
+                        color: selected ? CredTheme.primary : CredTheme.subtitleText,
+                      ),
+                      child: selected ? (tab.selectedIcon ?? tab.icon) : tab.icon,
+                    );
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 4),
                       child: Material(
@@ -267,31 +285,33 @@ class _Sidebar extends StatelessWidget {
                         child: InkWell(
                           borderRadius: BorderRadius.circular(10),
                           onTap: () => onSelect(index),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                            child: Row(
-                              children: [
-                                IconTheme(
-                                  data: IconThemeData(
-                                    size: 22,
-                                    color: selected ? CredTheme.primary : CredTheme.subtitleText,
-                                  ),
-                                  child: selected
-                                      ? (tab.selectedIcon ?? tab.icon)
-                                      : tab.icon,
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(
-                                    tab.label,
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                                      color: selected ? CredTheme.primary : CredTheme.titleText,
+                          child: Tooltip(
+                            message: compact ? tab.label : '',
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: compact ? 10 : 12,
+                                vertical: 12,
+                              ),
+                              child: Row(
+                                mainAxisAlignment:
+                                    compact ? MainAxisAlignment.center : MainAxisAlignment.start,
+                                children: [
+                                  icon,
+                                  if (!compact) ...[
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        tab.label,
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                                          color: selected ? CredTheme.primary : CredTheme.titleText,
+                                        ),
+                                      ),
                                     ),
-                                  ),
-                                ),
-                              ],
+                                  ],
+                                ],
+                              ),
                             ),
                           ),
                         ),
@@ -302,41 +322,48 @@ class _Sidebar extends StatelessWidget {
               ),
               const Divider(height: 1, color: CredTheme.border),
               Padding(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.all(compact ? 12 : 16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text(
-                      userName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: CredTheme.titleText,
-                      ),
-                    ),
-                    if (userEmail != null && userEmail!.isNotEmpty) ...[
-                      const SizedBox(height: 2),
+                    if (!compact) ...[
                       Text(
-                        userEmail!,
+                        userName,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: CredTheme.bodyMutedStyle(context).copyWith(fontSize: 11),
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: CredTheme.titleText,
+                        ),
                       ),
-                    ],
-                    const SizedBox(height: 12),
-                    if (isMasquerading)
-                      OutlinedButton.icon(
-                        onPressed: onExitMasquerade,
-                        icon: const Icon(Icons.logout, size: 18),
-                        label: const Text('Exit masquerade'),
-                      )
-                    else
-                      OutlinedButton.icon(
-                        onPressed: onLogout,
-                        icon: const Icon(Icons.logout, size: 18),
-                        label: const Text('Sign out'),
+                      if (userEmail != null && userEmail!.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          userEmail!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: CredTheme.bodyMutedStyle(context).copyWith(fontSize: 11),
+                        ),
+                      ],
+                      const SizedBox(height: 12),
+                      if (isMasquerading)
+                        OutlinedButton.icon(
+                          onPressed: onExitMasquerade,
+                          icon: const Icon(Icons.logout, size: 18),
+                          label: const Text('Exit masquerade'),
+                        )
+                      else
+                        OutlinedButton.icon(
+                          onPressed: onLogout,
+                          icon: const Icon(Icons.logout, size: 18),
+                          label: const Text('Sign out'),
+                        ),
+                    ] else
+                      IconButton(
+                        tooltip: isMasquerading ? 'Exit masquerade' : 'Sign out',
+                        onPressed: isMasquerading ? onExitMasquerade : onLogout,
+                        icon: const Icon(Icons.logout),
                       ),
                   ],
                 ),

@@ -7,82 +7,42 @@ import 'package:intl/intl.dart';
 
 import '../../../core/theme/cred_theme.dart';
 import '../../../core/utils/currency_formatter.dart';
+import '../../../models/admin_platform_snapshot.dart';
 import '../../../repositories/repositories.dart';
 import '../../../shared/widgets/common/empty_state.dart';
 import '../../../shared/widgets/layout/cred_fade_in.dart';
 import '../../../shared/widgets/layout/cred_quick_action_grid.dart';
 import '../../../shared/widgets/layout/cred_tab_page_layout.dart';
 
-class AdminDashboardTab extends ConsumerStatefulWidget {
+class AdminDashboardTab extends ConsumerWidget {
   const AdminDashboardTab({super.key});
 
-  @override
-  ConsumerState<AdminDashboardTab> createState() => _AdminDashboardTabState();
-}
-
-class _AdminDashboardTabState extends ConsumerState<AdminDashboardTab> {
-  late Future<_DashboardData> _dataFuture;
-  DateTime? _loadedAt;
-
-  @override
-  void initState() {
-    super.initState();
-    _dataFuture = _load();
-  }
-
-  Future<_DashboardData> _load() async {
-    final repo = ref.read(adminRepositoryProvider);
-    final results = await Future.wait([
-      repo.getPlatformStats(),
-      repo.getFinancialStats(),
-      repo.getTodayActivity(),
-      repo.getDebtHealth(),
-      repo.getTopStores(limit: 6),
-      repo.getCriticalAlerts(),
-      repo.getRoleDistribution(),
-      repo.getPlatformSalesTrend(days: 14),
-    ]);
-
-    final data = _DashboardData(
-      platform: results[0] as Map<String, int>,
-      financial: results[1] as Map<String, num>,
-      today: results[2] as Map<String, int>,
-      debtHealth: results[3] as Map<String, double>,
-      topStores: results[4] as List<Map<String, dynamic>>,
-      criticalAlerts: results[5] as List<Map<String, dynamic>>,
-      roles: results[6] as Map<String, int>,
-      salesTrend: results[7] as List<Map<String, dynamic>>,
-    );
-    _loadedAt = DateTime.now();
-    return data;
-  }
-
-  Future<void> _refresh() async {
-    setState(() => _dataFuture = _load());
-    await _dataFuture;
+  Future<void> _refresh(WidgetRef ref) async {
+    ref.invalidate(adminPlatformSnapshotProvider);
+    await ref.read(adminPlatformSnapshotProvider.future);
   }
 
   @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<_DashboardData>(
-      future: _dataFuture,
-      builder: (context, snap) {
-        if (snap.connectionState == ConnectionState.waiting && !snap.hasData) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (snap.hasError) {
-          return EmptyState(
-            title: 'Could not load dashboard',
-            message: '${snap.error}',
-            action: TextButton(onPressed: _refresh, child: const Text('Retry')),
-          );
-        }
-        final data = snap.data!;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final async = ref.watch(adminPlatformSnapshotProvider);
+    if (async.isLoading && !async.hasValue) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (async.hasError && !async.hasValue) {
+      return EmptyState(
+        title: 'Could not load dashboard',
+        message: 'Something went wrong. Try again.',
+        action: TextButton(onPressed: () => _refresh(ref), child: const Text('Retry')),
+      );
+    }
+    final data = async.requireValue;
 
-        return CredTabPageLayout(
-          onRefresh: _refresh,
-          children: [
-            CredFadeIn(child: _Header(loadedAt: _loadedAt, onRefresh: _refresh)),
+    return CredTabPageLayout(
+      onRefresh: () => _refresh(ref),
+      children: [
+        CredFadeIn(
+          child: _Header(loadedAt: data.loadedAt, onRefresh: () => _refresh(ref)),
+        ),
             const SizedBox(height: CredTheme.spaceMd),
             if (data.criticalAlerts.isNotEmpty) ...[
               CredFadeIn(child: _AlertsBanner(alerts: data.criticalAlerts)),
@@ -159,32 +119,8 @@ class _AdminDashboardTabState extends ConsumerState<AdminDashboardTab> {
             ],
             const SizedBox(height: CredTheme.spaceMd),
           ],
-        );
-      },
     );
   }
-}
-
-class _DashboardData {
-  const _DashboardData({
-    required this.platform,
-    required this.financial,
-    required this.today,
-    required this.debtHealth,
-    required this.topStores,
-    required this.criticalAlerts,
-    required this.roles,
-    required this.salesTrend,
-  });
-
-  final Map<String, int> platform;
-  final Map<String, num> financial;
-  final Map<String, int> today;
-  final Map<String, double> debtHealth;
-  final List<Map<String, dynamic>> topStores;
-  final List<Map<String, dynamic>> criticalAlerts;
-  final Map<String, int> roles;
-  final List<Map<String, dynamic>> salesTrend;
 }
 
 class _Header extends StatelessWidget {
@@ -207,11 +143,6 @@ class _Header extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Platform overview',
-                style: CredTheme.pageTitle(context).copyWith(fontSize: kIsWeb ? 24 : 20),
-              ),
-              const SizedBox(height: 4),
-              Text(
                 'Stores, users, revenue, and debt health at a glance.',
                 style: CredTheme.bodyMutedStyle(context),
               ),
@@ -225,9 +156,7 @@ class _Header extends StatelessWidget {
             OutlinedButton.icon(
               onPressed: onRefresh,
               style: OutlinedButton.styleFrom(
-                minimumSize: const Size(0, 40),
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                visualDensity: VisualDensity.compact,
+                minimumSize: const Size(0, 48),
               ),
               icon: const Icon(Icons.refresh, size: 18),
               label: const Text('Refresh'),
@@ -290,7 +219,7 @@ class _AlertsBanner extends StatelessWidget {
 class _KpiRow extends StatelessWidget {
   const _KpiRow({required this.data});
 
-  final _DashboardData data;
+  final AdminPlatformSnapshot data;
 
   @override
   Widget build(BuildContext context) {
@@ -766,6 +695,13 @@ class _DebtAgingChart extends StatelessWidget {
   }
 }
 
+String _outsidePercent(int value, int total) {
+  if (total <= 0) return '';
+  final pct = value / total * 100;
+  if (pct < 8) return '';
+  return '${pct.round()}%';
+}
+
 class _RoleMixChart extends StatelessWidget {
   const _RoleMixChart({required this.roles});
 
@@ -790,8 +726,8 @@ class _RoleMixChart extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          child: SizedBox(
-            height: 200,
+            child: SizedBox(
+            height: 220,
             child: PieChart(
               PieChartData(
                 sectionsSpace: 2,
@@ -801,13 +737,14 @@ class _RoleMixChart extends StatelessWidget {
                     PieChartSectionData(
                       value: entries[i].value.toDouble(),
                       color: _colors[i % _colors.length],
-                      radius: 48,
-                      title: '${(entries[i].value / total * 100).round()}%',
+                      radius: 42,
+                      title: _outsidePercent(entries[i].value, total),
                       titleStyle: const TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
-                        color: Colors.white,
+                        color: CredTheme.titleText,
                       ),
+                      titlePositionPercentageOffset: 1.55,
                     ),
                 ],
               ),
@@ -861,7 +798,7 @@ class _RoleMixChart extends StatelessWidget {
 class _TodayAndStores extends StatelessWidget {
   const _TodayAndStores({required this.data});
 
-  final _DashboardData data;
+  final AdminPlatformSnapshot data;
 
   @override
   Widget build(BuildContext context) {

@@ -156,7 +156,33 @@ class _AdminStoresTabState extends ConsumerState<AdminStoresTab> {
 
     await ref.read(authRepositoryProvider).updateUserStatus(item.store.storeOwnerId, newStatus);
     if (!mounted) return;
+    var logged = true;
+    try {
+      final actor = ref.read(currentProfileProvider).value;
+      final uid = ref.read(authRepositoryProvider).currentUser?.uid ?? '';
+      await ref.read(adminRepositoryProvider).recordStatusChange(
+            actorId: actor?.id ?? uid,
+            actorName: actor?.fullName ?? 'Admin',
+            targetId: item.store.storeOwnerId,
+            targetName: item.store.displayName,
+            targetKind: 'store',
+            oldStatus: item.isActive ? 'active' : 'inactive',
+            newStatus: newStatus,
+          );
+      ref.invalidate(adminAuditLogProvider);
+    } catch (_) {
+      logged = false;
+    }
+    ref.invalidate(adminPlatformSnapshotProvider);
+    if (!mounted) return;
     CredSnackBar.show(context, 'Store ${newStatus == 'active' ? 'activated' : 'deactivated'}');
+    if (!logged) {
+      CredSnackBar.show(
+        context,
+        'The status changed, but it was not added to the activity log.',
+        isError: true,
+      );
+    }
     await _refresh();
   }
 
@@ -193,11 +219,12 @@ class _AdminStoresTabState extends ConsumerState<AdminStoresTab> {
             storeOwnerId: item.store.storeOwnerId,
           );
       if (!mounted) return;
+      ref.invalidate(adminPlatformSnapshotProvider);
       CredSnackBar.show(context, 'Store deleted');
       await _refresh();
     } catch (e) {
       if (!mounted) return;
-      CredSnackBar.show(context, 'Could not delete store: $e', isError: true);
+      CredSnackBar.error(context, e, fallback: "Couldn't delete this store.");
     }
   }
 
@@ -300,7 +327,8 @@ class _AdminStoresTabState extends ConsumerState<AdminStoresTab> {
         }
         if (snap.hasError) {
           return EmptyState(
-            message: '${snap.error}',
+            title: 'Could not load stores',
+            message: 'Something went wrong. Try again.',
             action: TextButton(onPressed: _refresh, child: const Text('Retry')),
           );
         }
@@ -315,8 +343,7 @@ class _AdminStoresTabState extends ConsumerState<AdminStoresTab> {
           children: [
             const SizedBox(height: CredTheme.spaceMd),
             CredSection(
-              title: 'Stores',
-              subtitle: '$activeCount active of ${allItems.length}',
+              title: '$activeCount active of ${allItems.length}',
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -410,7 +437,13 @@ class _AdminStoresTabState extends ConsumerState<AdminStoresTab> {
                   ? const EmptyState(message: 'No stores found')
                   : AdminConsoleTable.isConsoleLayout
                       ? AdminConsoleTable(
-                          columns: const ['Store', 'Owner', 'Location', 'Status', 'Actions'],
+                          columns: const [
+                            AdminConsoleColumn('Store', flex: 4),
+                            AdminConsoleColumn('Owner', flex: 3),
+                            AdminConsoleColumn('Location', flex: 4),
+                            AdminConsoleColumn('Status', width: 108),
+                            AdminConsoleColumn('Actions', width: 152),
+                          ],
                           rows: [
                             for (final item in filtered)
                               AdminConsoleTableRow(
@@ -490,11 +523,10 @@ class _StoreActionIcons extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         IconButton(
-          tooltip: 'Masquerade',
+          tooltip: 'View as store owner',
           onPressed: canMasquerade ? onMasquerade : null,
           icon: const Icon(Icons.face_retouching_natural, size: 20),
-          visualDensity: VisualDensity.compact,
-          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+          constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
         ),
         IconButton(
           tooltip: isActive ? 'Deactivate' : 'Activate',
@@ -503,15 +535,13 @@ class _StoreActionIcons extends StatelessWidget {
             isActive ? Icons.block_outlined : Icons.check_circle_outline,
             size: 20,
           ),
-          visualDensity: VisualDensity.compact,
-          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+          constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
         ),
         IconButton(
           tooltip: 'Delete',
           onPressed: onDelete,
           icon: Icon(Icons.delete_outline, size: 20, color: CredTheme.danger),
-          visualDensity: VisualDensity.compact,
-          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+          constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
         ),
       ],
     );

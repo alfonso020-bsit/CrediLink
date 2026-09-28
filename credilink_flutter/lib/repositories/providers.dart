@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/utils/store_scope.dart';
+import '../models/admin_audit_entry.dart';
+import '../models/admin_platform_snapshot.dart';
 import '../models/debt_record.dart';
 import '../models/product.dart';
 import '../models/receipt_store_info.dart';
@@ -46,6 +48,16 @@ final adminRepositoryProvider = Provider<AdminRepository>((ref) {
   return AdminRepository(FirebaseFirestore.instance);
 });
 
+final adminAuditLogProvider = FutureProvider<List<AdminAuditEntry>>((ref) {
+  return ref.watch(adminRepositoryProvider).recentStatusChanges();
+});
+
+/// Kept for the admin session so Dashboard and Analytics share one fetch.
+final adminPlatformSnapshotProvider = FutureProvider<AdminPlatformSnapshot>((ref) async {
+  ref.keepAlive();
+  return ref.read(adminRepositoryProvider).loadPlatformSnapshot();
+});
+
 final storeRepositoryProvider = Provider<StoreRepository>((ref) {
   return StoreRepository(FirebaseFirestore.instance);
 });
@@ -68,7 +80,6 @@ final employeeRepositoryProvider = Provider<EmployeeRepository>((ref) {
 
 final debtCustomerRepositoryProvider = Provider<DebtCustomerRepository>((ref) {
   return DebtCustomerRepository(
-    firebaseAuth: FirebaseAuth.instance,
     firestore: FirebaseFirestore.instance,
     locationRepository: ref.watch(locationRepositoryProvider),
   );

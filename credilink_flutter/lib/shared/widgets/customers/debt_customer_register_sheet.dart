@@ -12,6 +12,7 @@ class DebtCustomerRegisterResult {
   const DebtCustomerRegisterResult({
     required this.fullName,
     required this.email,
+    required this.password,
     this.phone,
     this.province,
     this.municipality,
@@ -20,6 +21,7 @@ class DebtCustomerRegisterResult {
 
   final String fullName;
   final String email;
+  final String password;
   final String? phone;
   final String? province;
   final String? municipality;
@@ -45,6 +47,7 @@ class _DebtCustomerRegisterSheetState extends State<DebtCustomerRegisterSheet> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _passwordController = TextEditingController();
   final _sitioController = TextEditingController();
   PhAddress? _address;
 
@@ -53,6 +56,7 @@ class _DebtCustomerRegisterSheetState extends State<DebtCustomerRegisterSheet> {
     _nameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
+    _passwordController.dispose();
     _sitioController.dispose();
     super.dispose();
   }
@@ -80,6 +84,13 @@ class _DebtCustomerRegisterSheetState extends State<DebtCustomerRegisterSheet> {
             CredEmailField(controller: _emailController),
             const SizedBox(height: CredTheme.spaceSm),
             CredPhoneField(controller: _phoneController),
+            const SizedBox(height: CredTheme.spaceSm),
+            CredPasswordField(
+              controller: _passwordController,
+              label: 'Password',
+              newPassword: true,
+              textInputAction: TextInputAction.next,
+            ),
             const SizedBox(height: CredTheme.spaceMd),
             PhAddressPicker(
               sitioController: _sitioController,
@@ -103,6 +114,7 @@ class _DebtCustomerRegisterSheetState extends State<DebtCustomerRegisterSheet> {
       DebtCustomerRegisterResult(
         fullName: _nameController.text.trim(),
         email: _emailController.text.trim(),
+        password: _passwordController.text,
         phone: _phoneController.text.trim().isEmpty ? null : _phoneController.text.trim(),
         province: _address!.province,
         municipality: _address!.municipality,

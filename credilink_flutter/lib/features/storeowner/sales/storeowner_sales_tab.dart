@@ -327,7 +327,7 @@ class _SaleTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isCash = sale.type == SaleType.cash;
-    final isOverdue = !isCash && sale.status == 'overdue';
+    final isOverdue = sale.isOverdue;
     final remaining = sale.remainingBalance ?? 0;
     final dateStr = sale.createdAt != null
         ? DateFormat('MMM d, yyyy · h:mm a').format(sale.createdAt!)

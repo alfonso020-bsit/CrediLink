@@ -29,8 +29,16 @@ class DebtRecord {
   final DateTime? dueDate;
   final DateTime? createdAt;
 
-  bool get isOverdue => status == 'overdue';
   bool get isPaid => remainingBalance <= 0;
+
+  /// Unpaid debt whose status is `overdue`, or whose due date has passed.
+  bool get isOverdue {
+    if (isPaid) return false;
+    if (status == 'overdue') return true;
+    final due = dueDate;
+    if (due == null) return false;
+    return DateTime.now().isAfter(due) && remainingBalance > 0;
+  }
 
   factory DebtRecord.fromFirestore(String id, Map<String, dynamic> data) {
     return DebtRecord(

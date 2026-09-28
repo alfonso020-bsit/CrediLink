@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/utils/cred_snackbar.dart';
 import '../../../models/product.dart';
 import '../auth/cred_text_field.dart';
 import '../layout/cred_modal.dart';
@@ -115,9 +116,7 @@ class _StockAdjustSheetState extends State<StockAdjustSheet> {
   Future<void> _submit() async {
     final qty = int.tryParse(_quantityController.text);
     if (qty == null || qty < 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter a valid quantity')),
-      );
+      CredSnackBar.show(context, 'Enter a valid quantity', isError: true);
       return;
     }
     setState(() => _loading = true);
@@ -129,6 +128,10 @@ class _StockAdjustSheetState extends State<StockAdjustSheet> {
     try {
       await widget.onAdjust(result);
       if (context.mounted) Navigator.pop(context, result);
+    } catch (e) {
+      if (context.mounted) {
+        CredSnackBar.error(context, e, fallback: "Couldn't update stock.");
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }

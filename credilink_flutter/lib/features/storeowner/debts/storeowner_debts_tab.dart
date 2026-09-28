@@ -620,9 +620,7 @@ class _DebtTile extends StatelessWidget {
             TextButton(
               onPressed: onPay,
               style: TextButton.styleFrom(
-                padding: EdgeInsets.zero,
-                minimumSize: const Size(0, 28),
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                minimumSize: const Size(48, 48),
               ),
               child: const Text('Pay'),
             ),

@@ -34,13 +34,7 @@ class PaymentRepository {
     return debts.where((d) => isDebtOverdue(d)).toList();
   }
 
-  bool isDebtOverdue(DebtRecord debt) {
-    if (debt.isPaid) return false;
-    if (debt.status == 'overdue') return true;
-    final due = debt.dueDate;
-    if (due == null) return false;
-    return DateTime.now().isAfter(due) && debt.remainingBalance > 0;
-  }
+  bool isDebtOverdue(DebtRecord debt) => debt.isOverdue;
 
   Future<List<PaymentHistoryEntry>> getPaymentHistory(String debtId) async {
     final snap = await _firestore

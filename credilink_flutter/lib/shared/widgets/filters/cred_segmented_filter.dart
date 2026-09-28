@@ -52,10 +52,12 @@ class CredSegmentedFilter<T> extends StatelessWidget {
                 alignment: Alignment.center,
                 child: Text(
                   labelBuilder(option),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                    color: isSelected ? primary : Colors.grey.shade600,
+                    color: isSelected ? primary : CredTheme.subtitleText,
                   ),
                 ),
               ),

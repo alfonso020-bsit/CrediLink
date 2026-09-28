@@ -8,8 +8,10 @@ import '../../../core/utils/date_formatter.dart';
 import '../../../models/debt_record.dart';
 import '../../../models/payment_history_entry.dart';
 import '../../../repositories/repositories.dart';
+import '../common/empty_state.dart';
 import '../layout/cred_modal.dart';
 import '../layout/cred_sheet_scaffold.dart';
+import '../layout/cred_status_chip.dart';
 import '../settings/contact_store_button.dart';
 
 class PaymentSheet extends StatefulWidget {
@@ -96,7 +98,7 @@ class _PaymentSheetState extends State<PaymentSheet> {
                       if (context.mounted) Navigator.pop(context);
                     } catch (e) {
                       if (context.mounted) {
-                        CredSnackBar.show(context, '$e', isError: true);
+                        CredSnackBar.error(context, e, fallback: "Couldn't record this payment.");
                       }
                     } finally {
                       if (mounted) setState(() => _loading = false);
@@ -193,10 +195,9 @@ class DebtReceiptSheet extends ConsumerWidget {
                 if (overdue)
                   Padding(
                     padding: const EdgeInsets.only(top: 8),
-                    child: Chip(
-                      label: const Text('OVERDUE'),
-                      backgroundColor: Colors.red.shade50,
-                      labelStyle: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                    child: CredStatusChip.debt(
+                      paymentStatus: 'overdue',
+                      isOverdue: true,
                     ),
                   ),
                 if (debt.items.isNotEmpty) ...[
@@ -226,11 +227,14 @@ class DebtReceiptSheet extends ConsumerWidget {
                     child: CircularProgressIndicator(),
                   ))
                 else if (payments.isEmpty)
-                  const Text('No payments recorded yet.')
+                  const EmptyState(
+                    title: 'No payments',
+                    message: 'No payments recorded yet.',
+                  )
                 else
                   ...payments.map((p) => ListTile(
                         contentPadding: EdgeInsets.zero,
-                        leading: const Icon(Icons.check_circle, color: Colors.green),
+                        leading: const Icon(Icons.check_circle, color: CredTheme.success),
                         title: Text(CurrencyFormatter.format(p.amount)),
                         subtitle: Text(
                           p.paymentDate != null
@@ -262,7 +266,7 @@ class DebtReceiptSheet extends ConsumerWidget {
           Expanded(
             child: Text(
               value,
-              style: TextStyle(color: highlight ? Colors.red : null),
+              style: TextStyle(color: highlight ? CredTheme.danger : null),
             ),
           ),
         ],

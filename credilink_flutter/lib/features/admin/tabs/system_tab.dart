@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/theme/cred_theme.dart';
+import '../../../models/admin_audit_entry.dart';
 import '../../../models/user_profile.dart';
 import '../../../models/user_role.dart';
 import '../../../repositories/repositories.dart';
@@ -45,6 +46,7 @@ class AdminSystemTab extends ConsumerWidget {
         return CredTabPageLayout(
           onRefresh: () async {
             ref.invalidate(currentProfileProvider);
+            ref.invalidate(adminAuditLogProvider);
             await ref.read(currentProfileProvider.future);
           },
           children: [
@@ -98,6 +100,12 @@ class AdminSystemTab extends ConsumerWidget {
             ),
             const SizedBox(height: CredTheme.spaceLg),
             CredSection(
+              title: 'Activity',
+              subtitle: 'Latest account status changes',
+              child: _AuditLog(log: ref.watch(adminAuditLogProvider)),
+            ),
+            const SizedBox(height: CredTheme.spaceLg),
+            CredSection(
               title: 'Security',
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -115,6 +123,56 @@ class AdminSystemTab extends ConsumerWidget {
                 ],
               ),
             ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _AuditLog extends StatelessWidget {
+  const _AuditLog({required this.log});
+
+  final AsyncValue<List<AdminAuditEntry>> log;
+
+  @override
+  Widget build(BuildContext context) {
+    return log.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (_, _) => const EmptyState(
+        title: 'Could not load activity',
+        message: 'Something went wrong. Try again.',
+      ),
+      data: (entries) {
+        if (entries.isEmpty) {
+          return const EmptyState(
+            title: 'No activity yet',
+            message: 'Status changes for users and stores will show up here.',
+          );
+        }
+        return Column(
+          children: [
+            for (var i = 0; i < entries.length; i++) ...[
+              if (i > 0) const SizedBox(height: CredTheme.spaceXs),
+              CredSurfaceTile(
+                leading: Icon(
+                  entries[i].newStatus == 'active'
+                      ? Icons.check_circle_outline
+                      : Icons.block_outlined,
+                  color: entries[i].newStatus == 'active' ? CredTheme.success : CredTheme.danger,
+                ),
+                title: Text(
+                  '${entries[i].actorName} set ${entries[i].targetName} to ${entries[i].newStatus}',
+                ),
+                subtitle: Text(
+                  [
+                    entries[i].targetKind == 'store' ? 'Store' : 'User',
+                    if (entries[i].createdAt != null)
+                      DateFormat.yMMMd().add_jm().format(entries[i].createdAt!),
+                  ].join(' · '),
+                ),
+              ),
+            ],
           ],
         );
       },

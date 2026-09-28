@@ -10,6 +10,7 @@ import '../../../repositories/repositories.dart';
 import '../../../shared/widgets/common/cred_async_view.dart';
 import '../../../shared/widgets/common/cred_avatar.dart';
 import '../../../shared/widgets/common/empty_state.dart';
+import '../../../shared/widgets/filters/cred_search_field.dart';
 import '../../../shared/widgets/layout/cred_metric_card.dart';
 import '../../../shared/widgets/layout/cred_section.dart';
 import '../../../shared/widgets/layout/cred_status_chip.dart';
@@ -83,14 +84,9 @@ class _CustomerDebtsTabState extends ConsumerState<CustomerDebtsTab> {
             await ref.read(currentCustomerDebtsBundleProvider.future);
           },
           children: [
-            TextField(
+            CredSearchField(
               controller: _searchController,
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.search),
-                hintText: 'Search stores or amounts...',
-                border: OutlineInputBorder(),
-                isDense: true,
-              ),
+              hint: 'Search stores or amounts...',
               onChanged: (_) => setState(() {}),
             ),
             const SizedBox(height: CredTheme.spaceSm),

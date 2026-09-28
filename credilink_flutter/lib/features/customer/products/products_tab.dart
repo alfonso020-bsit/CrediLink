@@ -8,6 +8,7 @@ import '../../../repositories/repositories.dart';
 import '../../../shared/widgets/common/cred_async_view.dart';
 import '../../../shared/widgets/common/cred_avatar.dart';
 import '../../../shared/widgets/common/empty_state.dart';
+import '../../../shared/widgets/filters/cred_search_field.dart';
 import '../../../shared/widgets/layout/cred_section.dart';
 import '../../../shared/widgets/layout/cred_surface_tile.dart';
 import '../../../shared/widgets/layout/cred_tab_page_layout.dart';
@@ -55,14 +56,9 @@ class _CustomerProductsTabState extends ConsumerState<CustomerProductsTab> {
               subtitle:
                   '${areaStores.length} store${areaStores.length == 1 ? '' : 's'} accepting CrediLink'
                   '${profile != null && profile.province.isNotEmpty ? ' in your area' : ''}',
-              child: TextField(
+              child: CredSearchField(
                 controller: _searchController,
-                decoration: const InputDecoration(
-                  prefixIcon: Icon(Icons.search),
-                  hintText: 'Search stores...',
-                  border: OutlineInputBorder(),
-                  isDense: true,
-                ),
+                hint: 'Search stores...',
                 onChanged: (value) => setState(() => _query = value.trim()),
               ),
             ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../models/customer_profile.dart';
+import '../common/empty_state.dart';
 import '../filters/cred_search_field.dart';
 import '../layout/cred_modal.dart';
 
@@ -87,7 +88,10 @@ class _CustomerPickerSheetState extends State<CustomerPickerSheet> {
           const SizedBox(height: 16),
           Expanded(
             child: filtered.isEmpty
-                ? const Center(child: Text('No customers found'))
+                ? const EmptyState(
+                    title: 'No customers',
+                    message: 'No customers found',
+                  )
                 : ListView.builder(
                     itemCount: filtered.length,
                     itemBuilder: (_, i) {

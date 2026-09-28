@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../models/admin_audit_entry.dart';
+import '../models/admin_platform_snapshot.dart';
 import '../models/store_profile.dart';
 import '../models/user_profile.dart';
 
@@ -7,6 +9,56 @@ class AdminRepository {
   AdminRepository(this._firestore);
 
   final FirebaseFirestore _firestore;
+
+  static const auditCollection = 'admin_audit_log';
+
+  Future<void> recordStatusChange({
+    required String actorId,
+    required String actorName,
+    required String targetId,
+    required String targetName,
+    required String targetKind,
+    required String oldStatus,
+    required String newStatus,
+  }) async {
+    await _firestore.collection(auditCollection).add({
+      'actor_id': actorId,
+      'actor_name': actorName,
+      'target_id': targetId,
+      'target_name': targetName,
+      'target_kind': targetKind,
+      'old_status': oldStatus,
+      'new_status': newStatus,
+      'created_at': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Future<List<AdminAuditEntry>> recentStatusChanges({int limit = 20}) async {
+    final snap = await _firestore
+        .collection(auditCollection)
+        .orderBy('created_at', descending: true)
+        .limit(limit)
+        .get();
+    return snap.docs
+        .map((d) => AdminAuditEntry.fromFirestore(d.id, d.data()))
+        .toList();
+  }
+
+  /// One read of users, cash sales, and debts for Dashboard and Analytics.
+  Future<AdminPlatformSnapshot> loadPlatformSnapshot() async {
+    final snaps = await Future.wait([
+      _firestore.collection('all_users').get(),
+      _firestore.collection('cash_products').get(),
+      _firestore.collection('debt_products').get(),
+    ]);
+    return AdminPlatformSnapshot.build(
+      users: snaps[0].docs
+          .map((d) => UserProfile.fromFirestore(d.id, d.data()))
+          .toList(),
+      cashSales: snaps[1].docs.map((d) => d.data()).toList(),
+      debts: snaps[2].docs.map((d) => d.data()).toList(),
+    );
+  }
 
   Future<List<UserProfile>> getAllUsers() async {
     final snap = await _firestore.collection('all_users').get();

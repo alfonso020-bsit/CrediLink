@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/utils/cred_snackbar.dart';
 import 'empty_state.dart';
 
 class CredAsyncView<T> extends StatelessWidget {
@@ -24,7 +25,8 @@ class CredAsyncView<T> extends StatelessWidget {
     return asyncValue.when(
       loading: () => loading ?? const Center(child: CircularProgressIndicator()),
       error: (e, _) => EmptyState(
-        message: '$e',
+        title: 'Could not load',
+        message: userFacingMessage(e, fallback: 'Something went wrong. Try again.'),
         action: onRetry == null
             ? null
             : TextButton(onPressed: onRetry, child: const Text('Retry')),

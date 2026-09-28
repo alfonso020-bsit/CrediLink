@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../core/theme/cred_theme.dart';
+import '../../../core/utils/cred_snackbar.dart';
 import '../../../models/bulk_option.dart';
 import '../../../models/product.dart';
 import '../../../services/barcode_lookup_service.dart';
@@ -449,6 +450,10 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
       } else {
         _lookupMessage = result.message;
       }
+    } catch (e) {
+      if (mounted) {
+        _lookupMessage = userFacingMessage(e, fallback: "Couldn't look up that barcode.");
+      }
     } finally {
       if (mounted) setState(() => _lookingUp = false);
     }
@@ -496,6 +501,10 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
     try {
       await widget.onSave(data);
       if (context.mounted) Navigator.pop(context, data);
+    } catch (e) {
+      if (context.mounted) {
+        CredSnackBar.error(context, e, fallback: "Couldn't save this product.");
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }

@@ -11,6 +11,7 @@ import '../../../repositories/repositories.dart';
 import '../../../shared/widgets/common/cred_async_view.dart';
 import '../../../shared/widgets/common/cred_avatar.dart';
 import '../../../shared/widgets/common/empty_state.dart';
+import '../../../shared/widgets/filters/cred_search_field.dart';
 import '../../../shared/widgets/layout/cred_modal.dart';
 import '../../../shared/widgets/layout/cred_sheet_scaffold.dart';
 import '../../../shared/widgets/layout/cred_status_chip.dart';
@@ -66,14 +67,9 @@ class _CustomerHistoryTabState extends ConsumerState<CustomerHistoryTab> {
             await ref.read(currentCustomerHistoryBundleProvider.future);
           },
           children: [
-            TextField(
+            CredSearchField(
               controller: _searchController,
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.search),
-                hintText: 'Search stores or amounts...',
-                border: OutlineInputBorder(),
-                isDense: true,
-              ),
+              hint: 'Search stores or amounts...',
               onChanged: (_) => setState(() {
                 _visibleCount = _pageSize;
               }),

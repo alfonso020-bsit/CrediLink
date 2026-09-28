@@ -180,9 +180,8 @@ class _EmployeePosScreenState extends ConsumerState<EmployeePosScreen> {
       CredSnackBar.show(context, 'Cash sale completed');
     } catch (e) {
       if (mounted) {
-        CredSnackBar.show(context, '$e', isError: true);
+        CredSnackBar.error(context, e, fallback: "Couldn't complete this sale.");
       }
-      rethrow;
     }
   }
 
@@ -235,39 +234,46 @@ class _EmployeePosScreenState extends ConsumerState<EmployeePosScreen> {
     final data = await DebtCustomerRegisterSheet.show(context);
     if (data == null || !mounted) return;
 
-    await ref.read(debtCustomerRepositoryProvider).registerDebtCustomer(
+    try {
+      await ref.read(debtCustomerRepositoryProvider).registerDebtCustomer(
+            storeOwnerId: storeOwnerId,
+            storeOwnerProvince: province,
+            customerData: DebtCustomerRegistrationData(
+              fullName: data.fullName,
+              phoneNumber: data.phone ?? '',
+              municipality: data.municipality ?? '',
+              barangay: data.barangay ?? '',
+              email: data.email,
+              password: data.password,
+            ),
+          );
+
+      final customers = await ref.read(customerRepositoryProvider).searchCustomersByStore(storeOwnerId);
+      UserProfile? match;
+      for (final c in customers) {
+        if (c.email == data.email || c.fullName == data.fullName) {
+          match = c;
+          break;
+        }
+      }
+
+      if (match != null && mounted) {
+        await _confirmDebtSale(
+          profile: profile,
           storeOwnerId: storeOwnerId,
-          storeOwnerProvince: province,
-          customerData: DebtCustomerRegistrationData(
-            fullName: data.fullName,
-            phoneNumber: data.phone ?? '',
-            municipality: data.municipality ?? '',
-            barangay: data.barangay ?? '',
-            email: data.email,
+          items: items,
+          customer: CustomerProfile(
+            customerId: match.id,
+            fullName: match.fullName,
+            email: match.email,
+            phoneNumber: match.phoneNumber,
           ),
         );
-
-    final customers = await ref.read(customerRepositoryProvider).searchCustomersByStore(storeOwnerId);
-    UserProfile? match;
-    for (final c in customers) {
-      if (c.email == data.email || c.fullName == data.fullName) {
-        match = c;
-        break;
       }
-    }
-
-    if (match != null && mounted) {
-      await _confirmDebtSale(
-        profile: profile,
-        storeOwnerId: storeOwnerId,
-        items: items,
-        customer: CustomerProfile(
-          customerId: match.id,
-          fullName: match.fullName,
-          email: match.email,
-          phoneNumber: match.phoneNumber,
-        ),
-      );
+    } catch (e) {
+      if (mounted) {
+        CredSnackBar.error(context, e, fallback: "Couldn't register this customer.");
+      }
     }
   }
 
@@ -338,9 +344,8 @@ class _EmployeePosScreenState extends ConsumerState<EmployeePosScreen> {
       CredSnackBar.show(context, 'Debt sale completed');
     } catch (e) {
       if (mounted) {
-        CredSnackBar.show(context, '$e', isError: true);
+        CredSnackBar.error(context, e, fallback: "Couldn't complete this sale.");
       }
-      rethrow;
     }
   }
 
@@ -407,7 +412,6 @@ class _EmployeePosScreenState extends ConsumerState<EmployeePosScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text('Retail Sales', style: CredTheme.pageTitle(context)),
                   Text(
                     'Search or scan products — review the cart at checkout',
                     style: CredTheme.bodyMutedStyle(context),

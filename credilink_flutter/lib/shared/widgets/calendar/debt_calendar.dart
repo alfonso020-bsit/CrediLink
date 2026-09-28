@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/cred_theme.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../models/debt_record.dart';
+import '../layout/cred_status_chip.dart';
 
 class DebtCalendarDay {
   const DebtCalendarDay({
@@ -56,13 +58,11 @@ class _DebtCalendarState extends State<DebtCalendar> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Debt Calendar', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 12),
             Row(
               children: [
-                _chip(context, '$overdue Overdue', Colors.red),
+                _chip(context, '$overdue Overdue', CredTheme.danger),
                 const SizedBox(width: 8),
-                _chip(context, '$pending Pending', Colors.orange),
+                _chip(context, '$pending Pending', CredTheme.warning),
               ],
             ),
             const SizedBox(height: 16),
@@ -115,7 +115,11 @@ class _DebtCalendarState extends State<DebtCalendar> {
                   contentPadding: EdgeInsets.zero,
                   title: Text(d.customerName ?? 'Debt'),
                   subtitle: Text(CurrencyFormatter.format(d.remainingBalance)),
-                  trailing: Text(d.paymentStatus),
+                  trailing: CredStatusChip.debt(
+                    paymentStatus: d.paymentStatus,
+                    isOverdue: d.isOverdue,
+                    compact: true,
+                  ),
                   onTap: () => widget.onDebtTap?.call(d),
                 )),
           ],
@@ -129,11 +133,11 @@ class _DebtCalendarState extends State<DebtCalendar> {
 
     final isToday = _isSameDay(day.date!, DateTime.now());
     final color = day.hasOverdue
-        ? Colors.red
+        ? CredTheme.danger
         : day.hasDue
-            ? Colors.orange
+            ? CredTheme.warning
             : day.hasEvents
-                ? Theme.of(context).colorScheme.primary
+                ? CredTheme.primary
                 : null;
 
     return InkWell(
@@ -159,7 +163,7 @@ class _DebtCalendarState extends State<DebtCalendar> {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
-                color: day.isCurrentMonth ? null : Colors.grey,
+                color: day.isCurrentMonth ? null : CredTheme.bodyMuted,
               ),
             ),
             if (day.hasEvents)

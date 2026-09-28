@@ -12,6 +12,7 @@ class SaleRecord {
     this.status = 'completed',
     this.paymentStatus,
     this.remainingBalance,
+    this.dueDate,
     this.items = const [],
     this.createdAt,
   });
@@ -26,8 +27,20 @@ class SaleRecord {
   final String status;
   final String? paymentStatus;
   final double? remainingBalance;
+  final DateTime? dueDate;
   final List<Map<String, dynamic>> items;
   final DateTime? createdAt;
+
+  bool get isPaid =>
+      (paymentStatus ?? '') == 'paid' || (remainingBalance != null && remainingBalance! <= 0);
+
+  bool get isOverdue {
+    if (type != SaleType.debt || isPaid) return false;
+    if (status == 'overdue') return true;
+    final due = dueDate;
+    if (due == null) return false;
+    return DateTime.now().isAfter(due);
+  }
 
   factory SaleRecord.fromCashMap(String id, Map<String, dynamic> data) {
     return SaleRecord(
@@ -55,6 +68,7 @@ class SaleRecord {
       status: data['status'] as String? ?? 'pending',
       paymentStatus: data['payment_status'] as String?,
       remainingBalance: (data['remainingBalance'] as num?)?.toDouble(),
+      dueDate: _date(data['dueDate'] ?? data['due_date']),
       items: (data['items'] as List?)?.cast<Map<String, dynamic>>() ?? [],
       createdAt: _date(data['created_at']),
     );

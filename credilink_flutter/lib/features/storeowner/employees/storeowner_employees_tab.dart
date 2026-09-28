@@ -308,10 +308,16 @@ class _StoreOwnerEmployeesTabState extends ConsumerState<StoreOwnerEmployeesTab>
     if (confirmed != true || !mounted) return;
 
     final newStatus = inactive ? 'inactive' : 'active';
-    await ref.read(authRepositoryProvider).updateUserStatus(employee.id, newStatus);
-    ref.invalidate(storeEmployeesProvider(storeOwnerId));
-    if (mounted) {
-      CredSnackBar.show(context, 'Employee ${inactive ? 'deactivated' : 'activated'}');
+    try {
+      await ref.read(authRepositoryProvider).updateUserStatus(employee.id, newStatus);
+      ref.invalidate(storeEmployeesProvider(storeOwnerId));
+      if (mounted) {
+        CredSnackBar.show(context, 'Employee ${inactive ? 'deactivated' : 'activated'}');
+      }
+    } catch (e) {
+      if (mounted) {
+        CredSnackBar.error(context, e, fallback: "Couldn't update this employee.");
+      }
     }
   }
 
@@ -328,9 +334,15 @@ class _StoreOwnerEmployeesTabState extends ConsumerState<StoreOwnerEmployeesTab>
       ),
     );
     if (confirmed != true || !mounted) return;
-    await ref.read(authRepositoryProvider).deleteEmployee(employee.id);
-    ref.invalidate(storeEmployeesProvider(storeOwnerId));
-    if (mounted) CredSnackBar.show(context, 'Employee deleted');
+    try {
+      await ref.read(authRepositoryProvider).deleteEmployee(employee.id);
+      ref.invalidate(storeEmployeesProvider(storeOwnerId));
+      if (mounted) CredSnackBar.show(context, 'Employee deleted');
+    } catch (e) {
+      if (mounted) {
+        CredSnackBar.error(context, e, fallback: "Couldn't delete this employee.");
+      }
+    }
   }
 
   void _showEditEmployee(BuildContext context, UserProfile employee, String storeOwnerId) {
@@ -362,14 +374,23 @@ class _StoreOwnerEmployeesTabState extends ConsumerState<StoreOwnerEmployeesTab>
             ElevatedButton(
               onPressed: () async {
                 final amount = double.tryParse(amountController.text) ?? 0;
-                if (amount <= 0) return;
-                await ref.read(authRepositoryProvider).recordEmployeeSalary(
-                      employeeId: employee.id,
-                      amount: amount,
-                      notes: notesController.text.trim(),
-                    );
-                if (ctx.mounted) Navigator.pop(ctx);
-                if (mounted) CredSnackBar.show(context, 'Salary recorded');
+                if (amount <= 0) {
+                  CredSnackBar.show(ctx, 'Enter an amount greater than zero', isError: true);
+                  return;
+                }
+                try {
+                  await ref.read(authRepositoryProvider).recordEmployeeSalary(
+                        employeeId: employee.id,
+                        amount: amount,
+                        notes: notesController.text.trim(),
+                      );
+                  if (ctx.mounted) Navigator.pop(ctx);
+                  if (mounted) CredSnackBar.show(context, 'Salary recorded');
+                } catch (e) {
+                  if (ctx.mounted) {
+                    CredSnackBar.error(ctx, e, fallback: "Couldn't record salary.");
+                  }
+                }
               },
               child: const Text('Save Salary Record'),
             ),
@@ -622,7 +643,7 @@ class _CreateEmployeeSheetState extends ConsumerState<_CreateEmployeeSheet> {
       widget.onCreated();
     } catch (e) {
       if (mounted) {
-        CredSnackBar.show(context, '$e', isError: true);
+        CredSnackBar.error(context, e, fallback: "Couldn't create this employee.");
       }
     } finally {
       if (mounted) setState(() => _loading = false);

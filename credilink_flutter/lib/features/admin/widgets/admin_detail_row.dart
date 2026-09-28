@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/cred_theme.dart';
+
 class AdminDetailRow extends StatelessWidget {
   const AdminDetailRow({required this.label, required this.value, super.key});
 
@@ -15,7 +17,7 @@ class AdminDetailRow extends StatelessWidget {
         children: [
           SizedBox(
             width: 90,
-            child: Text(label, style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+            child: Text(label, style: const TextStyle(color: CredTheme.subtitleText, fontSize: 13)),
           ),
           Expanded(child: Text(value)),
         ],

@@ -2,6 +2,23 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/cred_theme.dart';
+import '../../../shared/widgets/common/empty_state.dart';
+
+/// One header in an admin directory table.
+///
+/// [width] keeps a short column (status, actions) from stretching.
+/// Other columns share the remaining space by [flex].
+class AdminConsoleColumn {
+  const AdminConsoleColumn(
+    this.label, {
+    this.flex = 1,
+    this.width,
+  });
+
+  final String label;
+  final int flex;
+  final double? width;
+}
 
 /// Dense table-style panel for Admin web directories (stores / users).
 class AdminConsoleTable extends StatelessWidget {
@@ -12,7 +29,7 @@ class AdminConsoleTable extends StatelessWidget {
     this.empty,
   });
 
-  final List<String> columns;
+  final List<AdminConsoleColumn> columns;
   final List<AdminConsoleTableRow> rows;
   final Widget? empty;
 
@@ -22,9 +39,9 @@ class AdminConsoleTable extends StatelessWidget {
   Widget build(BuildContext context) {
     if (rows.isEmpty) {
       return empty ??
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: CredTheme.spaceLg),
-            child: Center(child: Text('No results')),
+          const EmptyState(
+            title: 'No results',
+            message: 'Nothing matches these filters.',
           );
     }
 
@@ -39,14 +56,16 @@ class AdminConsoleTable extends StatelessWidget {
         children: [
           Container(
             color: CredTheme.inputBackground,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             child: Row(
               children: [
                 for (var i = 0; i < columns.length; i++)
-                  Expanded(
-                    flex: i == 0 ? 3 : 2,
-                    child: Text(
-                      columns[i],
+                  _slot(
+                    i,
+                    Text(
+                      columns[i].label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
@@ -66,14 +85,12 @@ class AdminConsoleTable extends StatelessWidget {
               child: InkWell(
                 onTap: rows[i].onTap,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                   child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      for (var c = 0; c < rows[i].cells.length; c++)
-                        Expanded(
-                          flex: c == 0 ? 3 : 2,
-                          child: rows[i].cells[c],
-                        ),
+                      for (var c = 0; c < rows[i].cells.length && c < columns.length; c++)
+                        _slot(c, rows[i].cells[c]),
                     ],
                   ),
                 ),
@@ -83,6 +100,19 @@ class AdminConsoleTable extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Widget _slot(int index, Widget child) {
+    final column = columns[index];
+    final isLast = index == columns.length - 1;
+    final padded = Padding(
+      padding: EdgeInsets.only(right: isLast ? 0 : 16),
+      child: child,
+    );
+    if (column.width != null) {
+      return SizedBox(width: column.width, child: padded);
+    }
+    return Expanded(flex: column.flex, child: padded);
   }
 }
 

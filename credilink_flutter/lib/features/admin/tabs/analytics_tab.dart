@@ -20,52 +20,31 @@ class AdminAnalyticsTab extends ConsumerStatefulWidget {
 
 class _AdminAnalyticsTabState extends ConsumerState<AdminAnalyticsTab> {
   int _days = 7;
-  late Future<_AnalyticsData> _analyticsFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    _analyticsFuture = _load();
-  }
-
-  Future<_AnalyticsData> _load() async {
-    final repo = ref.read(adminRepositoryProvider);
-    final roles = await repo.getRoleDistribution();
-    final trend = await repo.getRegistrationTrend(days: _days);
-    final financial = await repo.getFinancialStats();
-    return _AnalyticsData(roles: roles, trend: trend, financial: financial);
-  }
 
   Future<void> _refresh() async {
-    setState(() => _analyticsFuture = _load());
-    await _analyticsFuture;
+    ref.invalidate(adminPlatformSnapshotProvider);
+    await ref.read(adminPlatformSnapshotProvider.future);
   }
 
-  void _setDays(int days) {
-    setState(() {
-      _days = days;
-      _analyticsFuture = _load();
-    });
-  }
+  void _setDays(int days) => setState(() => _days = days);
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<_AnalyticsData>(
-      future: _analyticsFuture,
-      builder: (context, snap) {
-        if (snap.connectionState == ConnectionState.waiting && !snap.hasData) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (snap.hasError) {
-          return EmptyState(
-            message: '${snap.error}',
-            action: TextButton(onPressed: _refresh, child: const Text('Retry')),
-          );
-        }
-        final data = snap.data!;
-        final roles = data.roles;
-        final trend = data.trend;
-        final financial = data.financial;
+    final async = ref.watch(adminPlatformSnapshotProvider);
+    if (async.isLoading && !async.hasValue) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (async.hasError && !async.hasValue) {
+      return EmptyState(
+        title: 'Could not load analytics',
+        message: 'Something went wrong. Try again.',
+        action: TextButton(onPressed: _refresh, child: const Text('Retry')),
+      );
+    }
+    final snapshot = async.requireValue;
+    final roles = snapshot.roles;
+    final trend = snapshot.registrationTrendFor(_days);
+    final financial = snapshot.financial;
         final totalRoles = roles.values.fold<int>(0, (s, v) => s + v);
 
         return CredTabPageLayout(
@@ -98,7 +77,7 @@ class _AdminAnalyticsTabState extends ConsumerState<AdminAnalyticsTab> {
               child: totalRoles == 0
                   ? const EmptyState(message: 'No user data')
                   : SizedBox(
-                      height: 220,
+                      height: 240,
                       child: Row(
                         children: [
                           Expanded(
@@ -242,8 +221,6 @@ class _AdminAnalyticsTabState extends ConsumerState<AdminAnalyticsTab> {
               ),
             ),
           ],
-        );
-      },
     );
   }
 
@@ -264,27 +241,16 @@ class _AdminAnalyticsTabState extends ConsumerState<AdminAnalyticsTab> {
         value: e.value.toDouble(),
         title: pct >= 8 ? '${pct.toStringAsFixed(0)}%' : '',
         color: color,
-        radius: 56,
+        radius: 48,
+        titlePositionPercentageOffset: 1.55,
         titleStyle: const TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.bold,
-          color: Colors.white,
+          color: CredTheme.titleText,
         ),
       );
     }).toList();
   }
-}
-
-class _AnalyticsData {
-  const _AnalyticsData({
-    required this.roles,
-    required this.trend,
-    required this.financial,
-  });
-
-  final Map<String, int> roles;
-  final List<Map<String, dynamic>> trend;
-  final Map<String, num> financial;
 }
 
 class _LegendDot extends StatelessWidget {

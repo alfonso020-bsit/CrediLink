@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/cred_theme.dart';
 import '../../../core/utils/inventory_stats.dart';
 import '../../../models/product.dart';
 
@@ -13,9 +14,9 @@ class InventoryStatusBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final status = stockStatusFor(product);
     final (label, color) = switch (status) {
-      StockStatus.inStock => ('In Stock', Colors.green),
-      StockStatus.lowStock => ('Low Stock', Colors.orange),
-      StockStatus.outOfStock => ('Out of Stock', Colors.red),
+      StockStatus.inStock => ('In Stock', CredTheme.success),
+      StockStatus.lowStock => ('Low Stock', CredTheme.warning),
+      StockStatus.outOfStock => ('Out of Stock', CredTheme.danger),
     };
 
     return Container(
@@ -28,7 +29,7 @@ class InventoryStatusBadge extends StatelessWidget {
       child: Text(
         label,
         style: TextStyle(
-          color: _darken(color),
+          color: color,
           fontSize: compact ? 10 : 11,
           fontWeight: FontWeight.w600,
         ),
@@ -37,7 +38,4 @@ class InventoryStatusBadge extends StatelessWidget {
   }
 }
 
-Color _darken(Color color) {
-  final hsl = HSLColor.fromColor(color);
-  return hsl.withLightness((hsl.lightness * 0.7).clamp(0.0, 1.0)).toColor();
-}
+

@@ -28,6 +28,18 @@ class MasqueradeNotifier extends Notifier<MasqueradeSession?> {
 final masqueradeProvider =
     NotifierProvider<MasqueradeNotifier, MasqueradeSession?>(MasqueradeNotifier.new);
 
+/// Clears view-as when the signed-in Firebase user changes or signs out.
+///
+/// Watch this from the root app so the listener stays alive.
+final masqueradeAuthBindingProvider = Provider<void>((ref) {
+  ref.listen(authStateProvider, (previous, next) {
+    final previousUid = previous?.value?.uid;
+    final nextUid = next.value?.uid;
+    if (previousUid == nextUid) return;
+    ref.read(masqueradeProvider.notifier).clear();
+  });
+});
+
 /// Profile used by Store Owner screens: masquerade target, else signed-in user.
 final viewingProfileProvider = Provider<AsyncValue<UserProfile?>>((ref) {
   final mask = ref.watch(masqueradeProvider);

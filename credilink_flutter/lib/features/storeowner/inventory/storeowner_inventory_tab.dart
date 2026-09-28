@@ -84,7 +84,7 @@ class _StoreOwnerInventoryTabState extends ConsumerState<StoreOwnerInventoryTab>
       );
       if (mounted) CredSnackBar.show(context, 'PDF report generated');
     } catch (e) {
-      if (mounted) CredSnackBar.show(context, 'Failed to export PDF: $e', isError: true);
+      if (mounted) CredSnackBar.error(context, e, fallback: "Couldn't export the PDF.");
     } finally {
       if (mounted) setState(() => _exporting = false);
     }

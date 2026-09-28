@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/theme/cred_theme.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../core/utils/inventory_stats.dart';
 import '../../../models/product.dart';
@@ -106,7 +107,7 @@ class ProductDetailSheet extends StatelessWidget {
           if (product.brand.isNotEmpty) _DetailRow(label: 'Brand', value: product.brand),
           if (product.description.isNotEmpty) ...[
             const SizedBox(height: 8),
-            Text(product.description, style: TextStyle(color: Colors.grey.shade700)),
+            Text(product.description, style: const TextStyle(color: CredTheme.bodyMuted)),
           ],
           const Divider(height: 24),
           _DetailRow(label: 'Current Stock', value: '${product.stockQuantity} ${product.unitOfMeasure}'),
@@ -146,7 +147,7 @@ class ProductDetailSheet extends StatelessWidget {
                 dense: true,
                 leading: Icon(
                   t.changeType == 'increase' ? Icons.arrow_upward : Icons.arrow_downward,
-                  color: t.changeType == 'increase' ? Colors.green : Colors.red,
+                  color: t.changeType == 'increase' ? CredTheme.success : CredTheme.danger,
                   size: 18,
                 ),
                 title: Text('${t.previousStock} → ${t.newStock}'),
@@ -182,8 +183,8 @@ class ProductDetailSheet extends StatelessWidget {
             const SizedBox(height: 8),
             OutlinedButton.icon(
               onPressed: onDelete,
-              icon: const Icon(Icons.delete_outline, color: Colors.red),
-              label: const Text('Delete Product', style: TextStyle(color: Colors.red)),
+              icon: const Icon(Icons.delete_outline, color: CredTheme.danger),
+              label: const Text('Delete Product', style: TextStyle(color: CredTheme.danger)),
             ),
           ],
         ],
@@ -202,11 +203,11 @@ class _StockAlertCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final (color, message) = switch (status) {
       StockStatus.lowStock => (
-          Colors.orange,
+          CredTheme.warning,
           'Low stock: ${product.stockQuantity} remaining (min ${product.minStockLevel})',
         ),
-      StockStatus.outOfStock => (Colors.red, 'Out of stock — restock needed'),
-      StockStatus.inStock => (Colors.green, ''),
+      StockStatus.outOfStock => (CredTheme.danger, 'Out of stock — restock needed'),
+      StockStatus.inStock => (CredTheme.success, ''),
     };
 
     return Card(
@@ -220,17 +221,12 @@ class _StockAlertCard extends StatelessWidget {
               color: color,
             ),
             const SizedBox(width: 12),
-            Expanded(child: Text(message, style: TextStyle(color: _darken(color)))),
+            Expanded(child: Text(message, style: TextStyle(color: color))),
           ],
         ),
       ),
     );
   }
-}
-
-Color _darken(Color color) {
-  final hsl = HSLColor.fromColor(color);
-  return hsl.withLightness((hsl.lightness * 0.7).clamp(0.0, 1.0)).toColor();
 }
 
 class _DetailRow extends StatelessWidget {
@@ -248,7 +244,7 @@ class _DetailRow extends StatelessWidget {
         children: [
           SizedBox(
             width: 110,
-            child: Text(label, style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+            child: Text(label, style: const TextStyle(color: CredTheme.bodyMuted, fontSize: 13)),
           ),
           Expanded(child: Text(value, style: const TextStyle(fontWeight: FontWeight.w500))),
         ],
